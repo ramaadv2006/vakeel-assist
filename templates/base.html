@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Vakeel Assist{% endblock %}</title>
+    <style>
+        :root {
+            --navy: #1a2744;
+            --gold: #b8925a;
+            --gold-light: #d4af7a;
+            --cream: #f7f4ee;
+            --red: #c0392b;
+            --green: #27804d;
+            --orange: #d68910;
+            --gray: #6b7280;
+            --border: #e5e1d8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: var(--cream);
+            color: #2a2a2a;
+            line-height: 1.5;
+        }
+        header {
+            background: var(--navy);
+            color: white;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid var(--gold);
+        }
+        header h1 {
+            font-size: 22px;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        header h1 span { color: var(--gold-light); }
+        header a.btn-add {
+            background: var(--gold);
+            color: var(--navy);
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        main { max-width: 1000px; margin: 0 auto; padding: 28px 20px; }
+        .flash {
+            padding: 12px 18px;
+            border-radius: 6px;
+            margin-bottom: 18px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        .flash.success { background: #e2f4e9; color: var(--green); border: 1px solid var(--green); }
+        .flash.error { background: #fbe4e2; color: var(--red); border: 1px solid var(--red); }
+        .stats-row {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 26px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px 20px;
+            flex: 1;
+            min-width: 130px;
+            border-left: 4px solid var(--gold);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .stat-card .num { font-size: 26px; font-weight: 700; color: var(--navy); }
+        .stat-card .label { font-family: Arial, sans-serif; font-size: 12px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+        .section-title {
+            font-size: 15px;
+            font-family: Arial, sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin: 24px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--border);
+        }
+        .section-title.overdue { color: var(--red); border-color: var(--red); }
+        .section-title.today { color: var(--orange); border-color: var(--orange); }
+        .case-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-left: 4px solid var(--border);
+        }
+        .case-card.overdue { border-left-color: var(--red); }
+        .case-card.today { border-left-color: var(--orange); }
+        .case-card.week { border-left-color: var(--gold); }
+        .case-info .client { font-size: 16px; font-weight: 700; color: var(--navy); }
+        .case-info .meta { font-family: Arial, sans-serif; font-size: 13px; color: var(--gray); margin-top: 3px; }
+        .badge {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .badge.overdue { background: #fbe4e2; color: var(--red); }
+        .badge.today { background: #fdf0dd; color: var(--orange); }
+        .badge.week { background: #f7ecd9; color: var(--gold); }
+        .badge.upcoming { background: #e9ecef; color: var(--gray); }
+        .actions { display: flex; gap: 10px; font-family: Arial, sans-serif; font-size: 13px; flex-wrap: wrap; align-items: center; }
+        .actions a { color: var(--navy); text-decoration: none; font-weight: 600; }
+        .actions a[target="_blank"] { color: var(--gold); }
+        .actions a.delete { color: var(--red); }
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: var(--gray);
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        form.card-form {
+            background: white;
+            padding: 26px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            max-width: 560px;
+        }
+        .form-group { margin-bottom: 16px; }
+        label {
+            display: block;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 5px;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        textarea { resize: vertical; min-height: 60px; }
+        .btn-submit {
+            background: var(--navy);
+            color: white;
+            border: none;
+            padding: 12px 26px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn-submit:hover { background: #263561; }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 16px;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            color: var(--gray);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Vakeel <span>Assist</span></h1>
+        {% if current_advocate_name %}
+        <div style="display:flex; align-items:center; gap:16px;">
+            <span style="font-family:Arial, sans-serif; font-size:13px; color:#d4af7a;">👤 {{ current_advocate_name }}</span>
+            <a href="{{ url_for('settings') }}" style="color:#d4af7a; font-family:Arial, sans-serif; font-size:13px; text-decoration:none;">⚙ Reminders</a>
+            <a href="{{ url_for('add_case') }}" class="btn-add">+ Add New Case</a>
+            <a href="{{ url_for('logout') }}" style="color:#d4af7a; font-family:Arial, sans-serif; font-size:13px; text-decoration:none;">Logout</a>
+        </div>
+        {% endif %}
+    </header>
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>
