@@ -3,6 +3,15 @@
 A simple Python (Flask) web app to help advocates track cases and hearing dates,
 so nothing is missed and less time is spent on manual diary management.
 
+## Recent Updates (July 19, 2026)
+
+The project has been upgraded with the following system features and UI/UX animation updates:
+- **Centralized Premium Styles**: Moved inline styles into a clean, central [style.css](file:///d:/My%20Work/vakeel-assist/static/css/style.css) stylesheet using variables.
+- **Theme Switcher (Dark/Light)**: Added a navbar theme toggle button persisted via `localStorage` with smooth color transitions.
+- **Instant Search & Filter**: Integrated a real-time search input bar on the dashboard that dynamically filters cards and sections.
+- **CSV Export**: Created a backend download route `/export` in [app.py](file:///d:/My%20Work/vakeel-assist/app.py) to export active case lists to CSV.
+- **Micro-Animations & UI**: Implemented staggered slide-ins, glassmorphism containers, input focus underlines, button hover shimmers, and animated mesh gradient backgrounds.
+
 ## Features (MVP v2 - Multi-User)
 - **Multiple advocates can sign up** and each one only sees their own cases (private, secure)
 - Signup / Login / Logout with password hashing (no plain-text passwords stored)

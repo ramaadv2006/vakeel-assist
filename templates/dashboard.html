@@ -3,22 +3,35 @@
 {% block content %}
 
 <div class="stats-row">
-    <div class="stat-card">
+    <div class="stat-card" style="border-left-color: var(--accent);">
         <div class="num">{{ total_cases }}</div>
         <div class="label">Total Active Cases</div>
     </div>
-    <div class="stat-card" style="border-left-color:#c0392b;">
+    <div class="stat-card" style="border-left-color: var(--danger);">
         <div class="num">{{ overdue|length }}</div>
         <div class="label">Overdue Hearings</div>
     </div>
-    <div class="stat-card" style="border-left-color:#d68910;">
+    <div class="stat-card" style="border-left-color: var(--warning);">
         <div class="num">{{ today_list|length }}</div>
         <div class="label">Today's Hearings</div>
     </div>
-    <div class="stat-card" style="border-left-color:#b8925a;">
+    <div class="stat-card" style="border-left-color: var(--info);">
         <div class="num">{{ this_week|length }}</div>
         <div class="label">This Week</div>
     </div>
+</div>
+
+<div class="dashboard-actions">
+    <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="dashboard-search-input" placeholder="Search cases by client, case no, court, notes...">
+    </div>
+    {% if total_cases > 0 %}
+    <a href="{{ url_for('export_cases') }}" class="btn-export" title="Export case diary to CSV spreadsheet">
+        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Export cases (CSV)
+    </a>
+    {% endif %}
 </div>
 
 {% macro render_case(case, days_left, css_class, badge_text) %}
@@ -26,53 +39,150 @@
     <div class="case-info">
         <div class="client">{{ case['client_name'] }}</div>
         <div class="meta">
-            Case No: {{ case['case_number'] }} &middot; {{ case['court_name'] }}
-            {% if case['case_type'] %} &middot; {{ case['case_type'] }}{% endif %}
-            <br>Hearing Date: {{ case['next_hearing_date'] }}
-            {% if case['client_phone'] %} &middot; 📞 {{ case['client_phone'] }}{% endif %}
+            <span class="meta-item" title="Case Number">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                {{ case['case_number'] }}
+            </span>
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Court Name">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 21h18M9 21V9a3 3 0 0 1 6 0v12"></path></svg>
+                {{ case['court_name'] }}
+            </span>
+            {% if case['case_type'] %}
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Case Type">
+                <strong>{{ case['case_type'] }}</strong>
+            </span>
+            {% endif %}
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Hearing Date" style="color: var(--primary-light); font-weight: 600;">
+                <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                {{ case['next_hearing_date'] }}
+            </span>
+            {% if case['client_phone'] %}
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Client Phone">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                {{ case['client_phone'] }}
+            </span>
+            {% endif %}
         </div>
     </div>
+    
     <span class="badge {{ css_class }}">{{ badge_text }}</span>
+    
     <div class="actions">
-        <a href="https://services.ecourts.gov.in/ecourtindia_v6/?p=casestatus/index" target="_blank" rel="noopener" title="Opens eCourts official site - enter case number there">Check on eCourts ↗</a>
-        <a href="{{ url_for('edit_case', case_id=case['id']) }}">Edit</a>
-        <a href="{{ url_for('delete_case', case_id=case['id']) }}" class="delete" onclick="return confirm('Remove this case?')">Delete</a>
+        <a href="https://services.ecourts.gov.in/ecourtindia_v6/?p=casestatus/index" target="_blank" rel="noopener" class="btn-icon-text btn-ecourts" title="Opens eCourts official site">
+            Verify ↗
+        </a>
+        <a href="{{ url_for('edit_case', case_id=case['id']) }}" class="btn-icon-text btn-edit">
+            Edit
+        </a>
+        <a href="{{ url_for('delete_case', case_id=case['id']) }}" class="btn-icon-text btn-delete" onclick="return confirm('Remove this case?')">
+            Delete
+        </a>
     </div>
+
+    {% if case['notes'] %}
+    <div class="case-notes">
+        <strong>Notes:</strong> {{ case['notes'] }}
+    </div>
+    {% endif %}
 </div>
 {% endmacro %}
 
 {% if overdue %}
-<div class="section-title overdue">⚠ Overdue — Action Needed</div>
-{% for case, days in overdue %}
-    {{ render_case(case, days, 'overdue', (days|abs|string) + ' days overdue') }}
-{% endfor %}
+<div class="section-title overdue">
+    <svg class="icon-svg" viewBox="0 0 24 24" style="stroke: var(--danger);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    Overdue — Action Needed
+</div>
+<div class="case-list">
+    {% for case, days in overdue %}
+        {{ render_case(case, days, 'overdue', (days|abs|string) + ' days overdue') }}
+    {% endfor %}
+</div>
 {% endif %}
 
 {% if today_list %}
-<div class="section-title today">📅 Today's Hearings</div>
-{% for case, days in today_list %}
-    {{ render_case(case, days, 'today', 'Today') }}
-{% endfor %}
+<div class="section-title today">
+    <svg class="icon-svg" viewBox="0 0 24 24" style="stroke: var(--warning);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+    Today's Hearings
+</div>
+<div class="case-list">
+    {% for case, days in today_list %}
+        {{ render_case(case, days, 'today', 'Today') }}
+    {% endfor %}
+</div>
 {% endif %}
 
 {% if this_week %}
-<div class="section-title">🗓 This Week</div>
-{% for case, days in this_week %}
-    {{ render_case(case, days, 'week', days|string + ' days left') }}
-{% endfor %}
+<div class="section-title" style="color: var(--accent); border-color: rgba(197, 168, 128, 0.2);">
+    <svg class="icon-svg" viewBox="0 0 24 24" style="stroke: var(--accent);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+    This Week
+</div>
+<div class="case-list">
+    {% for case, days in this_week %}
+        {{ render_case(case, days, 'week', days|string + ' days left') }}
+    {% endfor %}
+</div>
 {% endif %}
 
 {% if upcoming %}
-<div class="section-title">Upcoming</div>
-{% for case, days in upcoming %}
-    {{ render_case(case, days, 'upcoming', days|string + ' days left') }}
-{% endfor %}
+<div class="section-title" style="color: #64748b; border-color: rgba(100, 116, 139, 0.2);">
+    <svg class="icon-svg" viewBox="0 0 24 24" style="stroke: #64748b;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+    Upcoming
+</div>
+<div class="case-list">
+    {% for case, days in upcoming %}
+        {{ render_case(case, days, 'upcoming', days|string + ' days left') }}
+    {% endfor %}
+</div>
 {% endif %}
 
 {% if total_cases == 0 %}
 <div class="empty-state">
-    No cases added yet. Click "+ Add New Case" to get started.
+    <svg class="icon-svg" style="width: 48px; height: 48px; stroke: #cbd5e1;" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+    <span>No cases added yet. Click "+ Add Case" to get started.</span>
 </div>
 {% endif %}
 
+<script>
+    const searchInput = document.getElementById('dashboard-search-input');
+    const caseCards = document.querySelectorAll('.case-card');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const queryTrimmed = e.target.value.toLowerCase().trim();
+            
+            caseCards.forEach(card => {
+                const clientName = card.querySelector('.client').textContent.toLowerCase();
+                const metaInfo = card.querySelector('.meta').textContent.toLowerCase();
+                const notes = card.querySelector('.case-notes') ? card.querySelector('.case-notes').textContent.toLowerCase() : '';
+                
+                if (clientName.includes(queryTrimmed) || metaInfo.includes(queryTrimmed) || notes.includes(queryTrimmed)) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+            
+            const sections = document.querySelectorAll('.case-list');
+            sections.forEach(section => {
+                const visibleCards = section.querySelectorAll('.case-card:not(.hidden)');
+                const title = section.previousElementSibling;
+                if (visibleCards.length === 0) {
+                    section.style.display = 'none';
+                    if (title && title.classList.contains('section-title')) {
+                        title.style.display = 'none';
+                    }
+                } else {
+                    section.style.display = 'flex';
+                    if (title && title.classList.contains('section-title')) {
+                        title.style.display = 'flex';
+                    }
+                }
+            });
+        });
+    }
+</script>
 {% endblock %}

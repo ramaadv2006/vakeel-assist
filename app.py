@@ -299,6 +299,43 @@ def delete_case(case_id):
     flash("Case removed.", "success")
     return redirect(url_for("dashboard"))
 
+@app.route("/export")
+@login_required
+def export_cases():
+    import csv
+    import io
+    from flask import Response
+    
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cases = conn.execute(
+        "SELECT client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, status FROM cases WHERE advocate_id=? ORDER BY next_hearing_date ASC",
+        (advocate_id,),
+    ).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Client Name", "Client Phone", "Case Number", "Court Name", 
+        "Case Type", "Next Hearing Date", "Notes", "Status"
+    ])
+    for case in cases:
+        writer.writerow([
+            case["client_name"],
+            case["client_phone"] or "",
+            case["case_number"],
+            case["court_name"],
+            case["case_type"] or "",
+            case["next_hearing_date"],
+            case["notes"] or "",
+            case["status"]
+        ])
+    
+    response = Response(output.getvalue(), mimetype="text/csv")
+    response.headers["Content-Disposition"] = "attachment; filename=vakeel_cases_export.csv"
+    return response
+
 init_db()
 if __name__ == "__main__":
     
