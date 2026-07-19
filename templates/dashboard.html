@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Vakeel Assist{% endblock %}
+{% block content %}
+
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="num">{{ total_cases }}</div>
+        <div class="label">Total Active Cases</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#c0392b;">
+        <div class="num">{{ overdue|length }}</div>
+        <div class="label">Overdue Hearings</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#d68910;">
+        <div class="num">{{ today_list|length }}</div>
+        <div class="label">Today's Hearings</div>
+    </div>
+    <div class="stat-card" style="border-left-color:#b8925a;">
+        <div class="num">{{ this_week|length }}</div>
+        <div class="label">This Week</div>
+    </div>
+</div>
+
+{% macro render_case(case, days_left, css_class, badge_text) %}
+<div class="case-card {{ css_class }}">
+    <div class="case-info">
+        <div class="client">{{ case['client_name'] }}</div>
+        <div class="meta">
+            Case No: {{ case['case_number'] }} &middot; {{ case['court_name'] }}
+            {% if case['case_type'] %} &middot; {{ case['case_type'] }}{% endif %}
+            <br>Hearing Date: {{ case['next_hearing_date'] }}
+            {% if case['client_phone'] %} &middot; 📞 {{ case['client_phone'] }}{% endif %}
+        </div>
+    </div>
+    <span class="badge {{ css_class }}">{{ badge_text }}</span>
+    <div class="actions">
+        <a href="https://services.ecourts.gov.in/ecourtindia_v6/?p=casestatus/index" target="_blank" rel="noopener" title="Opens eCourts official site - enter case number there">Check on eCourts ↗</a>
+        <a href="{{ url_for('edit_case', case_id=case['id']) }}">Edit</a>
+        <a href="{{ url_for('delete_case', case_id=case['id']) }}" class="delete" onclick="return confirm('Remove this case?')">Delete</a>
+    </div>
+</div>
+{% endmacro %}
+
+{% if overdue %}
+<div class="section-title overdue">⚠ Overdue — Action Needed</div>
+{% for case, days in overdue %}
+    {{ render_case(case, days, 'overdue', (days|abs|string) + ' days overdue') }}
+{% endfor %}
+{% endif %}
+
+{% if today_list %}
+<div class="section-title today">📅 Today's Hearings</div>
+{% for case, days in today_list %}
+    {{ render_case(case, days, 'today', 'Today') }}
+{% endfor %}
+{% endif %}
+
+{% if this_week %}
+<div class="section-title">🗓 This Week</div>
+{% for case, days in this_week %}
+    {{ render_case(case, days, 'week', days|string + ' days left') }}
+{% endfor %}
+{% endif %}
+
+{% if upcoming %}
+<div class="section-title">Upcoming</div>
+{% for case, days in upcoming %}
+    {{ render_case(case, days, 'upcoming', days|string + ' days left') }}
+{% endfor %}
+{% endif %}
+
+{% if total_cases == 0 %}
+<div class="empty-state">
+    No cases added yet. Click "+ Add New Case" to get started.
+</div>
+{% endif %}
+
+{% endblock %}
