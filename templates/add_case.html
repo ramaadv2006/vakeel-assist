@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Add Case - Vakeel Assist{% endblock %}
+{% block content %}
+
+<a href="{{ url_for('dashboard') }}" class="back-link">&larr; Back to Dashboard</a>
+
+<form class="card-form" method="POST">
+    <div class="form-group">
+        <label>Client Name *</label>
+        <input type="text" name="client_name" required placeholder="e.g. Ramesh Kumar">
+    </div>
+    <div class="form-group">
+        <label>Client Phone (for WhatsApp/SMS reminders)</label>
+        <input type="tel" name="client_phone" placeholder="e.g. 9876543210">
+    </div>
+    <div class="form-group">
+        <label>Case Number *</label>
+        <input type="text" name="case_number" required placeholder="e.g. CC 1234/2026">
+    </div>
+    <div class="form-group">
+        <label>Court Name *</label>
+        <input type="text" name="court_name" required placeholder="e.g. Chennai District Court">
+    </div>
+    <div class="form-group">
+        <label>Case Type</label>
+        <select name="case_type">
+            <option value="">-- Select --</option>
+            <option>Civil</option>
+            <option>Criminal</option>
+            <option>Family</option>
+            <option>Property</option>
+            <option>Consumer</option>
+            <option>Labour</option>
+            <option>Other</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Next Hearing Date *</label>
+        <input type="date" name="next_hearing_date" required>
+    </div>
+    <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" placeholder="Any additional notes about the case..."></textarea>
+    </div>
+    <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" name="notify_client" id="notify_client" style="width:auto;">
+        <label for="notify_client" style="margin:0;">Also send a reminder to the client on WhatsApp/SMS</label>
+    </div>
+    <button type="submit" class="btn-submit">Save Case</button>
+</form>
+
+{% endblock %}
