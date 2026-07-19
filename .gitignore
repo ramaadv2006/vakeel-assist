@@ -1,0 +1,4 @@
+config.py
+vakeel.db
+__pycache__/
+*.pyc
