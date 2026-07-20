@@ -75,6 +75,9 @@
         <a href="https://services.ecourts.gov.in/ecourtindia_v6/?p=casestatus/index" target="_blank" rel="noopener" class="btn-icon-text btn-ecourts" title="Opens eCourts official site">
             Verify ↗
         </a>
+        <a href="{{ url_for('case_history', case_id=case['id']) }}" class="btn-icon-text btn-edit" title="View hearing date history for this case">
+            History
+        </a>
         <a href="{{ url_for('edit_case', case_id=case['id']) }}" class="btn-icon-text btn-edit">
             Edit
         </a>
