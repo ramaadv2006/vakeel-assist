@@ -297,4 +297,102 @@ def edit_case(case_id):
         status = request.form.get("status", "Active")
         notify_client = 1 if request.form.get("notify_client") == "on" else 0
 
-        date_changed =
+        date_changed = next_hearing_date != case["next_hearing_date"]
+
+        conn.execute(
+            """UPDATE cases SET client_name=?, client_phone=?, case_number=?, court_name=?,
+               case_type=?, next_hearing_date=?, notes=?, status=?, notify_client=? WHERE id=? AND advocate_id=?""",
+            (client_name, client_phone, case_number, court_name, case_type,
+             next_hearing_date, notes, status, notify_client, case_id, advocate_id),
+        )
+
+        # Only add a new history entry when the hearing date actually
+        # changed - this is what keeps the 1, 2, 3... history building up
+        # under the same case file every time the hearing is updated.
+        if date_changed:
+            add_history_entry(conn, case_id, next_hearing_date)
+
+        conn.commit()
+        conn.close()
+        flash("Case updated successfully!", "success")
+        return redirect(url_for("dashboard"))
+
+    conn.close()
+    return render_template("edit_case.html", case=case)
+
+
+@app.route("/history/<int:case_id>")
+@login_required
+def case_history(case_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+
+    case = conn.execute(
+        "SELECT * FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id)
+    ).fetchone()
+    if case is None:
+        conn.close()
+        flash("Case not found.", "error")
+        return redirect(url_for("dashboard"))
+
+    history = conn.execute(
+        "SELECT * FROM hearing_history WHERE case_id=? ORDER BY added_at ASC, id ASC",
+        (case_id,),
+    ).fetchall()
+    conn.close()
+
+    return render_template("case_history.html", case=case, history=history)
+
+
+@app.route("/delete/<int:case_id>")
+@login_required
+def delete_case(case_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    conn.execute("DELETE FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id))
+    conn.commit()
+    conn.close()
+    flash("Case removed.", "success")
+    return redirect(url_for("dashboard"))
+
+@app.route("/export")
+@login_required
+def export_cases():
+    import csv
+    import io
+    from flask import Response
+    
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cases = conn.execute(
+        "SELECT client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, status FROM cases WHERE advocate_id=? ORDER BY next_hearing_date ASC",
+        (advocate_id,),
+    ).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Client Name", "Client Phone", "Case Number", "Court Name", 
+        "Case Type", "Next Hearing Date", "Notes", "Status"
+    ])
+    for case in cases:
+        writer.writerow([
+            case["client_name"],
+            case["client_phone"] or "",
+            case["case_number"],
+            case["court_name"],
+            case["case_type"] or "",
+            case["next_hearing_date"],
+            case["notes"] or "",
+            case["status"]
+        ])
+    
+    response = Response(output.getvalue(), mimetype="text/csv")
+    response.headers["Content-Disposition"] = "attachment; filename=vakeel_cases_export.csv"
+    return response
+
+init_db()
+if __name__ == "__main__":
+    
+    app.run(debug=True, host="0.0.0.0", port=5000)
