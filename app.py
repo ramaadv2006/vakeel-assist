@@ -415,6 +415,21 @@ def delete_case(case_id):
     advocate_id = session["advocate_id"]
     conn = get_db()
     cur = conn.cursor()
+
+    # Make sure this case belongs to the logged-in advocate before deleting
+    cur.execute(
+        "SELECT id FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id)
+    )
+    case = cur.fetchone()
+    if case is None:
+        cur.close()
+        conn.close()
+        flash("Case not found.", "error")
+        return redirect(url_for("dashboard"))
+
+    # Remove the case's hearing history first - the cases table can't be
+    # deleted while hearing_history rows still point to it.
+    cur.execute("DELETE FROM hearing_history WHERE case_id=%s", (case_id,))
     cur.execute("DELETE FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
     conn.commit()
     cur.close()
