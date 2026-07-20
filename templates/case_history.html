@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Hearing History - Vakeel Assist{% endblock %}
+{% block content %}
+
+<div class="form-container">
+    <a href="{{ url_for('dashboard') }}" class="back-link">
+        <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back to Dashboard
+    </a>
+
+    <div class="form-header">
+        <h2>Hearing History</h2>
+        <p>{{ case['client_name'] }} — {{ case['case_number'] }} ({{ case['court_name'] }})</p>
+    </div>
+
+    {% if history %}
+    <div class="case-list">
+        {% for entry in history %}
+        <div class="case-card {% if loop.last %}today{% else %}upcoming{% endif %}">
+            <div class="case-info">
+                <div class="client" style="{% if not loop.last %}text-decoration: line-through; color: #94a3b8;{% endif %}">
+                    {{ entry['hearing_date'] }}
+                </div>
+                <div class="meta">
+                    <span class="meta-item">
+                        Recorded on {{ entry['added_at'] }}
+                    </span>
+                    {% if entry['note'] %}
+                    <span class="meta-divider">|</span>
+                    <span class="meta-item">{{ entry['note'] }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <span class="badge {% if loop.last %}today{% else %}upcoming{% endif %}">
+                {% if loop.last %}Active{% else %}Inactive{% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <span>No hearing history recorded yet for this case.</span>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
