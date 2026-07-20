@@ -253,6 +253,38 @@ def dashboard():
     )
 
 
+@app.route("/clients")
+@login_required
+def client_directory():
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT * FROM cases WHERE advocate_id=%s ORDER BY client_name ASC",
+        (advocate_id,),
+    )
+    all_cases = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    # Group cases by client (name + phone) so each client shows once
+    # with all of their cases listed underneath.
+    clients = {}
+    for case in all_cases:
+        key = (case["client_name"], case["client_phone"] or "")
+        if key not in clients:
+            clients[key] = {
+                "name": case["client_name"],
+                "phone": case["client_phone"],
+                "cases": [],
+            }
+        clients[key]["cases"].append(case)
+
+    client_list = sorted(clients.values(), key=lambda c: c["name"].lower())
+
+    return render_template("client_directory.html", clients=client_list)
+
+
 @app.route("/add", methods=["GET", "POST"])
 @login_required
 def add_case():
