@@ -268,7 +268,8 @@ def client_directory():
     conn.close()
 
     # Group cases by client (name + phone) so each client shows once
-    # with all of their cases listed underneath.
+    # with all of their cases listed underneath, plus a case_count for
+    # the clients.html template.
     clients = {}
     for case in all_cases:
         key = (case["client_name"], case["client_phone"] or "")
@@ -277,12 +278,14 @@ def client_directory():
                 "name": case["client_name"],
                 "phone": case["client_phone"],
                 "cases": [],
+                "case_count": 0,
             }
         clients[key]["cases"].append(case)
+        clients[key]["case_count"] += 1
 
     client_list = sorted(clients.values(), key=lambda c: c["name"].lower())
 
-    return render_template("client_directory.html", clients=client_list)
+    return render_template("clients.html", clients=client_list)
 
 
 @app.route("/add", methods=["GET", "POST"])
