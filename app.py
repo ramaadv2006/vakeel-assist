@@ -6,7 +6,8 @@ their own cases. Built to save advocates time on manual diary management.
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
+import psycopg2
+import psycopg2.extras
 from datetime import datetime
 from functools import wraps
 import os
@@ -14,20 +15,20 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vakeel-assist-secret-key-change-this-in-production")
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "vakeel.db")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
     return conn
 
 
 def init_db():
     conn = get_db()
-    conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS advocates (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
             phone TEXT,
@@ -38,9 +39,9 @@ def init_db():
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    conn.execute("""
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS cases (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             advocate_id INTEGER NOT NULL,
             client_name TEXT NOT NULL,
             client_phone TEXT,
@@ -58,9 +59,9 @@ def init_db():
     # Keeps every hearing-date update for a case, so an advocate can see
     # the full 1, 2, 3... history of postponements/next-dates for a case,
     # not just the latest one. The most recent entry is the "Active" one.
-    conn.execute("""
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS hearing_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             case_id INTEGER NOT NULL,
             hearing_date TEXT NOT NULL,
             note TEXT,
@@ -68,40 +69,20 @@ def init_db():
             FOREIGN KEY (case_id) REFERENCES cases (id)
         )
     """)
-    
-    # Task checklist checklist table
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS case_tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            case_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            is_completed INTEGER DEFAULT 0,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (case_id) REFERENCES cases (id) ON DELETE CASCADE
-        )
-    """)
-
-    # Dynamic migrations: Check columns of cases table and alter schema if needed
-    cursor = conn.execute("PRAGMA table_info(cases)")
-    columns = [row["name"] for row in cursor.fetchall()]
-    if "opposing_counsel" not in columns:
-        conn.execute("ALTER TABLE cases ADD COLUMN opposing_counsel TEXT")
-    if "opposing_counsel_phone" not in columns:
-        conn.execute("ALTER TABLE cases ADD COLUMN opposing_counsel_phone TEXT")
-    if "judge_name" not in columns:
-        conn.execute("ALTER TABLE cases ADD COLUMN judge_name TEXT")
-
     conn.commit()
+    cur.close()
     conn.close()
 
 
 def add_history_entry(conn, case_id, hearing_date, note=None):
     """Appends a new hearing-date entry to a case's history (does not
     overwrite previous entries)."""
-    conn.execute(
-        "INSERT INTO hearing_history (case_id, hearing_date, note) VALUES (?, ?, ?)",
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO hearing_history (case_id, hearing_date, note) VALUES (%s, %s, %s)",
         (case_id, hearing_date, note),
     )
+    cur.close()
 
 
 # ---------- Auth helpers ----------
@@ -141,20 +122,24 @@ def signup():
             return redirect(url_for("signup"))
 
         conn = get_db()
-        existing = conn.execute("SELECT id FROM advocates WHERE email=?", (email,)).fetchone()
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM advocates WHERE email=%s", (email,))
+        existing = cur.fetchone()
         if existing:
+            cur.close()
             conn.close()
             flash("An account with this email already exists. Please log in.", "error")
             return redirect(url_for("login"))
 
         password_hash = generate_password_hash(password)
-        cursor = conn.execute(
+        cur.execute(
             """INSERT INTO advocates (name, email, phone, bar_council_number, password_hash)
-               VALUES (?, ?, ?, ?, ?)""",
+               VALUES (%s, %s, %s, %s, %s) RETURNING id""",
             (name, email, phone, bar_number, password_hash),
         )
+        advocate_id = cur.fetchone()["id"]
         conn.commit()
-        advocate_id = cursor.lastrowid
+        cur.close()
         conn.close()
 
         session["advocate_id"] = advocate_id
@@ -172,7 +157,10 @@ def login():
         password = request.form["password"]
 
         conn = get_db()
-        advocate = conn.execute("SELECT * FROM advocates WHERE email=?", (email,)).fetchone()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM advocates WHERE email=%s", (email,))
+        advocate = cur.fetchone()
+        cur.close()
         conn.close()
 
         if advocate is None or not check_password_hash(advocate["password_hash"], password):
@@ -199,22 +187,26 @@ def logout():
 def settings():
     advocate_id = session["advocate_id"]
     conn = get_db()
+    cur = conn.cursor()
 
     if request.method == "POST":
         phone = request.form.get("phone", "").strip()
         reminder_method = request.form.get("reminder_method", "none")
         reminder_days_before = request.form.get("reminder_days_before", "1")
 
-        conn.execute(
-            "UPDATE advocates SET phone=?, reminder_method=?, reminder_days_before=? WHERE id=?",
+        cur.execute(
+            "UPDATE advocates SET phone=%s, reminder_method=%s, reminder_days_before=%s WHERE id=%s",
             (phone, reminder_method, reminder_days_before, advocate_id),
         )
         conn.commit()
+        cur.close()
         conn.close()
         flash("Reminder settings saved.", "success")
         return redirect(url_for("settings"))
 
-    advocate = conn.execute("SELECT * FROM advocates WHERE id=?", (advocate_id,)).fetchone()
+    cur.execute("SELECT * FROM advocates WHERE id=%s", (advocate_id,))
+    advocate = cur.fetchone()
+    cur.close()
     conn.close()
     return render_template("settings.html", advocate=advocate)
 
@@ -226,12 +218,15 @@ def settings():
 def dashboard():
     advocate_id = session["advocate_id"]
     conn = get_db()
+    cur = conn.cursor()
     today = datetime.now().date()
 
-    all_cases = conn.execute(
-        "SELECT * FROM cases WHERE status='Active' AND advocate_id=? ORDER BY next_hearing_date ASC",
+    cur.execute(
+        "SELECT * FROM cases WHERE status='Active' AND advocate_id=%s ORDER BY next_hearing_date ASC",
         (advocate_id,),
-    ).fetchall()
+    )
+    all_cases = cur.fetchall()
+    cur.close()
     conn.close()
 
     overdue, today_list, this_week, upcoming = [], [], [], []
@@ -271,24 +266,23 @@ def add_case():
         next_hearing_date = request.form["next_hearing_date"]
         notes = request.form.get("notes", "").strip()
         notify_client = 1 if request.form.get("notify_client") == "on" else 0
-        opposing_counsel = request.form.get("opposing_counsel", "").strip()
-        opposing_counsel_phone = request.form.get("opposing_counsel_phone", "").strip()
-        judge_name = request.form.get("judge_name", "").strip()
 
         if not client_name or not case_number or not court_name or not next_hearing_date:
             flash("Please fill all required fields.", "error")
             return redirect(url_for("add_case"))
 
         conn = get_db()
-        cursor = conn.execute(
+        cur = conn.cursor()
+        cur.execute(
             """INSERT INTO cases
-               (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client, opposing_counsel, opposing_counsel_phone, judge_name)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client, opposing_counsel, opposing_counsel_phone, judge_name),
+               (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client),
         )
-        new_case_id = cursor.lastrowid
+        new_case_id = cur.fetchone()["id"]
         add_history_entry(conn, new_case_id, next_hearing_date, note="Case created")
         conn.commit()
+        cur.close()
         conn.close()
 
         flash(f"Case '{case_number}' added successfully!", "success")
@@ -302,12 +296,15 @@ def add_case():
 def edit_case(case_id):
     advocate_id = session["advocate_id"]
     conn = get_db()
+    cur = conn.cursor()
 
     # Make sure this case belongs to the logged-in advocate
-    case = conn.execute(
-        "SELECT * FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id)
-    ).fetchone()
+    cur.execute(
+        "SELECT * FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id)
+    )
+    case = cur.fetchone()
     if case is None:
+        cur.close()
         conn.close()
         flash("Case not found.", "error")
         return redirect(url_for("dashboard"))
@@ -322,17 +319,14 @@ def edit_case(case_id):
         notes = request.form.get("notes", "").strip()
         status = request.form.get("status", "Active")
         notify_client = 1 if request.form.get("notify_client") == "on" else 0
-        opposing_counsel = request.form.get("opposing_counsel", "").strip()
-        opposing_counsel_phone = request.form.get("opposing_counsel_phone", "").strip()
-        judge_name = request.form.get("judge_name", "").strip()
 
         date_changed = next_hearing_date != case["next_hearing_date"]
 
-        conn.execute(
-            """UPDATE cases SET client_name=?, client_phone=?, case_number=?, court_name=?,
-               case_type=?, next_hearing_date=?, notes=?, status=?, notify_client=?, opposing_counsel=?, opposing_counsel_phone=?, judge_name=? WHERE id=? AND advocate_id=?""",
+        cur.execute(
+            """UPDATE cases SET client_name=%s, client_phone=%s, case_number=%s, court_name=%s,
+               case_type=%s, next_hearing_date=%s, notes=%s, status=%s, notify_client=%s WHERE id=%s AND advocate_id=%s""",
             (client_name, client_phone, case_number, court_name, case_type,
-             next_hearing_date, notes, status, notify_client, opposing_counsel, opposing_counsel_phone, judge_name, case_id, advocate_id),
+             next_hearing_date, notes, status, notify_client, case_id, advocate_id),
         )
 
         # Only add a new history entry when the hearing date actually
@@ -342,10 +336,12 @@ def edit_case(case_id):
             add_history_entry(conn, case_id, next_hearing_date)
 
         conn.commit()
+        cur.close()
         conn.close()
         flash("Case updated successfully!", "success")
         return redirect(url_for("dashboard"))
 
+    cur.close()
     conn.close()
     return render_template("edit_case.html", case=case)
 
@@ -355,19 +351,24 @@ def edit_case(case_id):
 def case_history(case_id):
     advocate_id = session["advocate_id"]
     conn = get_db()
+    cur = conn.cursor()
 
-    case = conn.execute(
-        "SELECT * FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id)
-    ).fetchone()
+    cur.execute(
+        "SELECT * FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id)
+    )
+    case = cur.fetchone()
     if case is None:
+        cur.close()
         conn.close()
         flash("Case not found.", "error")
         return redirect(url_for("dashboard"))
 
-    history = conn.execute(
-        "SELECT * FROM hearing_history WHERE case_id=? ORDER BY added_at ASC, id ASC",
+    cur.execute(
+        "SELECT * FROM hearing_history WHERE case_id=%s ORDER BY added_at ASC, id ASC",
         (case_id,),
-    ).fetchall()
+    )
+    history = cur.fetchall()
+    cur.close()
     conn.close()
 
     return render_template("case_history.html", case=case, history=history)
@@ -378,11 +379,14 @@ def case_history(case_id):
 def delete_case(case_id):
     advocate_id = session["advocate_id"]
     conn = get_db()
-    conn.execute("DELETE FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id))
+    cur = conn.cursor()
+    cur.execute("DELETE FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
     conn.commit()
+    cur.close()
     conn.close()
     flash("Case removed.", "success")
     return redirect(url_for("dashboard"))
+
 
 @app.route("/export")
 @login_required
@@ -390,19 +394,22 @@ def export_cases():
     import csv
     import io
     from flask import Response
-    
+
     advocate_id = session["advocate_id"]
     conn = get_db()
-    cases = conn.execute(
-        "SELECT client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, status FROM cases WHERE advocate_id=? ORDER BY next_hearing_date ASC",
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, status FROM cases WHERE advocate_id=%s ORDER BY next_hearing_date ASC",
         (advocate_id,),
-    ).fetchall()
+    )
+    cases = cur.fetchall()
+    cur.close()
     conn.close()
 
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Client Name", "Client Phone", "Case Number", "Court Name", 
+        "Client Name", "Client Phone", "Case Number", "Court Name",
         "Case Type", "Next Hearing Date", "Notes", "Status"
     ])
     for case in cases:
@@ -416,118 +423,12 @@ def export_cases():
             case["notes"] or "",
             case["status"]
         ])
-    
+
     response = Response(output.getvalue(), mimetype="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=vakeel_cases_export.csv"
     return response
 
 
-@app.route("/case/<int:case_id>/tasks")
-@login_required
-def get_tasks(case_id):
-    advocate_id = session["advocate_id"]
-    conn = get_db()
-    case = conn.execute("SELECT id FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id)).fetchone()
-    if not case:
-        conn.close()
-        return {"error": "Unauthorized"}, 403
-    tasks = conn.execute("SELECT * FROM case_tasks WHERE case_id=? ORDER BY id ASC", (case_id,)).fetchall()
-    conn.close()
-    return {"tasks": [dict(t) for t in tasks]}
-
-
-@app.route("/task/add", methods=["POST"])
-@login_required
-def add_task():
-    advocate_id = session["advocate_id"]
-    case_id = request.form.get("case_id")
-    title = request.form.get("title", "").strip()
-    if not case_id or not title:
-        return {"error": "Missing parameter"}, 400
-    conn = get_db()
-    case = conn.execute("SELECT id FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id)).fetchone()
-    if not case:
-        conn.close()
-        return {"error": "Unauthorized"}, 403
-    cursor = conn.execute("INSERT INTO case_tasks (case_id, title) VALUES (?, ?)", (case_id, title))
-    conn.commit()
-    task_id = cursor.lastrowid
-    conn.close()
-    return {"success": True, "task": {"id": task_id, "title": title, "is_completed": 0}}
-
-
-@app.route("/task/toggle/<int:task_id>", methods=["POST"])
-@login_required
-def toggle_task(task_id):
-    advocate_id = session["advocate_id"]
-    conn = get_db()
-    task = conn.execute("""
-        SELECT t.id, t.is_completed, c.advocate_id 
-        FROM case_tasks t 
-        JOIN cases c ON t.case_id = c.id 
-        WHERE t.id=?
-    """, (task_id,)).fetchone()
-    if not task or task["advocate_id"] != advocate_id:
-        conn.close()
-        return {"error": "Unauthorized"}, 403
-    new_state = 1 if not task["is_completed"] else 0
-    conn.execute("UPDATE case_tasks SET is_completed=? WHERE id=?", (new_state, task_id))
-    conn.commit()
-    conn.close()
-    return {"success": True, "is_completed": new_state}
-
-
-@app.route("/task/delete/<int:task_id>", methods=["POST"])
-@login_required
-def delete_task(task_id):
-    advocate_id = session["advocate_id"]
-    conn = get_db()
-    task = conn.execute("""
-        SELECT t.id, c.advocate_id 
-        FROM case_tasks t 
-        JOIN cases c ON t.case_id = c.id 
-        WHERE t.id=?
-    """, (task_id,)).fetchone()
-    if not task or task["advocate_id"] != advocate_id:
-        conn.close()
-        return {"error": "Unauthorized"}, 403
-    conn.execute("DELETE FROM case_tasks WHERE id=?", (task_id,))
-    conn.commit()
-    conn.close()
-    return {"success": True}
-
-
-@app.route("/clients")
-@login_required
-def client_directory():
-    advocate_id = session["advocate_id"]
-    conn = get_db()
-    clients = conn.execute("""
-        SELECT client_name, client_phone, COUNT(id) as case_count
-        FROM cases
-        WHERE advocate_id=?
-        GROUP BY client_name, client_phone
-        ORDER BY client_name ASC
-    """, (advocate_id,)).fetchall()
-    
-    client_data = []
-    for c in clients:
-        cases = conn.execute("""
-            SELECT id, case_number, court_name, next_hearing_date, status, case_type
-            FROM cases
-            WHERE advocate_id=? AND client_name=? AND (client_phone=? OR (client_phone IS NULL AND ?=''))
-        """, (advocate_id, c["client_name"], c["client_phone"] or "", c["client_phone"] or "")).fetchall()
-        client_data.append({
-            "name": c["client_name"],
-            "phone": c["client_phone"],
-            "case_count": c["case_count"],
-            "cases": [dict(case) for case in cases]
-        })
-    conn.close()
-    return render_template("clients.html", clients=client_data)
-
-
 init_db()
 if __name__ == "__main__":
-    
     app.run(debug=True, host="0.0.0.0", port=5000)
