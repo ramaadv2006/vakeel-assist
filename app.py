@@ -68,6 +68,29 @@ def init_db():
             FOREIGN KEY (case_id) REFERENCES cases (id)
         )
     """)
+    
+    # Task checklist checklist table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS case_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            is_completed INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (case_id) REFERENCES cases (id) ON DELETE CASCADE
+        )
+    """)
+
+    # Dynamic migrations: Check columns of cases table and alter schema if needed
+    cursor = conn.execute("PRAGMA table_info(cases)")
+    columns = [row["name"] for row in cursor.fetchall()]
+    if "opposing_counsel" not in columns:
+        conn.execute("ALTER TABLE cases ADD COLUMN opposing_counsel TEXT")
+    if "opposing_counsel_phone" not in columns:
+        conn.execute("ALTER TABLE cases ADD COLUMN opposing_counsel_phone TEXT")
+    if "judge_name" not in columns:
+        conn.execute("ALTER TABLE cases ADD COLUMN judge_name TEXT")
+
     conn.commit()
     conn.close()
 
@@ -248,6 +271,9 @@ def add_case():
         next_hearing_date = request.form["next_hearing_date"]
         notes = request.form.get("notes", "").strip()
         notify_client = 1 if request.form.get("notify_client") == "on" else 0
+        opposing_counsel = request.form.get("opposing_counsel", "").strip()
+        opposing_counsel_phone = request.form.get("opposing_counsel_phone", "").strip()
+        judge_name = request.form.get("judge_name", "").strip()
 
         if not client_name or not case_number or not court_name or not next_hearing_date:
             flash("Please fill all required fields.", "error")
@@ -256,9 +282,9 @@ def add_case():
         conn = get_db()
         cursor = conn.execute(
             """INSERT INTO cases
-               (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client),
+               (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client, opposing_counsel, opposing_counsel_phone, judge_name)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client, opposing_counsel, opposing_counsel_phone, judge_name),
         )
         new_case_id = cursor.lastrowid
         add_history_entry(conn, new_case_id, next_hearing_date, note="Case created")
@@ -296,14 +322,17 @@ def edit_case(case_id):
         notes = request.form.get("notes", "").strip()
         status = request.form.get("status", "Active")
         notify_client = 1 if request.form.get("notify_client") == "on" else 0
+        opposing_counsel = request.form.get("opposing_counsel", "").strip()
+        opposing_counsel_phone = request.form.get("opposing_counsel_phone", "").strip()
+        judge_name = request.form.get("judge_name", "").strip()
 
         date_changed = next_hearing_date != case["next_hearing_date"]
 
         conn.execute(
             """UPDATE cases SET client_name=?, client_phone=?, case_number=?, court_name=?,
-               case_type=?, next_hearing_date=?, notes=?, status=?, notify_client=? WHERE id=? AND advocate_id=?""",
+               case_type=?, next_hearing_date=?, notes=?, status=?, notify_client=?, opposing_counsel=?, opposing_counsel_phone=?, judge_name=? WHERE id=? AND advocate_id=?""",
             (client_name, client_phone, case_number, court_name, case_type,
-             next_hearing_date, notes, status, notify_client, case_id, advocate_id),
+             next_hearing_date, notes, status, notify_client, opposing_counsel, opposing_counsel_phone, judge_name, case_id, advocate_id),
         )
 
         # Only add a new history entry when the hearing date actually
@@ -391,6 +420,112 @@ def export_cases():
     response = Response(output.getvalue(), mimetype="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=vakeel_cases_export.csv"
     return response
+
+
+@app.route("/case/<int:case_id>/tasks")
+@login_required
+def get_tasks(case_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    case = conn.execute("SELECT id FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id)).fetchone()
+    if not case:
+        conn.close()
+        return {"error": "Unauthorized"}, 403
+    tasks = conn.execute("SELECT * FROM case_tasks WHERE case_id=? ORDER BY id ASC", (case_id,)).fetchall()
+    conn.close()
+    return {"tasks": [dict(t) for t in tasks]}
+
+
+@app.route("/task/add", methods=["POST"])
+@login_required
+def add_task():
+    advocate_id = session["advocate_id"]
+    case_id = request.form.get("case_id")
+    title = request.form.get("title", "").strip()
+    if not case_id or not title:
+        return {"error": "Missing parameter"}, 400
+    conn = get_db()
+    case = conn.execute("SELECT id FROM cases WHERE id=? AND advocate_id=?", (case_id, advocate_id)).fetchone()
+    if not case:
+        conn.close()
+        return {"error": "Unauthorized"}, 403
+    cursor = conn.execute("INSERT INTO case_tasks (case_id, title) VALUES (?, ?)", (case_id, title))
+    conn.commit()
+    task_id = cursor.lastrowid
+    conn.close()
+    return {"success": True, "task": {"id": task_id, "title": title, "is_completed": 0}}
+
+
+@app.route("/task/toggle/<int:task_id>", methods=["POST"])
+@login_required
+def toggle_task(task_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    task = conn.execute("""
+        SELECT t.id, t.is_completed, c.advocate_id 
+        FROM case_tasks t 
+        JOIN cases c ON t.case_id = c.id 
+        WHERE t.id=?
+    """, (task_id,)).fetchone()
+    if not task or task["advocate_id"] != advocate_id:
+        conn.close()
+        return {"error": "Unauthorized"}, 403
+    new_state = 1 if not task["is_completed"] else 0
+    conn.execute("UPDATE case_tasks SET is_completed=? WHERE id=?", (new_state, task_id))
+    conn.commit()
+    conn.close()
+    return {"success": True, "is_completed": new_state}
+
+
+@app.route("/task/delete/<int:task_id>", methods=["POST"])
+@login_required
+def delete_task(task_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    task = conn.execute("""
+        SELECT t.id, c.advocate_id 
+        FROM case_tasks t 
+        JOIN cases c ON t.case_id = c.id 
+        WHERE t.id=?
+    """, (task_id,)).fetchone()
+    if not task or task["advocate_id"] != advocate_id:
+        conn.close()
+        return {"error": "Unauthorized"}, 403
+    conn.execute("DELETE FROM case_tasks WHERE id=?", (task_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
+
+@app.route("/clients")
+@login_required
+def client_directory():
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    clients = conn.execute("""
+        SELECT client_name, client_phone, COUNT(id) as case_count
+        FROM cases
+        WHERE advocate_id=?
+        GROUP BY client_name, client_phone
+        ORDER BY client_name ASC
+    """, (advocate_id,)).fetchall()
+    
+    client_data = []
+    for c in clients:
+        cases = conn.execute("""
+            SELECT id, case_number, court_name, next_hearing_date, status, case_type
+            FROM cases
+            WHERE advocate_id=? AND client_name=? AND (client_phone=? OR (client_phone IS NULL AND ?=''))
+        """, (advocate_id, c["client_name"], c["client_phone"] or "", c["client_phone"] or "")).fetchall()
+        client_data.append({
+            "name": c["client_name"],
+            "phone": c["client_phone"],
+            "case_count": c["case_count"],
+            "cases": [dict(case) for case in cases]
+        })
+    conn.close()
+    return render_template("clients.html", clients=client_data)
+
 
 init_db()
 if __name__ == "__main__":

@@ -3,7 +3,7 @@
 {% block content %}
 
 <div class="form-container">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;" class="staggered-entry">
         <a href="{{ url_for('dashboard') }}" class="back-link">
             <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
             Back to Dashboard
@@ -13,12 +13,12 @@
         </a>
     </div>
 
-    <div class="form-header">
+    <div class="form-header staggered-entry">
         <h2>Edit Case File</h2>
         <p>Modify client details, status, notes, or reschedule the next hearing date</p>
     </div>
 
-    <form class="card-form" method="POST">
+    <form class="card-form staggered-entry" method="POST" novalidate>
         <div class="form-row">
             <div class="form-group">
                 <label for="client_name">Client Name *</label>
@@ -57,6 +57,24 @@
             </div>
         </div>
 
+        <div class="form-row">
+            <div class="form-group">
+                <label for="opposing_counsel">Opposing Counsel Name</label>
+                <input type="text" id="opposing_counsel" name="opposing_counsel" value="{{ case['opposing_counsel'] or '' }}" placeholder="e.g. Adv. Suresh Babu">
+            </div>
+            <div class="form-group">
+                <label for="opposing_counsel_phone">Opposing Counsel Phone</label>
+                <input type="tel" id="opposing_counsel_phone" name="opposing_counsel_phone" value="{{ case['opposing_counsel_phone'] or '' }}" placeholder="e.g. 9876543210">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label for="judge_name">Presiding Judge / Bench</label>
+                <input type="text" id="judge_name" name="judge_name" value="{{ case['judge_name'] or '' }}" placeholder="e.g. Hon'ble Justice Ramachandran">
+            </div>
+        </div>
+
         <div class="form-group">
             <label for="notes">Notes & Observations</label>
             <textarea id="notes" name="notes">{{ case['notes'] or '' }}</textarea>
@@ -79,6 +97,207 @@
 
         <button type="submit" class="btn-submit" style="margin-top: 8px;">Update Case File</button>
     </form>
+
+    <!-- Checklist/Tasks Section -->
+    <div class="card-form staggered-entry" style="margin-top: 24px;">
+        <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <svg class="icon-svg" viewBox="0 0 24 24" style="stroke: var(--accent);"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            Pre-Hearing Sub-Tasks Checklist
+        </h3>
+        
+        <!-- Add Task Input -->
+        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <input type="text" id="new-task-title" placeholder="Add a new task (e.g. Prepare evidence copy)..." style="flex: 1;">
+            <button type="button" id="btn-add-task" class="btn-submit" style="padding: 10px 20px; font-size: 13px;">Add Task</button>
+        </div>
+
+        <!-- Tasks List -->
+        <div id="tasks-list" style="display: flex; flex-direction: column; gap: 10px;">
+            <!-- Rendered dynamically via JS -->
+            <div id="tasks-loading" style="color: #64748b; font-size: 13px;">Loading checklist...</div>
+        </div>
+    </div>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // Validation script
+        const form = document.querySelector('.card-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                const requiredInputs = form.querySelectorAll('[required]');
+                let hasEmpty = false;
+                requiredInputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        hasEmpty = true;
+                        input.style.borderColor = 'var(--danger)';
+                        input.classList.add('shake-error');
+                        setTimeout(() => input.classList.remove('shake-error'), 400);
+                    } else {
+                        input.style.borderColor = '';
+                    }
+                });
+                
+                if (hasEmpty) {
+                    e.preventDefault();
+                    form.classList.add('shake-error');
+                    setTimeout(() => form.classList.remove('shake-error'), 400);
+                }
+            });
+        }
+
+        // Checklist tasks logic
+        const caseId = "{{ case['id'] }}";
+        const tasksList = document.getElementById('tasks-list');
+        const taskTitleInput = document.getElementById('new-task-title');
+        const addTaskBtn = document.getElementById('btn-add-task');
+
+        async function loadTasks() {
+            try {
+                const res = await fetch(`/case/${caseId}/tasks`);
+                const data = await res.json();
+                tasksList.innerHTML = '';
+                
+                if (data.tasks && data.tasks.length > 0) {
+                    data.tasks.forEach(task => {
+                        renderTask(task);
+                    });
+                } else {
+                    tasksList.innerHTML = '<div style="color: #94a3b8; font-size: 13.5px; font-style: italic;">No checklist tasks added yet.</div>';
+                }
+            } catch (err) {
+                console.error(err);
+                tasksList.innerHTML = '<div style="color: var(--danger); font-size: 13px;">Error loading checklist.</div>';
+            }
+        }
+
+        function renderTask(task) {
+            if (tasksList.querySelector('div[style*="italic"]')) {
+                tasksList.innerHTML = '';
+            }
+
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.justifyContent = 'space-between';
+            row.style.padding = '10px 14px';
+            row.style.background = 'var(--bg-app)';
+            row.style.border = '1px solid var(--border-card)';
+            row.style.borderRadius = 'var(--radius-sm)';
+            row.style.gap = '12px';
+            row.style.transition = 'all 0.3s ease';
+
+            const checkboxWrapper = document.createElement('div');
+            checkboxWrapper.className = 'checkbox-group';
+            checkboxWrapper.style.gap = '8px';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = task.is_completed === 1;
+            checkbox.id = `task-chk-${task.id}`;
+            checkbox.addEventListener('change', () => toggleTask(task.id, label));
+
+            const label = document.createElement('label');
+            label.setAttribute('for', `task-chk-${task.id}`);
+            label.textContent = task.title;
+            if (task.is_completed === 1) {
+                label.style.textDecoration = 'line-through';
+                label.style.opacity = '0.5';
+            }
+
+            checkboxWrapper.appendChild(checkbox);
+            checkboxWrapper.appendChild(label);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.title = 'Delete Task';
+            deleteBtn.style.background = 'none';
+            deleteBtn.style.border = 'none';
+            deleteBtn.style.cursor = 'pointer';
+            deleteBtn.style.color = 'var(--danger)';
+            deleteBtn.style.fontSize = '20px';
+            deleteBtn.style.lineHeight = '1';
+            deleteBtn.style.padding = '0 6px';
+            deleteBtn.addEventListener('click', () => deleteTask(task.id, row));
+
+            row.appendChild(checkboxWrapper);
+            row.appendChild(deleteBtn);
+            tasksList.appendChild(row);
+        }
+
+        async function addTask() {
+            const title = taskTitleInput.value.trim();
+            if (!title) return;
+
+            addTaskBtn.disabled = true;
+            const formData = new FormData();
+            formData.append('case_id', caseId);
+            formData.append('title', title);
+
+            try {
+                const res = await fetch('/task/add', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    taskTitleInput.value = '';
+                    renderTask(data.task);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                addTaskBtn.disabled = false;
+            }
+        }
+
+        async function toggleTask(taskId, labelElement) {
+            try {
+                const res = await fetch(`/task/toggle/${taskId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.is_completed) {
+                        labelElement.style.textDecoration = 'line-through';
+                        labelElement.style.opacity = '0.5';
+                    } else {
+                        labelElement.style.textDecoration = 'none';
+                        labelElement.style.opacity = '1';
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function deleteTask(taskId, rowElement) {
+            try {
+                const res = await fetch(`/task/delete/${taskId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    rowElement.style.opacity = '0';
+                    rowElement.style.transform = 'scale(0.9) translateX(-10px)';
+                    setTimeout(() => {
+                        rowElement.remove();
+                        if (tasksList.children.length === 0) {
+                            tasksList.innerHTML = '<div style="color: #94a3b8; font-size: 13.5px; font-style: italic;">No checklist tasks added yet.</div>';
+                        }
+                    }, 300);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        addTaskBtn.addEventListener('click', addTask);
+        taskTitleInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTask();
+            }
+        });
+
+        loadTasks();
+    });
+</script>
 {% endblock %}

@@ -3,49 +3,67 @@
 {% block content %}
 
 <div class="auth-container" style="max-width: 520px;">
-    <div class="form-header">
+    <div class="form-header staggered-entry">
         <h2>Create Your Account</h2>
         <p>Join fellow advocates already saving time with Vakeel Assist</p>
     </div>
 
     <form class="card-form" method="POST">
-        <div class="form-group animated-input-group">
+        <div class="form-group floating-group staggered-entry">
+            <input type="text" id="name" name="name" required placeholder=" ">
             <label for="name">Full Name *</label>
-            <input type="text" id="name" name="name" required placeholder="e.g. Adv. Karthik Raja">
-            <span class="focus-underline"></span>
         </div>
-        <div class="form-group animated-input-group">
+        <div class="form-group floating-group staggered-entry">
+            <input type="email" id="email" name="email" required placeholder=" ">
             <label for="email">Email Address *</label>
-            <input type="email" id="email" name="email" required placeholder="you@example.com">
-            <span class="focus-underline"></span>
         </div>
-        <div class="form-row">
-            <div class="form-group animated-input-group">
+        <div class="form-row staggered-entry">
+            <div class="form-group floating-group">
+                <input type="tel" id="phone" name="phone" placeholder=" ">
                 <label for="phone">Phone Number</label>
-                <input type="tel" id="phone" name="phone" placeholder="e.g. 9876543210">
-                <span class="focus-underline"></span>
             </div>
-            <div class="form-group animated-input-group">
+            <div class="form-group floating-group">
+                <input type="text" id="bar_council_number" name="bar_council_number" placeholder=" ">
                 <label for="bar_council_number">Bar Enrollment No.</label>
-                <input type="text" id="bar_council_number" name="bar_council_number" placeholder="e.g. TN/1234/2015">
-                <span class="focus-underline"></span>
             </div>
         </div>
-        <div class="form-group animated-input-group">
+        <div class="form-group floating-group staggered-entry" style="position: relative;">
+            <input type="password" id="password" name="password" required minlength="6" placeholder=" ">
             <label for="password">Password *</label>
-            <input type="password" id="password" name="password" required minlength="6" placeholder="Min. 6 characters">
-            <span class="focus-underline"></span>
+            <button type="button" id="toggle-pw" style="position: absolute; right: 10px; top: 12px; background: none; border: none; cursor: pointer; color: #94a3b8; padding: 0; outline: none;" title="Toggle Password Visibility">
+                <svg class="icon-svg" id="pw-icon" viewBox="0 0 24 24" style="width: 20px; height: 20px; stroke-width: 2; fill: none; stroke: currentColor;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
         </div>
-        <button type="submit" class="btn-submit">Create Account</button>
+        <button type="submit" class="btn-submit staggered-entry">Create Account</button>
     </form>
 
-    <div class="auth-footer">
+    <div class="auth-footer staggered-entry">
         Already have an account? <a href="{{ url_for('login') }}">Log in</a>
     </div>
 </div>
 
 <script>
     document.body.classList.add('auth-page-bg');
+
+    // Password visibility toggle logic
+    const togglePw = document.getElementById('toggle-pw');
+    const passwordInput = document.getElementById('password');
+    const pwIcon = document.getElementById('pw-icon');
+
+    if (togglePw && passwordInput) {
+        togglePw.addEventListener('click', () => {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+
+            if (isPassword) {
+                // Eye off/slashed icon path
+                pwIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+            } else {
+                // Eye on icon path
+                pwIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            }
+        });
+    }
 </script>
 
 {% endblock %}

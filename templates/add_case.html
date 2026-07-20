@@ -3,17 +3,17 @@
 {% block content %}
 
 <div class="form-container">
-    <a href="{{ url_for('dashboard') }}" class="back-link">
+    <a href="{{ url_for('dashboard') }}" class="back-link staggered-entry">
         <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         Back to Dashboard
     </a>
 
-    <div class="form-header">
+    <div class="form-header staggered-entry">
         <h2>Add New Case</h2>
         <p>Record a new case file and set the hearing date schedule</p>
     </div>
 
-    <form class="card-form" method="POST">
+    <form class="card-form staggered-entry" method="POST" novalidate>
         <div class="form-row">
             <div class="form-group">
                 <label for="client_name">Client Name *</label>
@@ -56,6 +56,24 @@
             </div>
         </div>
 
+        <div class="form-row">
+            <div class="form-group">
+                <label for="opposing_counsel">Opposing Counsel Name</label>
+                <input type="text" id="opposing_counsel" name="opposing_counsel" placeholder="e.g. Adv. Suresh Babu">
+            </div>
+            <div class="form-group">
+                <label for="opposing_counsel_phone">Opposing Counsel Phone</label>
+                <input type="tel" id="opposing_counsel_phone" name="opposing_counsel_phone" placeholder="e.g. 9876543210">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group" style="grid-column: 1 / -1;">
+                <label for="judge_name">Presiding Judge / Bench</label>
+                <input type="text" id="judge_name" name="judge_name" placeholder="e.g. Hon'ble Justice Ramachandran">
+            </div>
+        </div>
+
         <div class="form-group">
             <label for="notes">Notes & Observations</label>
             <textarea id="notes" name="notes" placeholder="Any key comments, facts, or instructions regarding this hearing date..."></textarea>
@@ -70,4 +88,31 @@
     </form>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.querySelector('.card-form');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                const requiredInputs = form.querySelectorAll('[required]');
+                let hasEmpty = false;
+                requiredInputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        hasEmpty = true;
+                        input.style.borderColor = 'var(--danger)';
+                        input.classList.add('shake-error');
+                        setTimeout(() => input.classList.remove('shake-error'), 400);
+                    } else {
+                        input.style.borderColor = '';
+                    }
+                });
+                
+                if (hasEmpty) {
+                    e.preventDefault();
+                    form.classList.add('shake-error');
+                    setTimeout(() => form.classList.remove('shake-error'), 400);
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

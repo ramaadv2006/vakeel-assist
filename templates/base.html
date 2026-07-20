@@ -15,13 +15,22 @@
             }
         })();
     </script>
+    <div class="ambient-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
     <header>
         <a href="{{ url_for('dashboard') }}" style="text-decoration: none;">
             <h1>Vakeel <span>Assist</span></h1>
         </a>
         <div style="display: flex; align-items: center; gap: 16px;">
             <button class="theme-toggle" id="theme-toggle-btn" title="Toggle Light/Dark Mode">
-                <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <svg viewBox="0 0 24 24" width="20" height="20">
+                    <!-- Sun icon -->
+                    <path class="sun-icon" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+                    <!-- Moon icon -->
+                    <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
+                </svg>
             </button>
             {% if current_advocate_name %}
             <div class="nav-links">
@@ -29,6 +38,10 @@
                     <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                     {{ current_advocate_name }}
                 </span>
+                <a href="{{ url_for('client_directory') }}" class="nav-link">
+                    <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    Clients
+                </a>
                 <a href="{{ url_for('settings') }}" class="nav-link">
                     <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                     Settings
@@ -65,6 +78,44 @@
             const theme = document.body.classList.contains('dark') ? 'dark' : 'light';
             localStorage.setItem('theme', theme);
         });
+
+        // Auto-dismiss flash messages after 4 seconds with slideOut animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const flashes = document.querySelectorAll('.flash');
+            flashes.forEach(flash => {
+                // Add close button
+                const closeBtn = document.createElement('span');
+                closeBtn.innerHTML = '&times;';
+                closeBtn.style.marginLeft = 'auto';
+                closeBtn.style.cursor = 'pointer';
+                closeBtn.style.fontSize = '18px';
+                closeBtn.style.fontWeight = 'bold';
+                closeBtn.style.opacity = '0.7';
+                closeBtn.style.transition = 'opacity 0.2s';
+                closeBtn.style.paddingLeft = '12px';
+                closeBtn.addEventListener('mouseover', () => closeBtn.style.opacity = '1');
+                closeBtn.addEventListener('mouseout', () => closeBtn.style.opacity = '0.7');
+                closeBtn.addEventListener('click', () => {
+                    dismissFlash(flash);
+                });
+                flash.appendChild(closeBtn);
+
+                // Auto dismiss
+                setTimeout(() => {
+                    dismissFlash(flash);
+                }, 4000);
+            });
+        });
+
+        function dismissFlash(flash) {
+            if (!flash.classList.contains('dismissing')) {
+                flash.classList.add('dismissing');
+                // Remove from DOM after animation completes (0.5s)
+                setTimeout(() => {
+                    flash.remove();
+                }, 500);
+            }
+        }
     </script>
 </body>
 </html>

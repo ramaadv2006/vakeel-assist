@@ -26,16 +26,40 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
         <input type="text" id="dashboard-search-input" placeholder="Search cases by client, case no, court, notes...">
     </div>
-    {% if total_cases > 0 %}
-    <a href="{{ url_for('export_cases') }}" class="btn-export" title="Export case diary to CSV spreadsheet">
-        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Export cases (CSV)
-    </a>
-    {% endif %}
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <button id="view-list-btn" class="btn-export active-view" title="Show list of hearings">List View</button>
+        <button id="view-cal-btn" class="btn-export" title="Show calendar monthly view">Calendar View</button>
+        {% if total_cases > 0 %}
+        <a href="{{ url_for('export_cases') }}" class="btn-export" title="Export case diary to CSV spreadsheet">
+            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Export (CSV)
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Monthly Calendar Grid View -->
+<div id="calendar-view-container" style="display: none; margin-bottom: 30px;" class="staggered-entry">
+    <div class="card-form" style="padding: 20px;">
+        <!-- Calendar Controls -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <button id="prev-month-btn" class="btn-edit" style="padding: 6px 12px; cursor: pointer;">&larr; Prev</button>
+            <h2 id="calendar-month-year" style="font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--text-dark); margin: 0;">Month Year</h2>
+            <button id="next-month-btn" class="btn-edit" style="padding: 6px 12px; cursor: pointer;">Next &rarr;</button>
+        </div>
+        <!-- Grid layout -->
+        <div id="calendar-grid"></div>
+        
+        <!-- Filter Info Alert -->
+        <div id="calendar-filter-alert" style="display: none; margin-top: 14px; padding: 10px 14px; background: var(--accent-bg); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); font-size: 13.5px; color: var(--text-main); align-items: center; justify-content: space-between;">
+            <span>Showing hearings for: <strong id="filter-date-display">yyyy-mm-dd</strong></span>
+            <button id="clear-calendar-filter" style="background: none; border: none; cursor: pointer; color: var(--danger); font-weight: 700; font-size: 13px; text-decoration: underline;">Show All Hearings</button>
+        </div>
+    </div>
 </div>
 
 {% macro render_case(case, days_left, css_class, badge_text) %}
-<div class="case-card {{ css_class }}">
+<div class="case-card {{ css_class }}" data-date="{{ case['next_hearing_date'] }}">
     <div class="case-info">
         <div class="client">{{ case['client_name'] }}</div>
         <div class="meta">
@@ -67,6 +91,25 @@
             </span>
             {% endif %}
         </div>
+        
+        {% if case['judge_name'] or case['opposing_counsel'] %}
+        <div class="meta" style="margin-top: 6px; opacity: 0.85;">
+            {% if case['judge_name'] %}
+            <span class="meta-item" title="Presiding Judge">
+                <strong>Judge:</strong> {{ case['judge_name'] }}
+            </span>
+            {% endif %}
+            {% if case['judge_name'] and case['opposing_counsel'] %}<span class="meta-divider">|</span>{% endif %}
+            {% if case['opposing_counsel'] %}
+            <span class="meta-item" title="Opposing Counsel">
+                <strong>Opponent:</strong> {{ case['opposing_counsel'] }}
+                {% if case['opposing_counsel_phone'] %}
+                ({{ case['opposing_counsel_phone'] }})
+                {% endif %}
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
     
     <span class="badge {{ css_class }}">{{ badge_text }}</span>
@@ -91,6 +134,17 @@
         <strong>Notes:</strong> {{ case['notes'] }}
     </div>
     {% endif %}
+
+    <!-- Checklist Accordion Drawer -->
+    <div class="card-checklist-section" style="grid-column: 1 / -1; margin-top: 10px; border-top: 1px dashed var(--border-card); padding-top: 8px;">
+        <button type="button" class="btn-toggle-card-tasks" data-case-id="{{ case['id'] }}" style="background: none; border: none; cursor: pointer; color: var(--accent-hover); font-size: 12.5px; font-weight: 600; padding: 0; display: flex; align-items: center; gap: 4px; transition: color 0.2s;">
+            <svg class="icon-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; transform: rotate(0); transition: transform 0.25s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            Show Pre-Hearing Checklist (<span class="task-summary-count" id="task-summary-{{ case['id'] }}">...</span>)
+        </button>
+        <div class="card-tasks-drawer" id="tasks-drawer-{{ case['id'] }}" style="display: none; margin-top: 8px; flex-direction: column; gap: 8px;">
+            <!-- Rendered dynamically -->
+        </div>
+    </div>
 </div>
 {% endmacro %}
 
@@ -152,40 +206,427 @@
 <script>
     const searchInput = document.getElementById('dashboard-search-input');
     const caseCards = document.querySelectorAll('.case-card');
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const queryTrimmed = e.target.value.toLowerCase().trim();
+
+    // Calendar variables
+    let currentYear = new Date().getFullYear();
+    let currentMonth = new Date().getMonth(); // 0-indexed (0 = Jan)
+    let activeFilterDate = null;
+
+    const calendarGrid = document.getElementById('calendar-grid');
+    const calendarMonthYear = document.getElementById('calendar-month-year');
+    const prevMonthBtn = document.getElementById('prev-month-btn');
+    const nextMonthBtn = document.getElementById('next-month-btn');
+    const filterAlert = document.getElementById('calendar-filter-alert');
+    const filterDateDisplay = document.getElementById('filter-date-display');
+    const clearFilterBtn = document.getElementById('clear-calendar-filter');
+    const calendarViewContainer = document.getElementById('calendar-view-container');
+    const statsRow = document.querySelector('.stats-row');
+
+    const viewListBtn = document.getElementById('view-list-btn');
+    const viewCalBtn = document.getElementById('view-cal-btn');
+
+    // Layout toggle
+    if (viewListBtn && viewCalBtn) {
+        viewListBtn.addEventListener('click', () => {
+            viewListBtn.classList.add('active-view');
+            viewCalBtn.classList.remove('active-view');
+            calendarViewContainer.style.display = 'none';
+            if (statsRow) statsRow.style.display = 'grid';
             
-            caseCards.forEach(card => {
-                const clientName = card.querySelector('.client').textContent.toLowerCase();
-                const metaInfo = card.querySelector('.meta').textContent.toLowerCase();
-                const notes = card.querySelector('.case-notes') ? card.querySelector('.case-notes').textContent.toLowerCase() : '';
+            // Show all sections/cards normally (ignoring calendar filter)
+            activeFilterDate = null;
+            filterAlert.style.display = 'none';
+            filterCases();
+        });
+
+        viewCalBtn.addEventListener('click', () => {
+            viewCalBtn.classList.add('active-view');
+            viewListBtn.classList.remove('active-view');
+            calendarViewContainer.style.display = 'block';
+            if (statsRow) statsRow.style.display = 'none';
+            
+            renderCalendar(currentMonth, currentYear);
+            filterCases();
+        });
+    }
+
+    // Days name list
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June", 
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    function renderCalendar(month, year) {
+        if (!calendarGrid) return;
+        
+        calendarMonthYear.textContent = `${monthNames[month]} ${year}`;
+        calendarGrid.innerHTML = '';
+
+        // Add weekdays headers
+        const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        weekdays.forEach(day => {
+            const headerCell = document.createElement('div');
+            headerCell.textContent = day;
+            headerCell.style.fontWeight = '700';
+            headerCell.style.fontSize = '12px';
+            headerCell.style.textTransform = 'uppercase';
+            headerCell.style.color = 'var(--text-main)';
+            headerCell.style.textAlign = 'center';
+            headerCell.style.padding = '8px 0';
+            calendarGrid.appendChild(headerCell);
+        });
+
+        const firstDayIndex = new Date(year, month, 1).getDay();
+        const totalDays = new Date(year, month + 1, 0).getDate();
+
+        // Crawl case dates from card elements
+        const datesCount = {};
+        caseCards.forEach(card => {
+            const d = card.dataset.date;
+            if (d) {
+                datesCount[d] = (datesCount[d] || 0) + 1;
+            }
+        });
+
+        // Blank cells before first day
+        for (let i = 0; i < firstDayIndex; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'calendar-day empty';
+            calendarGrid.appendChild(emptyCell);
+        }
+
+        // Generate calendar days
+        for (let day = 1; day <= totalDays; day++) {
+            const dayCell = document.createElement('div');
+            dayCell.className = 'calendar-day';
+            
+            const dayNum = document.createElement('span');
+            dayNum.textContent = day;
+            dayNum.className = 'day-number';
+            dayCell.appendChild(dayNum);
+
+            // Construct YYYY-MM-DD
+            const mStr = String(month + 1).padStart(2, '0');
+            const dStr = String(day).padStart(2, '0');
+            const cellDateStr = `${year}-${mStr}-${dStr}`;
+
+            dayCell.dataset.date = cellDateStr;
+
+            // Check if cases exist on this day
+            if (datesCount[cellDateStr]) {
+                dayCell.classList.add('has-events');
                 
-                if (clientName.includes(queryTrimmed) || metaInfo.includes(queryTrimmed) || notes.includes(queryTrimmed)) {
-                    card.classList.remove('hidden');
+                const dot = document.createElement('div');
+                dot.className = 'calendar-event-dot';
+                dayCell.appendChild(dot);
+                
+                // Tooltip info
+                dayCell.setAttribute('title', `${datesCount[cellDateStr]} hearing(s)`);
+            }
+
+            // Highlight if active filter
+            if (activeFilterDate === cellDateStr) {
+                dayCell.classList.add('selected-day');
+            }
+
+            // Click listener to filter dates
+            dayCell.addEventListener('click', () => {
+                document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected-day'));
+                
+                if (activeFilterDate === cellDateStr) {
+                    // Toggle off if clicking the already selected date
+                    activeFilterDate = null;
+                    filterAlert.style.display = 'none';
                 } else {
-                    card.classList.add('hidden');
+                    activeFilterDate = cellDateStr;
+                    dayCell.classList.add('selected-day');
+                    filterDateDisplay.textContent = cellDateStr;
+                    filterAlert.style.display = 'flex';
                 }
+                filterCases();
             });
+
+            calendarGrid.appendChild(dayCell);
+        }
+    }
+
+    if (prevMonthBtn && nextMonthBtn) {
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+    }
+
+    if (clearFilterBtn) {
+        clearFilterBtn.addEventListener('click', () => {
+            activeFilterDate = null;
+            document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected-day'));
+            filterAlert.style.display = 'none';
+            filterCases();
+        });
+    }
+
+    // Consolidated filtering function (combining search query and calendar date filter)
+    function filterCases() {
+        const queryTrimmed = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+        caseCards.forEach(card => {
+            const clientName = card.querySelector('.client').textContent.toLowerCase();
+            const metaInfo = card.querySelector('.meta').textContent.toLowerCase();
+            const notes = card.querySelector('.case-notes') ? card.querySelector('.case-notes').textContent.toLowerCase() : '';
+            const nextDate = card.dataset.date;
+
+            const matchesQuery = clientName.includes(queryTrimmed) || metaInfo.includes(queryTrimmed) || notes.includes(queryTrimmed);
+            const matchesCalendar = !activeFilterDate || (nextDate === activeFilterDate);
+
+            if (matchesQuery && matchesCalendar) {
+                card.classList.remove('filtered-out');
+            } else {
+                card.classList.add('filtered-out');
+            }
+        });
+
+        // Hide/Show category sections based on visible cards
+        const sections = document.querySelectorAll('.case-list');
+        sections.forEach(section => {
+            const visibleCards = section.querySelectorAll('.case-card:not(.filtered-out)');
+            const title = section.previousElementSibling;
             
-            const sections = document.querySelectorAll('.case-list');
-            sections.forEach(section => {
-                const visibleCards = section.querySelectorAll('.case-card:not(.hidden)');
-                const title = section.previousElementSibling;
-                if (visibleCards.length === 0) {
+            if (visibleCards.length === 0) {
+                // If List view, wait for animation. If Calendar view, hide instantly for responsiveness
+                if (viewCalBtn && viewCalBtn.classList.contains('active-view')) {
                     section.style.display = 'none';
                     if (title && title.classList.contains('section-title')) {
                         title.style.display = 'none';
                     }
                 } else {
-                    section.style.display = 'flex';
-                    if (title && title.classList.contains('section-title')) {
-                        title.style.display = 'flex';
+                    setTimeout(() => {
+                        const checkAgain = section.querySelectorAll('.case-card:not(.filtered-out)');
+                        if (checkAgain.length === 0) {
+                            section.style.display = 'none';
+                            if (title && title.classList.contains('section-title')) {
+                                title.style.display = 'none';
+                            }
+                        }
+                    }, 400);
+                }
+            } else {
+                section.style.display = 'flex';
+                if (title && title.classList.contains('section-title')) {
+                    title.style.display = 'flex';
+                }
+            }
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filterCases);
+    }
+
+    // Toggle tasks drawer and manage tasks directly on dashboard case cards
+    document.querySelectorAll('.btn-toggle-card-tasks').forEach(btn => {
+        const caseId = btn.dataset.caseId;
+        const drawer = document.getElementById(`tasks-drawer-${caseId}`);
+        const summaryCount = document.getElementById(`task-summary-${caseId}`);
+        
+        // Fetch initial count to display on load
+        fetchTasksCount(caseId, summaryCount);
+
+        btn.addEventListener('click', () => {
+            const svgIcon = btn.querySelector('svg');
+            if (drawer.style.display === 'none') {
+                drawer.style.display = 'flex';
+                svgIcon.style.transform = 'rotate(180deg)';
+                if (drawer.children.length === 0 || drawer.querySelector('.loading-text')) {
+                    loadCardTasks(caseId, drawer, summaryCount);
+                }
+            } else {
+                drawer.style.display = 'none';
+                svgIcon.style.transform = 'rotate(0)';
+            }
+        });
+    });
+
+    async function fetchTasksCount(caseId, countElement) {
+        try {
+            const res = await fetch(`/case/${caseId}/tasks`);
+            const data = await res.json();
+            if (data.tasks) {
+                const total = data.tasks.length;
+                const completed = data.tasks.filter(t => t.is_completed === 1).length;
+                countElement.textContent = `${completed}/${total}`;
+            }
+        } catch (e) {
+            countElement.textContent = 'Checklist';
+        }
+    }
+
+    async function loadCardTasks(caseId, drawer, countElement) {
+        drawer.innerHTML = '<div class="loading-text" style="color:#64748b; font-size:12px;">Loading checklist...</div>';
+        try {
+            const res = await fetch(`/case/${caseId}/tasks`);
+            const data = await res.json();
+            drawer.innerHTML = '';
+            
+            // Input row for adding task directly
+            const addRow = document.createElement('div');
+            addRow.style.display = 'flex';
+            addRow.style.gap = '8px';
+            addRow.style.marginBottom = '6px';
+            addRow.innerHTML = `
+                <input type="text" placeholder="Add checklist item..." style="flex:1; padding:6px 10px; font-size:12px; height:28px;" class="card-add-task-input">
+                <button type="button" class="btn-submit card-add-task-btn" style="padding:0 10px; font-size:11px; height:28px; line-height:28px;">Add</button>
+            `;
+            
+            const taskInput = addRow.querySelector('.card-add-task-input');
+            const addBtn = addRow.querySelector('.card-add-task-btn');
+            
+            const executeAddTask = async () => {
+                const title = taskInput.value.trim();
+                if (!title) return;
+                addBtn.disabled = true;
+                const form = new FormData();
+                form.append('case_id', caseId);
+                form.append('title', title);
+                
+                try {
+                    const postRes = await fetch('/task/add', { method: 'POST', body: form });
+                    const postData = await postRes.json();
+                    if (postData.success) {
+                        taskInput.value = '';
+                        loadCardTasks(caseId, drawer, countElement);
                     }
+                } catch(err) {
+                     console.error(err);
+                } finally {
+                    addBtn.disabled = false;
+                }
+            };
+
+            addBtn.addEventListener('click', executeAddTask);
+            taskInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    executeAddTask();
                 }
             });
-        });
+            
+            drawer.appendChild(addRow);
+            
+            if (data.tasks && data.tasks.length > 0) {
+                const listContainer = document.createElement('div');
+                listContainer.style.display = 'flex';
+                listContainer.style.flexDirection = 'column';
+                listContainer.style.gap = '4px';
+
+                data.tasks.forEach(task => {
+                    const taskRow = document.createElement('div');
+                    taskRow.style.display = 'flex';
+                    taskRow.style.alignItems = 'center';
+                    taskRow.style.justifyContent = 'space-between';
+                    taskRow.style.padding = '6px 10px';
+                    taskRow.style.background = 'var(--bg-app)';
+                    taskRow.style.borderRadius = 'var(--radius-sm)';
+                    taskRow.style.gap = '8px';
+                    
+                    const chkLabel = document.createElement('div');
+                    chkLabel.className = 'checkbox-group';
+                    chkLabel.style.gap = '8px';
+                    
+                    const chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.checked = task.is_completed === 1;
+                    chk.id = `card-task-${task.id}`;
+                    chk.style.width = '32px !important';
+                    chk.style.height = '18px !important';
+                    
+                    const label = document.createElement('label');
+                    label.setAttribute('for', `card-task-${task.id}`);
+                    label.textContent = task.title;
+                    label.style.fontSize = '12.5px';
+                    if (task.is_completed === 1) {
+                        label.style.textDecoration = 'line-through';
+                        label.style.opacity = '0.5';
+                    }
+                    
+                    chk.addEventListener('change', async () => {
+                        try {
+                            const toggleRes = await fetch(`/task/toggle/${task.id}`, { method: 'POST' });
+                            const toggleData = await toggleRes.json();
+                            if (toggleData.success) {
+                                if (toggleData.is_completed) {
+                                    label.style.textDecoration = 'line-through';
+                                    label.style.opacity = '0.5';
+                                } else {
+                                    label.style.textDecoration = 'none';
+                                    label.style.opacity = '1';
+                                }
+                                fetchTasksCount(caseId, countElement);
+                             }
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    });
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.innerHTML = '&times;';
+                    delBtn.style.background = 'none';
+                    delBtn.style.border = 'none';
+                    delBtn.style.cursor = 'pointer';
+                    delBtn.style.color = 'var(--danger)';
+                    delBtn.style.fontSize = '16px';
+                    delBtn.style.lineHeight = '1';
+                    delBtn.style.padding = '0 4px';
+                    
+                    delBtn.addEventListener('click', async () => {
+                        try {
+                            const delRes = await fetch(`/task/delete/${task.id}`, { method: 'POST' });
+                            const delData = await delRes.json();
+                            if (delData.success) {
+                                taskRow.style.opacity = '0';
+                                taskRow.style.transform = 'scale(0.9)';
+                                setTimeout(() => {
+                                    loadCardTasks(caseId, drawer, countElement);
+                                }, 300);
+                            }
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    });
+                    
+                    chkLabel.appendChild(chk);
+                    chkLabel.appendChild(label);
+                    taskRow.appendChild(chkLabel);
+                    taskRow.appendChild(delBtn);
+                    listContainer.appendChild(taskRow);
+                });
+                drawer.appendChild(listContainer);
+            } else {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.color = '#94a3b8';
+                emptyMsg.style.fontSize = '12px';
+                emptyMsg.style.fontStyle = 'italic';
+                emptyMsg.textContent = 'No tasks added yet.';
+                drawer.appendChild(emptyMsg);
+            }
+        } catch (e) {
+            console.error(e);
+            drawer.innerHTML = '<div style="color:var(--danger); font-size:12px;">Error loading checklist.</div>';
+        }
     }
 </script>
 {% endblock %}

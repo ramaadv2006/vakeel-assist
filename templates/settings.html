@@ -3,17 +3,17 @@
 {% block content %}
 
 <div class="form-container">
-    <a href="{{ url_for('dashboard') }}" class="back-link">
+    <a href="{{ url_for('dashboard') }}" class="back-link staggered-entry">
         <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         Back to Dashboard
     </a>
 
-    <div class="form-header">
+    <div class="form-header staggered-entry">
         <h2>Reminder Settings</h2>
         <p>Configure automated WhatsApp or SMS alerts for upcoming hearings</p>
     </div>
 
-    <form class="card-form" method="POST">
+    <form class="card-form staggered-entry" method="POST" novalidate>
         <div class="form-group">
             <label for="phone">Your Phone Number (10 digits)</label>
             <input type="tel" id="phone" name="phone" value="{{ advocate['phone'] or '' }}" placeholder="e.g. 9876543210">
@@ -42,9 +42,63 @@
         <button type="submit" class="btn-submit" style="margin-top: 8px;">Save Settings</button>
     </form>
 
-    <div class="card-info" style="margin-top: 24px;">
+    <div class="card-info staggered-entry" style="margin-top: 24px;">
         <strong>System Note:</strong> Reminders are dispatched daily using a scheduled task wrapper (<code>send_reminders.py</code>). If reminders are not executing, check the task scheduler setup described in the documentation.
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.querySelector('.card-form');
+        const methodSelect = document.getElementById('reminder_method');
+        const phoneInput = document.getElementById('phone');
+        
+        if (form && methodSelect && phoneInput) {
+            form.addEventListener('submit', (e) => {
+                const method = methodSelect.value;
+                const phone = phoneInput.value.trim();
+                
+                if (method !== 'none' && (!phone || phone.length < 10 || !/^\d+$/.test(phone))) {
+                    e.preventDefault();
+                    phoneInput.style.borderColor = 'var(--danger)';
+                    phoneInput.classList.add('shake-error');
+                    form.classList.add('shake-error');
+                    
+                    // Display helper flash message dynamically
+                    let alertDiv = document.querySelector('.flash.error.dynamic-phone');
+                    if (!alertDiv) {
+                        alertDiv = document.createElement('div');
+                        alertDiv.className = 'flash error dynamic-phone';
+                        alertDiv.innerHTML = '<svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> Valid 10-digit phone number is required when WhatsApp or SMS reminders are enabled!';
+                        
+                        // Add dismiss button
+                        const closeBtn = document.createElement('span');
+                        closeBtn.innerHTML = '&times;';
+                        closeBtn.style.marginLeft = 'auto';
+                        closeBtn.style.cursor = 'pointer';
+                        closeBtn.style.fontSize = '18px';
+                        closeBtn.style.fontWeight = 'bold';
+                        closeBtn.style.opacity = '0.7';
+                        closeBtn.style.paddingLeft = '12px';
+                        closeBtn.addEventListener('click', () => alertDiv.remove());
+                        alertDiv.appendChild(closeBtn);
+                        
+                        const main = document.querySelector('main');
+                        if (main) {
+                            main.insertBefore(alertDiv, main.firstChild);
+                        }
+                    }
+                    
+                    setTimeout(() => {
+                        phoneInput.classList.remove('shake-error');
+                        form.classList.remove('shake-error');
+                    }, 400);
+                } else {
+                    phoneInput.style.borderColor = '';
+                }
+            });
+        }
+    });
+</script>
 
 {% endblock %}
