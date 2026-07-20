@@ -3,10 +3,15 @@
 {% block content %}
 
 <div class="form-container">
-    <a href="{{ url_for('dashboard') }}" class="back-link">
-        <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-        Back to Dashboard
-    </a>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <a href="{{ url_for('dashboard') }}" class="back-link">
+            <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            Back to Dashboard
+        </a>
+        <a href="{{ url_for('case_history', case_id=case['id']) }}" class="back-link" title="See every hearing date recorded for this case">
+            View Hearing History
+        </a>
+    </div>
 
     <div class="form-header">
         <h2>Edit Case File</h2>
