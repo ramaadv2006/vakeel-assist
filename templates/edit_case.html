@@ -75,6 +75,39 @@
             </div>
         </div>
 
+        <div class="form-row">
+            <div class="form-group">
+                <label for="court_hall">Court Hall Number</label>
+                <input type="text" id="court_hall" name="court_hall" value="{{ case['court_hall'] or '' }}" placeholder="e.g. Court Hall 3">
+            </div>
+            <div class="form-group">
+                <label for="item_number">Item Number</label>
+                <input type="text" id="item_number" name="item_number" value="{{ case['item_number'] or '' }}" placeholder="e.g. Item 14">
+            </div>
+            <div class="form-group">
+                <label for="case_stage">Case Stage / Purpose</label>
+                <input type="text" id="case_stage" name="case_stage" value="{{ case['case_stage'] or '' }}" placeholder="e.g. For Arguments">
+            </div>
+        </div>
+
+        <div id="billing-section" style="margin-top: 18px; margin-bottom: 12px; border-bottom: 1px dashed var(--border-card); padding-bottom: 6px; grid-column: 1 / -1;">
+            <h3 style="font-size: 14.5px; font-weight: 700; color: var(--text-dark); margin: 0; font-family: 'Plus Jakarta Sans', sans-serif;">Ledger & Professional Fees (INR)</h3>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="total_fee">Total Agreed Professional Fee</label>
+                <input type="number" id="total_fee" name="total_fee" value="{{ case['total_fee'] or 0 }}" placeholder="e.g. 50000" min="0">
+            </div>
+            <div class="form-group">
+                <label for="fee_paid">Retainer / Advance Fee Paid</label>
+                <input type="number" id="fee_paid" name="fee_paid" value="{{ case['fee_paid'] or 0 }}" placeholder="e.g. 15000" min="0">
+            </div>
+            <div class="form-group">
+                <label for="expenses">Court Fees & filing Expenses</label>
+                <input type="number" id="expenses" name="expenses" value="{{ case['expenses'] or 0 }}" placeholder="e.g. 3000" min="0">
+            </div>
+        </div>
+
         <div class="form-group">
             <label for="notes">Notes & Observations</label>
             <textarea id="notes" name="notes">{{ case['notes'] or '' }}</textarea>

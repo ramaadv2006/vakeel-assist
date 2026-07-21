@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+{% block title %}Legal Draft Templates - Vakeel Assist{% endblock %}
+{% block content %}
+
+<style>
+    .drafts-container {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .template-sidebar {
+        background: var(--card-bg);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        height: fit-content;
+    }
+    .template-btn {
+        background: none;
+        border: 1px solid transparent;
+        color: var(--text-main);
+        padding: 12px 14px;
+        border-radius: var(--radius-sm);
+        text-align: left;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13.5px;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+    }
+    .template-btn:hover {
+        background: var(--accent-bg);
+        color: var(--accent-hover);
+    }
+    .template-btn.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+    .template-btn span.subtitle {
+        font-size: 11px;
+        opacity: 0.8;
+        font-weight: normal;
+        margin-top: 2px;
+    }
+    .draft-main {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+    .preview-box {
+        font-family: 'Courier New', Courier, monospace;
+        background: var(--bg-app);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-md);
+        padding: 24px;
+        min-height: 400px;
+        white-space: pre-wrap;
+        color: var(--text-dark);
+        font-size: 14.5px;
+        line-height: 1.6;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    @media (max-width: 900px) {
+        .drafts-container {
+            grid-template-columns: 1fr;
+        }
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="drafts-container">
+    <!-- Sidebar template selectors -->
+    <div class="template-sidebar staggered-entry">
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--text-dark); margin-bottom: 12px; padding-left: 6px;">
+            Document Templates
+        </h3>
+        <button type="button" class="template-btn active" onclick="selectTemplate('vakalat')" id="btn-vakalat">
+            <span>Vakalatnama</span>
+            <span class="subtitle">Bilingual Authorization (Eng/Tam)</span>
+        </button>
+        <button type="button" class="template-btn" onclick="selectTemplate('adj')" id="btn-adj">
+            <span>Adjournment Petition</span>
+            <span class="subtitle">Section 309 CrPC / CPC</span>
+        </button>
+        <button type="button" class="template-btn" onclick="selectTemplate('notice138')" id="btn-notice138">
+            <span>Sec 138 Cheque Notice</span>
+            <span class="subtitle">Negotiable Instruments Act</span>
+        </button>
+        <button type="button" class="template-btn" onclick="selectTemplate('affidavit')" id="btn-affidavit">
+            <span>Affidavit of Assets</span>
+            <span class="subtitle">Standard Civil Declaration</span>
+        </button>
+    </div>
+
+    <!-- Main drafting dashboard -->
+    <div class="draft-main staggered-entry">
+        <!-- Form for filling variables -->
+        <div class="card-form" style="padding: 24px;">
+            <h3 id="form-title" style="margin-bottom: 18px; font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--text-dark);">
+                Fill Template Fields
+            </h3>
+            
+            <div id="fields-container" class="form-grid">
+                <!-- Inputs injected dynamically by JS -->
+            </div>
+        </div>
+
+        <!-- Preview and actions -->
+        <div class="card-form" style="padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+                <h3 style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-dark); margin: 0;">
+                    Live Draft Preview
+                </h3>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-export" onclick="copyToClipboard()" style="padding: 6px 14px; font-size: 13px;">
+                        Copy Clipboard
+                    </button>
+                    <button type="button" class="btn-submit" onclick="downloadDraft()" style="padding: 6px 14px; font-size: 13px; margin: 0;">
+                        Download Text
+                    </button>
+                </div>
+            </div>
+            
+            <div class="preview-box" id="draft-preview">
+                <!-- Formatted draft shown here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const templates = {
+        vakalat: {
+            title: "Vakalatnama (Bilingual Advocate Appointment)",
+            fields: [
+                { id: "court", label: "Court Name", default: "In the Court of the District Judge, Chennai" },
+                { id: "case_no", label: "Case Number", default: "O.S. No. 1234 of 2026" },
+                { id: "client", label: "Client Name(s)", default: "K. Ramesh Babu" },
+                { id: "client_status", label: "Client Role (e.g. Plaintiff/Accused)", default: "Plaintiff" },
+                { id: "opponent", label: "Opponent Name(s)", default: "V. Suresh Kumar" },
+                { id: "opponent_status", label: "Opposing Role (e.g. Defendant)", default: "Defendant" },
+                { id: "advocate", label: "Advocate Name", default: "{{ current_advocate_name or 'A. Subramanian' }}" },
+                { id: "bar_no", label: "Advocate Bar Council No.", default: "MS/4321/2018" },
+                { id: "place", label: "Place", default: "Chennai" },
+                { id: "date", label: "Date", default: new Date().toISOString().split('T')[0] }
+            ],
+            generate: (f) => `IN THE COURT OF THE: ${f.court}
+SUIT / CASE NO: ${f.case_no}
+
+Between:
+${f.client}                                        ... ${f.client_status}
+                                AND
+${f.opponent}                                        ... ${f.opponent_status}
+
+-------------------------------------------------------------------------
+                     VAKALATNAMA / வக்காலத்து
+-------------------------------------------------------------------------
+
+I/We, the undersigned ${f.client_status} do hereby appoint and retain:
+
+Advocate: ${f.advocate}
+Bar Council Enrollment No: ${f.bar_no}
+
+to appear, plead, act and conduct the case on my/our behalf in the above-mentioned matter in this Court or in any other court of appellate or revisionary jurisdiction.
+
+நானும்/நாங்களும் மேற்கண்ட வழக்கு சம்பந்தமாக ஆஜராகி வாதாட வழக்கறிஞர் திரு/திருமதி ${f.advocate} (பதிவு எண்: ${f.bar_no}) அவர்களை எனது/எங்களது வக்கீலாக நியமித்து இதற்கான அதிகாரம் வழங்குகிறேன்/வழங்குகிறோம்.
+
+Place: ${f.place}
+Date: ${f.date}
+
+Client Signature: ______________________
+(வாடிக்கையாளர் கையெழுத்து)
+
+I accept the Vakalatnama.
+
+Advocate Signature: ____________________`
+        },
+        adj: {
+            title: "Adjournment Petition (Section 309 CrPC / CPC)",
+            fields: [
+                { id: "court", label: "Court Name", default: "In the Court of Judicial Magistrate-I, Coimbatore" },
+                { id: "case_no", label: "Case/C.C. Number", default: "C.C. No. 567 of 2025" },
+                { id: "client", label: "Client Name", default: "M. Elangovan" },
+                { id: "client_status", label: "Client Role (e.g. Accused)", default: "Accused" },
+                { id: "opponent", label: "Opposing Party", default: "State represented by Inspector of Police" },
+                { id: "advocate", label: "Advocate Name", default: "{{ current_advocate_name or 'A. Subramanian' }}" },
+                { id: "hearing_date", label: "Scheduled Date of Hearing", default: new Date().toISOString().split('T')[0] },
+                { id: "reason", label: "Reason for Adjournment", default: "Advocate is engaged in arguments in another Court and is unable to attend this Hon'ble Court today." }
+            ],
+            generate: (f) => `IN THE COURT OF: ${f.court}
+CASE NO: ${f.case_no}
+
+Between:
+${f.client}                                        ... ${f.client_status}
+                                AND
+${f.opponent}                                        ... Respondent/Complainant
+
+-------------------------------------------------------------------------
+PETITION FOR ADJOURNMENT UNDER SECTION 309 OF Cr.P.C. / ORDER XVII CPC
+-------------------------------------------------------------------------
+
+The Petitioner/Advocate above named most respectfully submits:
+
+1. The above case is posted today (${f.hearing_date}) for ${f.reason ? 'hearing/cross-examination/arguments' : 'hearing'}.
+
+2. The petitioner is unable to proceed with the case today due to the following reason:
+   "${f.reason}"
+
+3. The petitioner submits that the absence is neither willful nor negligent but due to the bona fide reasons stated above.
+
+It is therefore prayed that this Hon'ble Court may be pleased to adjourn the case to any other subsequent date, and thus render justice.
+
+Place: Coimbatore
+Date: ${new Date().toISOString().split('T')[0]}
+
+Filed by:
+
+Counsel for Petitioner:
+${f.advocate}, Advocate`
+        },
+        notice138: {
+            title: "Sec 138 NI Act Cheque Bounce Notice",
+            fields: [
+                { id: "client", label: "Client (Complainant) Name", default: "S. Murugan" },
+                { id: "client_addr", label: "Client Address", default: "No. 12, Gandhi Street, Madurai - 625001" },
+                { id: "debtor", label: "Debtor (Accused) Name", default: "K. Selvam" },
+                { id: "debtor_addr", label: "Debtor Address", default: "Flat 4A, Green Meadows, Madurai - 625008" },
+                { id: "cheque_no", label: "Cheque Number", default: "987654" },
+                { id: "cheque_date", label: "Cheque Date", default: "2026-06-15" },
+                { id: "bank", label: "Bank & Branch", default: "State Bank of India, Madurai Town" },
+                { id: "amount", label: "Cheque Amount (INR)", default: "75,000" },
+                { id: "bounce_date", label: "Cheque Return / Bounce Date", default: "2026-07-02" },
+                { id: "reason", label: "Bounce Reason (e.g. Funds Insufficient)", default: "Funds Insufficient" },
+                { id: "advocate", label: "Advocate Name", default: "{{ current_advocate_name or 'A. Subramanian' }}" },
+                { id: "office_addr", label: "Advocate Office Address", default: "Chamber 211, District Court Complex, Madurai" }
+            ],
+            generate: (f) => `ADVOCATE LEGAL NOTICE
+
+From:
+${f.advocate}, Advocate
+${f.office_addr}
+
+Date: ${new Date().toISOString().split('T')[0]}
+
+To:
+${f.debtor}
+${f.debtor_addr}
+
+Dear Sir/Madam,
+
+Under instructions from my client, ${f.client}, residing at ${f.client_addr}, I hereby serve you with the following Legal Notice:
+
+1. You issued a cheque bearing No: ${f.cheque_no} dated ${f.cheque_date} drawn on ${f.bank} for an amount of Rs. ${f.amount}/- (Rupees ${f.amount} Only) in favor of my client towards the discharge of your legally enforceable debt/liability.
+
+2. My client presented the said cheque for payment through their banker, but the cheque was returned unpaid by your banker with the memo stating: "${f.reason}" on ${f.bounce_date}.
+
+3. My client immediately contacted you, but you failed to arrange the funds. Hence, this notice is sent.
+
+4. I hereby call upon you to make payment of the cheque amount of Rs. ${f.amount}/- to my client within 15 days of receipt of this notice, failing which my client will be constrained to initiate criminal proceedings against you under Section 138 of the Negotiable Instruments Act, 1881.
+
+Copy of this notice is retained in my office for future legal action.
+
+Yours faithfully,
+
+${f.advocate}
+Counsel for Complainant`
+        },
+        affidavit: {
+            title: "Affidavit of Assets and Liabilities",
+            fields: [
+                { id: "court", label: "Court Name", default: "In the Family Court of Tiruchirappalli" },
+                { id: "case_no", label: "M.O.P. / Case Number", default: "M.O.P. No. 45 of 2026" },
+                { id: "client", label: "Client (Deponent) Name", default: "Mrs. Revathi Sundaram" },
+                { id: "relation", label: "W/o or D/o or S/o Name", default: "Sundaram Balaji" },
+                { id: "age", label: "Age", default: "34" },
+                { id: "addr", label: "Address", default: "15, Salai Road, Tiruchirappalli - 620003" },
+                { id: "income", label: "Monthly Income (INR)", default: "12,000" },
+                { id: "assets", label: "Description of Assets", default: "Gold jewelry weighing 120 grams; Bank savings of approx Rs. 50,000/-" },
+                { id: "advocate", label: "Advocate Name", default: "{{ current_advocate_name or 'A. Subramanian' }}" }
+            ],
+            generate: (f) => `IN THE COURT OF: ${f.court}
+CASE NO: ${f.case_no}
+
+Between:
+${f.client}                                        ... Petitioner
+                                AND
+${f.relation}                                        ... Respondent
+
+-------------------------------------------------------------------------
+                     AFFIDAVIT OF THE DEPONENT
+-------------------------------------------------------------------------
+
+I, ${f.client}, daughter/wife of ${f.relation}, Hindu, aged about ${f.age} years, residing at ${f.addr}, do hereby solemnly affirm and state on oath as follows:
+
+1. I am the Deponent / Petitioner in the above petition and I am well conversant with the facts of the case.
+
+2. I state that I have no source of independent income to maintain myself except a small temporary income of Rs. ${f.income}/- per month from home tuitions.
+
+3. I state that the assets held by me are as follows:
+   "${f.assets}"
+
+4. I declare that the statements made above are true and correct to the best of my knowledge, information, and belief.
+
+Solemnly affirmed and signed before me
+at Tiruchirappalli on this ____________ day of 2026.
+
+Deponent Signature: _______________________
+
+Identified by:
+${f.advocate}, Advocate`
+        }
+    };
+
+    let activeTemplateKey = 'vakalat';
+
+    function selectTemplate(key) {
+        activeTemplateKey = key;
+        
+        // Toggle active button UI
+        document.querySelectorAll('.template-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${key}`).classList.add('active');
+        
+        loadFields(key);
+        renderDraft();
+    }
+
+    function loadFields(key) {
+        const container = document.getElementById('fields-container');
+        container.innerHTML = '';
+        
+        const template = templates[key];
+        document.getElementById('form-title').textContent = `Drafting fields: ${template.title}`;
+
+        template.fields.forEach(field => {
+            const group = document.createElement('div');
+            group.className = 'form-group';
+            
+            const label = document.createElement('label');
+            label.setAttribute('for', field.id);
+            label.textContent = field.label;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = field.id;
+            input.value = field.default;
+            input.style.width = '100%';
+            input.addEventListener('input', renderDraft);
+
+            group.appendChild(label);
+            group.appendChild(input);
+            container.appendChild(group);
+        });
+    }
+
+    function renderDraft() {
+        const template = templates[activeTemplateKey];
+        const values = {};
+        
+        template.fields.forEach(field => {
+            const el = document.getElementById(field.id);
+            values[field.id] = el ? el.value : field.default;
+        });
+
+        const text = template.generate(values);
+        document.getElementById('draft-preview').textContent = text;
+    }
+
+    function copyToClipboard() {
+        const text = document.getElementById('draft-preview').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            alert('Draft text copied to clipboard successfully!');
+        }).catch(err => {
+            console.error('Could not copy text: ', err);
+        });
+    }
+
+    function downloadDraft() {
+        const text = document.getElementById('draft-preview').textContent;
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `vakeel_draft_${activeTemplateKey}_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    // Init page load
+    document.addEventListener('DOMContentLoaded', () => {
+        selectTemplate('vakalat');
+    });
+</script>
+
+{% endblock %}

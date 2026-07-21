@@ -74,6 +74,39 @@
             </div>
         </div>
 
+        <div class="form-row">
+            <div class="form-group">
+                <label for="court_hall">Court Hall Number</label>
+                <input type="text" id="court_hall" name="court_hall" placeholder="e.g. Court Hall 3 / Chamber B">
+            </div>
+            <div class="form-group">
+                <label for="item_number">Item Number</label>
+                <input type="text" id="item_number" name="item_number" placeholder="e.g. Item 14">
+            </div>
+            <div class="form-group">
+                <label for="case_stage">Case Stage / Purpose</label>
+                <input type="text" id="case_stage" name="case_stage" placeholder="e.g. For Arguments / Admission">
+            </div>
+        </div>
+
+        <div style="margin-top: 18px; margin-bottom: 12px; border-bottom: 1px dashed var(--border-card); padding-bottom: 6px; grid-column: 1 / -1;">
+            <h3 style="font-size: 14.5px; font-weight: 700; color: var(--text-dark); margin: 0; font-family: 'Plus Jakarta Sans', sans-serif;">Ledger & Professional Fees (INR)</h3>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="total_fee">Total Agreed Professional Fee</label>
+                <input type="number" id="total_fee" name="total_fee" placeholder="e.g. 50000" min="0">
+            </div>
+            <div class="form-group">
+                <label for="fee_paid">Retainer / Advance Fee Paid</label>
+                <input type="number" id="fee_paid" name="fee_paid" placeholder="e.g. 15000" min="0">
+            </div>
+            <div class="form-group">
+                <label for="expenses">Court Fees & filing Expenses</label>
+                <input type="number" id="expenses" name="expenses" placeholder="e.g. 3000" min="0">
+            </div>
+        </div>
+
         <div class="form-group">
             <label for="notes">Notes & Observations</label>
             <textarea id="notes" name="notes" placeholder="Any key comments, facts, or instructions regarding this hearing date..."></textarea>

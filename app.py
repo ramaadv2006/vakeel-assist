@@ -6,21 +6,111 @@ their own cases. Built to save advocates time on manual diary management.
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-import psycopg2
-import psycopg2.extras
+from werkzeug.utils import secure_filename
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 from datetime import datetime
 from functools import wraps
 import os
+import sqlite3
+
+try:
+    import psycopg2
+    import psycopg2.extras
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vakeel-assist-secret-key-change-this-in-production")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "avatars")
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+def get_serializer():
+    return URLSafeTimedSerializer(app.secret_key)
+
+
+def generate_reset_token(email):
+    serializer = get_serializer()
+    return serializer.dumps(email, salt="password-reset-salt")
+
+
+def verify_reset_token(token, max_age=3600):
+    serializer = get_serializer()
+    try:
+        email = serializer.loads(token, salt="password-reset-salt", max_age=max_age)
+        return email
+    except (SignatureExpired, BadTimeSignature):
+        return None
+
+
+# Wrapper classes to make SQLite act like psycopg2 with RealDictCursor and %s placeholders
+class SQLiteCursorWrapper:
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def execute(self, query, params=None):
+        # Convert %s placeholders to ?
+        query = query.replace('%s', '?')
+        # Map Postgres SERIAL PRIMARY KEY to SQLite INTEGER PRIMARY KEY AUTOINCREMENT
+        if "SERIAL PRIMARY KEY" in query:
+            query = query.replace("SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
+        
+        if params is not None:
+            # Ensure params is a tuple/list (e.g. if single element parameter, make tuple)
+            if not isinstance(params, (list, tuple)):
+                params = (params,)
+            self.cursor.execute(query, params)
+        else:
+            self.cursor.execute(query)
+        return self
+
+    def fetchone(self):
+        row = self.cursor.fetchone()
+        if row is None:
+            return None
+        return dict(row)
+
+    def fetchall(self):
+        rows = self.cursor.fetchall()
+        return [dict(row) for row in rows]
+
+    def close(self):
+        self.cursor.close()
+
+
+class SQLiteConnectionWrapper:
+    def __init__(self, conn):
+        self.conn = conn
+
+    def cursor(self):
+        return SQLiteCursorWrapper(self.conn.cursor())
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
+
+    def close(self):
+        self.conn.close()
+
 
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-    return conn
+    if DATABASE_URL and HAS_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        return conn
+    else:
+        # Fallback to local SQLite database
+        db_path = os.path.join(os.path.dirname(__file__), "vakeel.db")
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON;")
+        return SQLiteConnectionWrapper(conn)
 
 
 def init_db():
@@ -69,6 +159,69 @@ def init_db():
             FOREIGN KEY (case_id) REFERENCES cases (id)
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS case_tasks (
+            id SERIAL PRIMARY KEY,
+            case_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            is_completed INTEGER DEFAULT 0,
+            FOREIGN KEY (case_id) REFERENCES cases (id)
+        )
+    """)
+
+    # Dynamic schema migration for existing cases table
+    if DATABASE_URL and HAS_POSTGRES:
+        # Postgres column checks
+        def col_exists(col):
+            cur.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='cases' AND column_name=%s
+            """, (col,))
+            return cur.fetchone() is not None
+    else:
+        # SQLite column checks
+        cur.execute("PRAGMA table_info(cases)")
+        columns = [row['name'] for row in cur.fetchall()]
+        def col_exists(col):
+            return col in columns
+
+    cols_to_add = [
+        ("opposing_counsel", "TEXT"),
+        ("opposing_counsel_phone", "TEXT"),
+        ("judge_name", "TEXT"),
+        ("court_hall", "TEXT"),
+        ("item_number", "TEXT"),
+        ("case_stage", "TEXT"),
+        ("total_fee", "INTEGER DEFAULT 0"),
+        ("fee_paid", "INTEGER DEFAULT 0"),
+        ("expenses", "INTEGER DEFAULT 0")
+    ]
+    for col, col_type in cols_to_add:
+        if not col_exists(col):
+            cur.execute(f"ALTER TABLE cases ADD COLUMN {col} {col_type}")
+
+    # Dynamic schema migration for existing advocates table
+    advocate_cols_to_add = [
+        ("profile_image", "TEXT"),
+        ("office_address", "TEXT"),
+        ("specialization", "TEXT")
+    ]
+    for col, col_type in advocate_cols_to_add:
+        if DATABASE_URL and HAS_POSTGRES:
+            cur.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name='advocates' AND column_name=%s
+            """, (col,))
+            has_col = cur.fetchone() is not None
+        else:
+            cur.execute("PRAGMA table_info(advocates)")
+            adv_cols = [row['name'] for row in cur.fetchall()]
+            has_col = col in adv_cols
+
+        if not has_col:
+            cur.execute(f"ALTER TABLE advocates ADD COLUMN {col} {col_type}")
+
     conn.commit()
     cur.close()
     conn.close()
@@ -99,7 +252,10 @@ def login_required(f):
 
 @app.context_processor
 def inject_advocate():
-    return {"current_advocate_name": session.get("advocate_name")}
+    return {
+        "current_advocate_name": session.get("advocate_name"),
+        "current_advocate_avatar": session.get("advocate_avatar")
+    }
 
 
 # ---------- Auth routes ----------
@@ -144,6 +300,7 @@ def signup():
 
         session["advocate_id"] = advocate_id
         session["advocate_name"] = name
+        session["advocate_avatar"] = None
         flash(f"Welcome to Vakeel Assist, {name}!", "success")
         return redirect(url_for("dashboard"))
 
@@ -169,6 +326,7 @@ def login():
 
         session["advocate_id"] = advocate["id"]
         session["advocate_name"] = advocate["name"]
+        session["advocate_avatar"] = advocate.get("profile_image")
         flash(f"Welcome back, {advocate['name']}!", "success")
         return redirect(url_for("dashboard"))
 
@@ -182,6 +340,69 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form.get("email", "").strip().lower()
+        if not email:
+            flash("Please enter your registered email address.", "error")
+            return redirect(url_for("forgot_password"))
+
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("SELECT id, name FROM advocates WHERE email=%s", (email,))
+        advocate = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if advocate:
+            token = generate_reset_token(email)
+            reset_url = url_for("reset_password", token=token, _external=True)
+            flash(
+                f"Password reset link generated for {email}! Reset link: {reset_url}",
+                "success",
+            )
+        else:
+            flash("If an account with that email exists, a password reset link has been generated.", "success")
+
+        return redirect(url_for("login"))
+
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    email = verify_reset_token(token)
+    if not email:
+        flash("The password reset link is invalid or has expired. Please request a new one.", "error")
+        return redirect(url_for("forgot_password"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not password or len(password) < 6:
+            flash("Password must be at least 6 characters.", "error")
+            return redirect(url_for("reset_password", token=token))
+
+        if password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return redirect(url_for("reset_password", token=token))
+
+        password_hash = generate_password_hash(password)
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE advocates SET password_hash=%s WHERE email=%s", (password_hash, email))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        flash("Your password has been reset successfully! You can now log in.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("reset_password.html", token=token, email=email)
+
+
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
 def settings():
@@ -190,18 +411,70 @@ def settings():
     cur = conn.cursor()
 
     if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
         phone = request.form.get("phone", "").strip()
+        bar_number = request.form.get("bar_council_number", "").strip()
+        office_address = request.form.get("office_address", "").strip()
+        specialization = request.form.get("specialization", "").strip()
         reminder_method = request.form.get("reminder_method", "none")
         reminder_days_before = request.form.get("reminder_days_before", "1")
 
+        if not name or not email:
+            flash("Name and email are required.", "error")
+            return redirect(url_for("settings"))
+
+        # Check if email changed and is taken by another advocate
+        cur.execute("SELECT id FROM advocates WHERE email=%s AND id!=%s", (email, advocate_id))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            flash("Another account is already using this email address.", "error")
+            return redirect(url_for("settings"))
+
+        # Fetch current record for image replacement
+        cur.execute("SELECT profile_image FROM advocates WHERE id=%s", (advocate_id,))
+        adv_rec = cur.fetchone()
+        current_image = adv_rec.get("profile_image") if adv_rec else None
+
+        profile_image = current_image
+        if "profile_image" in request.files:
+            file = request.files["profile_image"]
+            if file and file.filename != "":
+                ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+                if ext in ALLOWED_EXTENSIONS:
+                    filename = f"avatar_{advocate_id}_{int(datetime.now().timestamp())}.{ext}"
+                    filepath = os.path.join(UPLOAD_FOLDER, filename)
+                    file.save(filepath)
+                    profile_image = filename
+
+                    # Clean up old image if present
+                    if current_image and current_image != filename:
+                        old_path = os.path.join(UPLOAD_FOLDER, current_image)
+                        if os.path.exists(old_path):
+                            try:
+                                os.remove(old_path)
+                            except Exception:
+                                pass
+                else:
+                    flash("Invalid image format. Allowed: PNG, JPG, JPEG, WEBP, GIF.", "error")
+                    return redirect(url_for("settings"))
+
         cur.execute(
-            "UPDATE advocates SET phone=%s, reminder_method=%s, reminder_days_before=%s WHERE id=%s",
-            (phone, reminder_method, reminder_days_before, advocate_id),
+            """UPDATE advocates SET name=%s, email=%s, phone=%s, bar_council_number=%s,
+               office_address=%s, specialization=%s, profile_image=%s,
+               reminder_method=%s, reminder_days_before=%s WHERE id=%s""",
+            (name, email, phone, bar_number, office_address, specialization, profile_image,
+             reminder_method, reminder_days_before, advocate_id),
         )
         conn.commit()
         cur.close()
         conn.close()
-        flash("Reminder settings saved.", "success")
+
+        session["advocate_name"] = name
+        session["advocate_avatar"] = profile_image
+
+        flash("Profile and settings updated successfully!", "success")
         return redirect(url_for("settings"))
 
     cur.execute("SELECT * FROM advocates WHERE id=%s", (advocate_id,))
@@ -209,6 +482,34 @@ def settings():
     cur.close()
     conn.close()
     return render_template("settings.html", advocate=advocate)
+
+
+@app.route("/settings/avatar/delete", methods=["POST"])
+@login_required
+def delete_avatar():
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT profile_image FROM advocates WHERE id=%s", (advocate_id,))
+    advocate = cur.fetchone()
+    if advocate and advocate.get("profile_image"):
+        old_image = advocate["profile_image"]
+        old_path = os.path.join(UPLOAD_FOLDER, old_image)
+        if os.path.exists(old_path):
+            try:
+                os.remove(old_path)
+            except Exception:
+                pass
+        
+        cur.execute("UPDATE advocates SET profile_image=NULL WHERE id=%s", (advocate_id,))
+        conn.commit()
+        session["advocate_avatar"] = None
+
+    cur.close()
+    conn.close()
+    flash("Profile picture removed.", "success")
+    return redirect(url_for("settings"))
 
 
 # ---------- Case routes (all scoped to logged-in advocate) ----------
@@ -301,6 +602,25 @@ def add_case():
         next_hearing_date = request.form["next_hearing_date"]
         notes = request.form.get("notes", "").strip()
         notify_client = 1 if request.form.get("notify_client") == "on" else 0
+        opposing_counsel = request.form.get("opposing_counsel", "").strip()
+        opposing_counsel_phone = request.form.get("opposing_counsel_phone", "").strip()
+        judge_name = request.form.get("judge_name", "").strip()
+        court_hall = request.form.get("court_hall", "").strip()
+        item_number = request.form.get("item_number", "").strip()
+        case_stage = request.form.get("case_stage", "").strip()
+
+        try:
+            total_fee = int(request.form.get("total_fee") or 0)
+        except ValueError:
+            total_fee = 0
+        try:
+            fee_paid = int(request.form.get("fee_paid") or 0)
+        except ValueError:
+            fee_paid = 0
+        try:
+            expenses = int(request.form.get("expenses") or 0)
+        except ValueError:
+            expenses = 0
 
         if not client_name or not case_number or not court_name or not next_hearing_date:
             flash("Please fill all required fields.", "error")
@@ -310,9 +630,11 @@ def add_case():
         cur = conn.cursor()
         cur.execute(
             """INSERT INTO cases
-               (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client)
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-            (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client),
+               (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client,
+                opposing_counsel, opposing_counsel_phone, judge_name, court_hall, item_number, case_stage, total_fee, fee_paid, expenses)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+            (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client,
+             opposing_counsel, opposing_counsel_phone, judge_name, court_hall, item_number, case_stage, total_fee, fee_paid, expenses),
         )
         new_case_id = cur.fetchone()["id"]
         add_history_entry(conn, new_case_id, next_hearing_date, note="Case created")
@@ -354,14 +676,38 @@ def edit_case(case_id):
         notes = request.form.get("notes", "").strip()
         status = request.form.get("status", "Active")
         notify_client = 1 if request.form.get("notify_client") == "on" else 0
+        opposing_counsel = request.form.get("opposing_counsel", "").strip()
+        opposing_counsel_phone = request.form.get("opposing_counsel_phone", "").strip()
+        judge_name = request.form.get("judge_name", "").strip()
+        court_hall = request.form.get("court_hall", "").strip()
+        item_number = request.form.get("item_number", "").strip()
+        case_stage = request.form.get("case_stage", "").strip()
+
+        try:
+            total_fee = int(request.form.get("total_fee") or 0)
+        except ValueError:
+            total_fee = 0
+        try:
+            fee_paid = int(request.form.get("fee_paid") or 0)
+        except ValueError:
+            fee_paid = 0
+        try:
+            expenses = int(request.form.get("expenses") or 0)
+        except ValueError:
+            expenses = 0
 
         date_changed = next_hearing_date != case["next_hearing_date"]
 
         cur.execute(
             """UPDATE cases SET client_name=%s, client_phone=%s, case_number=%s, court_name=%s,
-               case_type=%s, next_hearing_date=%s, notes=%s, status=%s, notify_client=%s WHERE id=%s AND advocate_id=%s""",
+               case_type=%s, next_hearing_date=%s, notes=%s, status=%s, notify_client=%s,
+               opposing_counsel=%s, opposing_counsel_phone=%s, judge_name=%s, court_hall=%s,
+               item_number=%s, case_stage=%s, total_fee=%s, fee_paid=%s, expenses=%s
+               WHERE id=%s AND advocate_id=%s""",
             (client_name, client_phone, case_number, court_name, case_type,
-             next_hearing_date, notes, status, notify_client, case_id, advocate_id),
+             next_hearing_date, notes, status, notify_client, opposing_counsel,
+             opposing_counsel_phone, judge_name, court_hall, item_number, case_stage,
+             total_fee, fee_paid, expenses, case_id, advocate_id),
         )
 
         # Only add a new history entry when the hearing date actually
@@ -477,6 +823,137 @@ def export_cases():
     response = Response(output.getvalue(), mimetype="text/csv")
     response.headers["Content-Disposition"] = "attachment; filename=vakeel_cases_export.csv"
     return response
+
+
+@app.route("/case/<int:case_id>/tasks")
+@login_required
+def get_tasks(case_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
+    case = cur.fetchone()
+    if not case:
+        cur.close()
+        conn.close()
+        return {"error": "Unauthorized"}, 403
+    cur.execute("SELECT * FROM case_tasks WHERE case_id=%s ORDER BY id ASC", (case_id,))
+    tasks = cur.fetchall()
+    cur.close()
+    conn.close()
+    return {"tasks": tasks}
+
+
+@app.route("/task/add", methods=["POST"])
+@login_required
+def add_task():
+    advocate_id = session["advocate_id"]
+    case_id = request.form.get("case_id")
+    title = request.form.get("title", "").strip()
+    if not case_id or not title:
+        return {"error": "Missing parameter"}, 400
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
+    case = cur.fetchone()
+    if not case:
+        cur.close()
+        conn.close()
+        return {"error": "Unauthorized"}, 403
+    
+    cur.execute("INSERT INTO case_tasks (case_id, title) VALUES (%s, %s) RETURNING id", (case_id, title))
+    task_id = cur.fetchone()["id"]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"success": True, "task": {"id": task_id, "title": title, "is_completed": 0}}
+
+
+@app.route("/task/toggle/<int:task_id>", methods=["POST"])
+@login_required
+def toggle_task(task_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT t.id, t.is_completed, c.advocate_id 
+        FROM case_tasks t 
+        JOIN cases c ON t.case_id = c.id 
+        WHERE t.id=%s
+    """, (task_id,))
+    task = cur.fetchone()
+    if not task or task["advocate_id"] != advocate_id:
+        cur.close()
+        conn.close()
+        return {"error": "Unauthorized"}, 403
+    new_state = 1 if not task["is_completed"] else 0
+    cur.execute("UPDATE case_tasks SET is_completed=%s WHERE id=%s", (new_state, task_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"success": True, "is_completed": new_state}
+
+
+@app.route("/task/delete/<int:task_id>", methods=["POST"])
+@login_required
+def delete_task(task_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT t.id, c.advocate_id 
+        FROM case_tasks t 
+        JOIN cases c ON t.case_id = c.id 
+        WHERE t.id=%s
+    """, (task_id,))
+    task = cur.fetchone()
+    if not task or task["advocate_id"] != advocate_id:
+        cur.close()
+        conn.close()
+        return {"error": "Unauthorized"}, 403
+    cur.execute("DELETE FROM case_tasks WHERE id=%s", (task_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return {"success": True}
+
+
+@app.route("/billing")
+@login_required
+def billing():
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM cases WHERE advocate_id=%s ORDER BY created_at DESC", (advocate_id,))
+    cases = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    total_agreed = 0
+    total_collected = 0
+    total_expenses = 0
+
+    for case in cases:
+        total_agreed += case.get("total_fee") or 0
+        total_collected += case.get("fee_paid") or 0
+        total_expenses += case.get("expenses") or 0
+
+    total_pending = total_agreed - total_collected
+
+    return render_template(
+        "billing.html",
+        cases=cases,
+        total_agreed=total_agreed,
+        total_collected=total_collected,
+        total_expenses=total_expenses,
+        total_pending=total_pending
+    )
+
+
+@app.route("/templates")
+@login_required
+def templates_page():
+    return render_template("templates.html")
 
 
 init_db()

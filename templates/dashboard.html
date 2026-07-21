@@ -90,8 +90,39 @@
                 {{ case['client_phone'] }}
             </span>
             {% endif %}
+            {% set pending_fee = (case['total_fee'] or 0) - (case['fee_paid'] or 0) %}
+            {% if pending_fee > 0 %}
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Pending Balance" style="color: var(--danger); font-weight: 600;">
+                Pending: ₹{{ "{:,}".format(pending_fee) }}
+            </span>
+            {% endif %}
         </div>
         
+        {% if case['court_hall'] or case['item_number'] or case['case_stage'] %}
+        <div class="meta" style="margin-top: 6px; opacity: 0.95; color: var(--text-dark);">
+            {% if case['court_hall'] %}
+            <span class="meta-item" title="Court Hall">
+                <strong>Hall:</strong> {{ case['court_hall'] }}
+            </span>
+            {% endif %}
+            {% if case['court_hall'] and (case['item_number'] or case['case_stage']) %}<span class="meta-divider">|</span>{% endif %}
+            
+            {% if case['item_number'] %}
+            <span class="meta-item" title="Item Number">
+                <strong>Item No:</strong> {{ case['item_number'] }}
+            </span>
+            {% endif %}
+            {% if case['item_number'] and case['case_stage'] %}<span class="meta-divider">|</span>{% endif %}
+            
+            {% if case['case_stage'] %}
+            <span class="meta-item" title="Case Stage">
+                <strong>Stage:</strong> <span style="color: var(--accent-hover); font-weight: 600;">{{ case['case_stage'] }}</span>
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+
         {% if case['judge_name'] or case['opposing_counsel'] %}
         <div class="meta" style="margin-top: 6px; opacity: 0.85;">
             {% if case['judge_name'] %}
@@ -118,6 +149,9 @@
         <a href="https://services.ecourts.gov.in/ecourtindia_v6/?p=casestatus/index" target="_blank" rel="noopener" class="btn-icon-text btn-ecourts" title="Opens eCourts official site">
             Verify ↗
         </a>
+        <button type="button" class="btn-icon-text" style="background: #25D366; color: white; border: none; font-weight: 600; cursor: pointer;" onclick="shareOnWhatsApp('{{ case['client_phone'] or '' }}', '{{ case['case_number'] }}', '{{ case['court_name'] }}', '{{ case['court_hall'] or '' }}', '{{ case['item_number'] or '' }}', '{{ case['next_hearing_date'] }}', '{{ case['case_stage'] or '' }}', '{{ case['judge_name'] or '' }}')" title="Share hearing details on WhatsApp">
+            WhatsApp
+        </button>
         <a href="{{ url_for('case_history', case_id=case['id']) }}" class="btn-icon-text btn-edit" title="View hearing date history for this case">
             History
         </a>
@@ -628,5 +662,30 @@
             drawer.innerHTML = '<div style="color:var(--danger); font-size:12px;">Error loading checklist.</div>';
         }
     }
+
+    window.shareOnWhatsApp = function(phone, caseNo, court, hall, item, date, stage, judge) {
+        if (!phone) {
+            alert("No client phone number listed for this case. Please add a phone number via 'Edit'.");
+            return;
+        }
+        // Clean phone number (keep only digits)
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length === 10) {
+            cleanPhone = "91" + cleanPhone; // Default to India prefix
+        }
+        
+        let message = `Respected Client, \n\nThis is to inform you that your case details are as follows:\n`;
+        message += `- Case Number: ${caseNo}\n`;
+        message += `- Court: ${court}\n`;
+        if (hall) message += `- Court Hall: ${hall}\n`;
+        if (item) message += `- Item Number: ${item}\n`;
+        if (judge) message += `- Judge: ${judge}\n`;
+        message += `- Next Hearing Date: ${date}\n`;
+        if (stage) message += `- Case Stage: ${stage}\n\n`;
+        message += `Please be present.\nRegards,\n(Sent via Vakeel Assist)`;
+        
+        const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
 </script>
 {% endblock %}
