@@ -1,21 +1,30 @@
 """
 Vakeel Assist - Daily Reminder Sender
 
-Run this script once a day (e.g. via Windows Task Scheduler) to send each
-advocate a WhatsApp or SMS reminder about hearings coming up, based on
-their personal settings (see the "Reminders" page in the app).
+Run this script once a day (as a Render Cron Job, or via Windows Task
+Scheduler on your own computer) to send each advocate a WhatsApp or SMS
+reminder about hearings coming up, based on their personal settings (see
+the "Reminders" page in the app).
 
 Usage:
     python send_reminders.py
 
 Requires:
-    pip install twilio
-    (and your Twilio credentials filled in inside config.py)
+    pip install twilio psycopg2-binary
+    (and DATABASE_URL / Twilio credentials set as environment variables,
+    or filled in inside config.py for local testing)
 """
 
-import sqlite3
 import os
+import sqlite3
 from datetime import datetime, timedelta
+
+try:
+    import psycopg2
+    import psycopg2.extras
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
 
 try:
     from twilio.rest import Client
@@ -23,8 +32,6 @@ except ImportError:
     print("Twilio is not installed. Run: pip install twilio")
     raise SystemExit(1)
 
-# Prefer environment variables (used on cloud hosting like Render) and fall
-# back to config.py (used for local testing on your own computer).
 try:
     import config
 except ImportError:
@@ -45,13 +52,52 @@ TWILIO_AUTH_TOKEN = get_setting("TWILIO_AUTH_TOKEN", "TWILIO_AUTH_TOKEN")
 TWILIO_SMS_FROM = get_setting("TWILIO_SMS_FROM", "TWILIO_SMS_FROM")
 TWILIO_WHATSAPP_FROM = get_setting("TWILIO_WHATSAPP_FROM", "TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "vakeel.db")
+DATABASE_URL = get_setting("DATABASE_URL", "DATABASE_URL")
+
+
+class SQLiteCursorWrapper:
+    def __init__(self, cursor):
+        self.cursor = cursor
+
+    def execute(self, query, params=None):
+        query = query.replace("%s", "?")
+        if params is not None:
+            if not isinstance(params, (list, tuple)):
+                params = (params,)
+            self.cursor.execute(query, params)
+        else:
+            self.cursor.execute(query)
+        return self
+
+    def fetchone(self):
+        row = self.cursor.fetchone()
+        return dict(row) if row is not None else None
+
+    def fetchall(self):
+        return [dict(row) for row in self.cursor.fetchall()]
+
+    def close(self):
+        self.cursor.close()
+
+
+class SQLiteConnectionWrapper:
+    def __init__(self, conn):
+        self.conn = conn
+
+    def cursor(self):
+        return SQLiteCursorWrapper(self.conn.cursor())
+
+    def close(self):
+        self.conn.close()
 
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    if DATABASE_URL and HAS_POSTGRES:
+        return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+    db_path = os.path.join(os.path.dirname(__file__), "vakeel.db")
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
-    return conn
+    return SQLiteConnectionWrapper(conn)
 
 
 def format_phone(phone):
@@ -74,11 +120,14 @@ def send_message(client, to_phone, method, body):
 def main():
     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     conn = get_db()
+    cur = conn.cursor()
     today = datetime.now().date()
 
-    advocates = conn.execute(
-        "SELECT * FROM advocates WHERE reminder_method IN ('whatsapp', 'sms') AND phone IS NOT NULL AND phone != ''"
-    ).fetchall()
+    cur.execute(
+        "SELECT * FROM advocates WHERE reminder_method IN ('whatsapp', 'sms') AND phone IS NOT NULL AND phone != %s",
+        ("",),
+    )
+    advocates = cur.fetchall()
 
     total_sent = 0
 
@@ -87,10 +136,11 @@ def main():
         target_date = today + timedelta(days=days_before)
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        cases = conn.execute(
-            "SELECT * FROM cases WHERE advocate_id=? AND status='Active' AND next_hearing_date=?",
+        cur.execute(
+            "SELECT * FROM cases WHERE advocate_id=%s AND status='Active' AND next_hearing_date=%s",
             (advocate["id"], target_date_str),
-        ).fetchall()
+        )
+        cases = cur.fetchall()
 
         if not cases:
             continue
@@ -114,7 +164,6 @@ def main():
             except Exception as e:
                 print(f"Failed to send to {advocate['name']}: {e}")
 
-            # Also notify the client if the advocate opted in for this case
             if case["notify_client"] and case["client_phone"]:
                 client_phone_fmt = format_phone(case["client_phone"])
                 if not client_phone_fmt:
@@ -133,6 +182,7 @@ def main():
                 except Exception as e:
                     print(f"Failed to send to client {case['client_name']}: {e}")
 
+    cur.close()
     conn.close()
     print(f"\nDone. {total_sent} reminder(s) sent.")
 
