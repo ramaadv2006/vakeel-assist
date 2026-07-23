@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,600&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ============================================================
    DESIGN SYSTEM — "Chambers" (refined navy + brass legal theme)
@@ -236,7 +236,7 @@ html {
 }
 
 body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: var(--text-base);
     background-color: var(--bg-app);
     color: var(--text-main);
@@ -305,7 +305,7 @@ header::after {
 }
 
 header h1 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Lora', serif;
     font-size: var(--text-2xl);
     font-weight: 700;
     letter-spacing: 0.3px;
@@ -684,7 +684,7 @@ body.dark .btn-export:hover {
 }
 
 .stat-card .num {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Lora', serif;
     font-size: var(--text-3xl);
     font-weight: 700;
     color: var(--text-dark);
@@ -703,7 +703,7 @@ body.dark .btn-export:hover {
 
 /* Section Title */
 .section-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: var(--text-sm);
     font-weight: 700;
     text-transform: uppercase;
@@ -782,7 +782,7 @@ body.dark .case-card.archived { border-left-color: var(--gray-600); }
 }
 
 .case-info .client {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Lora', serif;
     font-size: var(--text-lg);
     font-weight: 700;
     color: var(--text-dark);
@@ -1014,7 +1014,7 @@ body.dark .skeleton-line {
 }
 
 .form-header h2 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Lora', serif;
     font-size: var(--text-2xl);
     font-weight: 700;
     color: var(--text-dark);
@@ -1999,7 +1999,7 @@ body.dark .calendar-day.selected-day .calendar-event-dot {
 }
 
 .diary-letterhead h2 {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Lora', serif;
     font-size: var(--text-2xl);
     font-weight: 700;
     color: var(--text-dark);

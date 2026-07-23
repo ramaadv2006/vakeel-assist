@@ -25,13 +25,6 @@ import os
 from datetime import datetime, timedelta
 
 try:
-    import psycopg2
-    import psycopg2.extras
-    HAS_POSTGRES = True
-except ImportError:
-    HAS_POSTGRES = False
-
-try:
     from twilio.rest import Client
 except ImportError:
     print("Twilio is not installed. Run: pip install twilio")
@@ -83,7 +76,6 @@ def main():
     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     conn = get_db()
     cur = conn.cursor()
-    cur = conn.cursor()
     today = datetime.now().date()
 
     cur.execute(
@@ -100,11 +92,7 @@ def main():
 
         cur.execute(
             "SELECT * FROM cases WHERE advocate_id=%s AND status='Active' AND next_hearing_date=%s",
-        cur.execute(
-            "SELECT * FROM cases WHERE advocate_id=%s AND status='Active' AND next_hearing_date=%s",
             (advocate["id"], target_date_str),
-        )
-        cases = cur.fetchall()
         )
         cases = cur.fetchall()
 
@@ -148,7 +136,6 @@ def main():
                 except Exception as e:
                     print(f"Failed to send to client {case['client_name']}: {e}")
 
-    cur.close()
     cur.close()
     conn.close()
     print(f"\nDone. {total_sent} reminder(s) sent.")
