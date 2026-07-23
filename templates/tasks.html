@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}My Tasks - Vakeel Assist{% endblock %}
+{% block content %}
+
+<div class="form-container" style="max-width: 900px;">
+    <div class="form-header staggered-entry">
+        <h2>My Tasks Hub</h2>
+        <p>Outstanding pre-hearing checklist items across all your active cases</p>
+    </div>
+
+    <div class="stats-row staggered-entry" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 28px;">
+        <div class="stat-card" style="border-left-color: var(--accent);">
+            <div class="num" id="total-open-num">{{ total_open }}</div>
+            <div class="label">Open Items</div>
+        </div>
+        <div class="stat-card" style="border-left-color: var(--info);">
+            <div class="num" id="total-cases-num">{{ total_cases }}</div>
+            <div class="label">Cases with Pending Tasks</div>
+        </div>
+    </div>
+
+    <div id="task-hub-list" style="display: flex; flex-direction: column; gap: 16px;">
+        {% for case in case_groups %}
+        <div class="card-form reveal-up hub-case-section" data-case-id="{{ case['case_id'] }}" style="padding: 20px 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <div style="font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--text-dark);">
+                        {{ case['client_name'] }}
+                    </div>
+                    <div class="meta" style="margin-top: 4px;">
+                        <span class="meta-item" title="Case Number">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            {{ case['case_number'] }}
+                        </span>
+                        <span class="meta-divider">|</span>
+                        <span class="meta-item" title="Court Name">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 21h18M9 21V9a3 3 0 0 1 6 0v12"></path></svg>
+                            {{ case['court_name'] }}
+                        </span>
+                        <span class="meta-divider">|</span>
+                        <span class="meta-item" title="Next Hearing Date" style="color: var(--primary-light); font-weight: 600;">
+                            <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            {{ case['next_hearing_date'] }}
+                        </span>
+                        <span class="meta-divider">|</span>
+                        <span class="meta-item hub-open-count" style="font-weight: 700; color: var(--accent-hover);">
+                            {{ case['open_count'] }} open
+                        </span>
+                    </div>
+                </div>
+                <a href="{{ url_for('edit_case', case_id=case['case_id']) }}" class="btn-icon-text btn-edit">Edit Case</a>
+            </div>
+
+            <div class="hub-task-list" style="margin-top: 14px; display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed var(--border-card); padding-top: 12px;">
+                {% for task in case['tasks'] %}
+                <div class="hub-task-row" data-task-id="{{ task['task_id'] }}" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg-app); border-radius: var(--radius-sm); gap: 8px; transition: opacity 0.3s ease, transform 0.3s ease;">
+                    <div class="checkbox-group" style="gap: 8px;">
+                        <input type="checkbox" class="hub-task-checkbox" id="hub-task-{{ task['task_id'] }}" {% if task['is_completed'] %}checked{% endif %}>
+                        <label for="hub-task-{{ task['task_id'] }}" style="font-size: 13px; {% if task['is_completed'] %}text-decoration: line-through; opacity: 0.5;{% endif %}">{{ task['title'] }}</label>
+                    </div>
+                    <button type="button" class="hub-task-delete" style="background: none; border: none; cursor: pointer; color: var(--danger); font-size: 16px; line-height: 1; padding: 0 4px;">&times;</button>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <input type="text" class="hub-add-task-input" placeholder="Add checklist item..." style="flex: 1; padding: 6px 10px; font-size: 12px; height: 30px;">
+                <button type="button" class="btn-submit hub-add-task-btn" style="padding: 0 14px; font-size: 12px; height: 30px; line-height: 30px; margin: 0;">Add</button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if not case_groups %}
+    <div class="empty-state staggered-entry">
+        <svg class="icon-svg" style="width: 48px; height: 48px; stroke: #cbd5e1;" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+        <span>Nothing outstanding — every active case is fully checked off.</span>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    function updateHubSummary() {
+        const totalOpen = document.querySelectorAll('.hub-task-row:not(.removed) .hub-task-checkbox:not(:checked)').length;
+        const totalCases = document.querySelectorAll('.hub-case-section').length;
+        document.getElementById('total-open-num').textContent = totalOpen;
+        document.getElementById('total-cases-num').textContent = totalCases;
+    }
+
+    function updateCaseOpenCount(section) {
+        const openCount = section.querySelectorAll('.hub-task-row .hub-task-checkbox:not(:checked)').length;
+        const label = section.querySelector('.hub-open-count');
+        if (label) label.textContent = `${openCount} open`;
+        if (openCount === 0) {
+            section.style.opacity = '0';
+            section.style.transform = 'scale(0.97)';
+            setTimeout(() => {
+                section.remove();
+                updateHubSummary();
+                if (document.querySelectorAll('.hub-case-section').length === 0) {
+                    location.reload();
+                }
+            }, 300);
+        }
+    }
+
+    function wireTaskRow(row) {
+        const checkbox = row.querySelector('.hub-task-checkbox');
+        const label = row.querySelector('label');
+        const deleteBtn = row.querySelector('.hub-task-delete');
+        const section = row.closest('.hub-case-section');
+        const taskId = row.dataset.taskId;
+
+        checkbox.addEventListener('change', async () => {
+            try {
+                const res = await fetch(`/task/toggle/${taskId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.is_completed) {
+                        label.style.textDecoration = 'line-through';
+                        label.style.opacity = '0.5';
+                    } else {
+                        label.style.textDecoration = 'none';
+                        label.style.opacity = '1';
+                    }
+                    updateCaseOpenCount(section);
+                    updateHubSummary();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        deleteBtn.addEventListener('click', async () => {
+            try {
+                const res = await fetch(`/task/delete/${taskId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    row.classList.add('removed');
+                    row.style.opacity = '0';
+                    row.style.transform = 'scale(0.9)';
+                    setTimeout(() => {
+                        row.remove();
+                        updateCaseOpenCount(section);
+                        updateHubSummary();
+                    }, 300);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    }
+
+    document.querySelectorAll('.hub-task-row').forEach(wireTaskRow);
+
+    document.querySelectorAll('.hub-case-section').forEach(section => {
+        const caseId = section.dataset.caseId;
+        const input = section.querySelector('.hub-add-task-input');
+        const addBtn = section.querySelector('.hub-add-task-btn');
+        const list = section.querySelector('.hub-task-list');
+
+        const executeAdd = async () => {
+            const title = input.value.trim();
+            if (!title) return;
+            addBtn.disabled = true;
+            const form = new FormData();
+            form.append('case_id', caseId);
+            form.append('title', title);
+
+            try {
+                const res = await fetch('/task/add', { method: 'POST', body: form });
+                const data = await res.json();
+                if (data.success) {
+                    input.value = '';
+                    const row = document.createElement('div');
+                    row.className = 'hub-task-row';
+                    row.dataset.taskId = data.task.id;
+                    row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg-app); border-radius: var(--radius-sm); gap: 8px; transition: opacity 0.3s ease, transform 0.3s ease;';
+                    row.innerHTML = `
+                        <div class="checkbox-group" style="gap: 8px;">
+                            <input type="checkbox" class="hub-task-checkbox" id="hub-task-${data.task.id}">
+                            <label for="hub-task-${data.task.id}" style="font-size: 13px;">${data.task.title}</label>
+                        </div>
+                        <button type="button" class="hub-task-delete" style="background: none; border: none; cursor: pointer; color: var(--danger); font-size: 16px; line-height: 1; padding: 0 4px;">&times;</button>
+                    `;
+                    list.appendChild(row);
+                    wireTaskRow(row);
+                    updateCaseOpenCount(section);
+                    updateHubSummary();
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                addBtn.disabled = false;
+            }
+        };
+
+        addBtn.addEventListener('click', executeAdd);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                executeAdd();
+            }
+        });
+    });
+</script>
+
+{% endblock %}

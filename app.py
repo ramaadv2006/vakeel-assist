@@ -24,6 +24,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "vakeel-assist-secret-key-change-this-in-production")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+STALE_CASE_DAYS = 60
 
 UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "avatars")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
@@ -168,6 +169,19 @@ def init_db():
             FOREIGN KEY (case_id) REFERENCES cases (id)
         )
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS case_audit_log (
+            id SERIAL PRIMARY KEY,
+            case_id INTEGER NOT NULL,
+            advocate_id INTEGER NOT NULL,
+            field_changed TEXT NOT NULL,
+            old_value TEXT,
+            new_value TEXT,
+            changed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (case_id) REFERENCES cases (id),
+            FOREIGN KEY (advocate_id) REFERENCES advocates (id)
+        )
+    """)
 
     # Dynamic schema migration for existing cases table
     if DATABASE_URL and HAS_POSTGRES:
@@ -236,6 +250,28 @@ def add_history_entry(conn, case_id, hearing_date, note=None):
         (case_id, hearing_date, note),
     )
     cur.close()
+
+
+def check_hearing_conflict(conn, advocate_id, court_name, hearing_date, exclude_case_id=None):
+    """Queries active cases for the advocate matching the same court_name and next_hearing_date."""
+    if not court_name or not hearing_date:
+        return []
+    cur = conn.cursor()
+    if exclude_case_id:
+        cur.execute(
+            """SELECT case_number FROM cases 
+               WHERE advocate_id=%s AND LOWER(court_name)=LOWER(%s) AND next_hearing_date=%s AND status='Active' AND id!=%s""",
+            (advocate_id, court_name.strip(), hearing_date.strip(), exclude_case_id),
+        )
+    else:
+        cur.execute(
+            """SELECT case_number FROM cases 
+               WHERE advocate_id=%s AND LOWER(court_name)=LOWER(%s) AND next_hearing_date=%s AND status='Active'""",
+            (advocate_id, court_name.strip(), hearing_date.strip()),
+        )
+    rows = cur.fetchall()
+    cur.close()
+    return [row["case_number"] for row in rows]
 
 
 # ---------- Auth helpers ----------
@@ -523,7 +559,13 @@ def dashboard():
     today = datetime.now().date()
 
     cur.execute(
-        "SELECT * FROM cases WHERE status='Active' AND advocate_id=%s ORDER BY next_hearing_date ASC",
+        """SELECT c.*, COALESCE(
+               (SELECT MAX(added_at) FROM hearing_history WHERE case_id = c.id),
+               c.created_at
+           ) AS last_updated_at
+           FROM cases c
+           WHERE c.status='Active' AND c.advocate_id=%s
+           ORDER BY c.next_hearing_date ASC""",
         (advocate_id,),
     )
     all_cases = cur.fetchall()
@@ -531,9 +573,25 @@ def dashboard():
     conn.close()
 
     overdue, today_list, this_week, upcoming = [], [], [], []
+    stale_cases_count = 0
+
     for case in all_cases:
         hearing_date = datetime.strptime(case["next_hearing_date"], "%Y-%m-%d").date()
         days_left = (hearing_date - today).days
+
+        # Calculate days since last update (most recent hearing_history or created_at)
+        last_updated_raw = str(case.get("last_updated_at") or case.get("created_at") or today.strftime("%Y-%m-%d"))[:10]
+        try:
+            last_update_date = datetime.strptime(last_updated_raw, "%Y-%m-%d").date()
+        except ValueError:
+            last_update_date = today
+
+        days_since_update = (today - last_update_date).days
+        is_stale = (days_since_update >= STALE_CASE_DAYS)
+        case["days_since_update"] = days_since_update
+        case["is_stale"] = is_stale
+        if is_stale:
+            stale_cases_count += 1
 
         if days_left < 0:
             overdue.append((case, days_left))
@@ -551,6 +609,8 @@ def dashboard():
         this_week=this_week,
         upcoming=upcoming,
         total_cases=len(all_cases),
+        stale_cases_count=stale_cases_count,
+        STALE_CASE_DAYS=STALE_CASE_DAYS,
     )
 
 
@@ -628,6 +688,13 @@ def add_case():
 
         conn = get_db()
         cur = conn.cursor()
+
+        # Check for hearing date double-booking conflict
+        conflicts = check_hearing_conflict(conn, advocate_id, court_name, next_hearing_date)
+        if conflicts:
+            c_str = ", ".join(conflicts)
+            flash(f"Warning: Hearing date conflict detected! You already have active case(s) ({c_str}) at '{court_name}' on {next_hearing_date}.", "warning")
+
         cur.execute(
             """INSERT INTO cases
                (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client,
@@ -698,6 +765,48 @@ def edit_case(case_id):
 
         date_changed = next_hearing_date != case["next_hearing_date"]
 
+        # Audit trail field diffing
+        fields_to_check = {
+            "client_name": client_name,
+            "client_phone": client_phone,
+            "case_number": case_number,
+            "court_name": court_name,
+            "case_type": case_type,
+            "notes": notes,
+            "status": status,
+            "notify_client": notify_client,
+            "opposing_counsel": opposing_counsel,
+            "opposing_counsel_phone": opposing_counsel_phone,
+            "judge_name": judge_name,
+            "court_hall": court_hall,
+            "item_number": item_number,
+            "case_stage": case_stage,
+            "total_fee": total_fee,
+            "fee_paid": fee_paid,
+            "expenses": expenses,
+        }
+        for field_name, new_val in fields_to_check.items():
+            old_val = case.get(field_name)
+            if isinstance(new_val, int):
+                old_cmp = int(old_val or 0)
+                new_cmp = int(new_val)
+            else:
+                old_cmp = str(old_val or "").strip()
+                new_cmp = str(new_val or "").strip()
+
+            if old_cmp != new_cmp:
+                cur.execute(
+                    """INSERT INTO case_audit_log (case_id, advocate_id, field_changed, old_value, new_value)
+                       VALUES (%s, %s, %s, %s, %s)""",
+                    (case_id, advocate_id, field_name, str(old_val if old_val is not None else ""), str(new_val)),
+                )
+
+        # Check for hearing date conflict
+        conflicts = check_hearing_conflict(conn, advocate_id, court_name, next_hearing_date, exclude_case_id=case_id)
+        if conflicts:
+            c_str = ", ".join(conflicts)
+            flash(f"Warning: Hearing date conflict detected! You already have active case(s) ({c_str}) at '{court_name}' on {next_hearing_date}.", "warning")
+
         cur.execute(
             """UPDATE cases SET client_name=%s, client_phone=%s, case_number=%s, court_name=%s,
                case_type=%s, next_hearing_date=%s, notes=%s, status=%s, notify_client=%s,
@@ -755,6 +864,273 @@ def case_history(case_id):
     return render_template("case_history.html", case=case, history=history)
 
 
+@app.route("/case/<int:case_id>/audit")
+@login_required
+def case_audit(case_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT * FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id)
+    )
+    case = cur.fetchone()
+    if case is None:
+        cur.close()
+        conn.close()
+        flash("Case not found.", "error")
+        return redirect(url_for("dashboard"))
+
+    cur.execute(
+        "SELECT * FROM case_audit_log WHERE case_id=%s AND advocate_id=%s ORDER BY changed_at DESC, id DESC",
+        (case_id, advocate_id),
+    )
+    audit_logs = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template("case_audit.html", case=case, audit_logs=audit_logs)
+
+
+@app.route("/archive")
+@login_required
+def case_archive():
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT * FROM cases WHERE advocate_id=%s AND status!='Active'
+           ORDER BY status ASC, client_name ASC""",
+        (advocate_id,),
+    )
+    archived_cases = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    closed_cases = [c for c in archived_cases if c["status"] == "Closed"]
+    onhold_cases = [c for c in archived_cases if c["status"] != "Closed"]
+
+    return render_template(
+        "archive.html",
+        closed_cases=closed_cases,
+        onhold_cases=onhold_cases,
+        total_archived=len(archived_cases),
+    )
+
+
+@app.route("/case/<int:case_id>/reopen")
+@login_required
+def reopen_case(case_id):
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
+    case = cur.fetchone()
+    if case is None:
+        cur.close()
+        conn.close()
+        flash("Case not found.", "error")
+        return redirect(url_for("case_archive"))
+
+    if case["status"] == "Active":
+        cur.close()
+        conn.close()
+        flash("Case is already active.", "warning")
+        return redirect(url_for("case_archive"))
+
+    old_status = case["status"]
+    cur.execute(
+        """INSERT INTO case_audit_log (case_id, advocate_id, field_changed, old_value, new_value)
+           VALUES (%s, %s, %s, %s, %s)""",
+        (case_id, advocate_id, "status", old_status, "Active"),
+    )
+    cur.execute(
+        "UPDATE cases SET status='Active' WHERE id=%s AND advocate_id=%s",
+        (case_id, advocate_id),
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash(f"Case '{case['case_number']}' reopened and moved back to Active.", "success")
+    return redirect(url_for("case_archive"))
+
+
+@app.route("/tasks")
+@login_required
+def tasks_hub():
+    advocate_id = session["advocate_id"]
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """SELECT t.id AS task_id, t.title, t.is_completed, t.case_id,
+                  c.client_name, c.case_number, c.court_name, c.next_hearing_date
+           FROM case_tasks t
+           JOIN cases c ON t.case_id = c.id
+           WHERE c.advocate_id=%s AND c.status='Active'
+           ORDER BY c.next_hearing_date ASC, t.id ASC""",
+        (advocate_id,),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    cases_map = {}
+    for row in rows:
+        cid = row["case_id"]
+        if cid not in cases_map:
+            cases_map[cid] = {
+                "case_id": cid,
+                "client_name": row["client_name"],
+                "case_number": row["case_number"],
+                "court_name": row["court_name"],
+                "next_hearing_date": row["next_hearing_date"],
+                "tasks": [],
+                "open_count": 0,
+            }
+        cases_map[cid]["tasks"].append(row)
+        if not row["is_completed"]:
+            cases_map[cid]["open_count"] += 1
+
+    case_groups = [c for c in cases_map.values() if c["open_count"] > 0]
+    case_groups.sort(key=lambda c: (c["next_hearing_date"], -c["open_count"]))
+
+    total_open = sum(c["open_count"] for c in case_groups)
+
+    return render_template(
+        "tasks.html",
+        case_groups=case_groups,
+        total_open=total_open,
+        total_cases=len(case_groups),
+    )
+
+
+@app.route("/diary")
+@login_required
+def court_diary():
+    from datetime import timedelta
+
+    advocate_id = session["advocate_id"]
+    date_str = request.args.get("date", "").strip()
+    try:
+        selected_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else datetime.now().date()
+    except ValueError:
+        selected_date = datetime.now().date()
+
+    selected_date_str = selected_date.strftime("%Y-%m-%d")
+    prev_date_str = (selected_date - timedelta(days=1)).strftime("%Y-%m-%d")
+    next_date_str = (selected_date + timedelta(days=1)).strftime("%Y-%m-%d")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM advocates WHERE id=%s", (advocate_id,))
+    advocate = cur.fetchone()
+
+    cur.execute(
+        """SELECT * FROM cases WHERE advocate_id=%s AND status='Active' AND next_hearing_date=%s
+           ORDER BY court_name ASC, item_number ASC""",
+        (advocate_id, selected_date_str),
+    )
+    hearings = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "diary.html",
+        advocate=advocate,
+        hearings=hearings,
+        selected_date=selected_date_str,
+        prev_date=prev_date_str,
+        next_date=next_date_str,
+        is_today=(selected_date_str == datetime.now().date().strftime("%Y-%m-%d")),
+    )
+
+
+@app.route("/cases/bulk-update-dates", methods=["GET", "POST"])
+@login_required
+def bulk_update_dates():
+    if request.method == "POST":
+        advocate_id = session["advocate_id"]
+        cause_list_text = request.form.get("cause_list_text", "").strip()
+
+        if not cause_list_text:
+            flash("Please enter or paste cause list lines to import.", "error")
+            return redirect(url_for("bulk_update_dates"))
+
+        lines = cause_list_text.splitlines()
+        updated_count = 0
+        unmatched_list = []
+        conflict_warnings = []
+        invalid_lines = []
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        for line in lines:
+            line_str = line.strip()
+            if not line_str:
+                continue
+
+            parts = [p.strip() for p in line_str.split(",")]
+            if len(parts) < 2:
+                invalid_lines.append(line_str)
+                continue
+
+            case_num_input = parts[0]
+            date_str_input = parts[1]
+
+            try:
+                parsed_date = datetime.strptime(date_str_input, "%Y-%m-%d").date()
+                formatted_date = parsed_date.strftime("%Y-%m-%d")
+            except ValueError:
+                invalid_lines.append(f"{line_str} (invalid date, expected YYYY-MM-DD)")
+                continue
+
+            cur.execute(
+                "SELECT * FROM cases WHERE advocate_id=%s AND LOWER(TRIM(case_number)) = LOWER(%s)",
+                (advocate_id, case_num_input),
+            )
+            matching_cases = cur.fetchall()
+
+            if not matching_cases:
+                unmatched_list.append(case_num_input)
+            else:
+                for c in matching_cases:
+                    case_id = c["id"]
+                    court_name = c["court_name"]
+
+                    cur.execute(
+                        "UPDATE cases SET next_hearing_date=%s WHERE id=%s AND advocate_id=%s",
+                        (formatted_date, case_id, advocate_id),
+                    )
+                    add_history_entry(conn, case_id, formatted_date, note="Bulk cause list import")
+                    updated_count += 1
+
+                    conflicts = check_hearing_conflict(conn, advocate_id, court_name, formatted_date, exclude_case_id=case_id)
+                    if conflicts:
+                        c_str = ", ".join(conflicts)
+                        conflict_warnings.append(f"Case '{c['case_number']}' on {formatted_date} conflicts with active case(s) {c_str} at '{court_name}'")
+
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        if updated_count > 0:
+            flash(f"Bulk update successful! Updated hearing dates for {updated_count} case(s).", "success")
+        if unmatched_list:
+            flash(f"The following {len(unmatched_list)} case number(s) did not match any active cases: {', '.join(unmatched_list)}", "warning")
+        if invalid_lines:
+            flash(f"Skipped {len(invalid_lines)} line(s) due to invalid format: {'; '.join(invalid_lines[:3])}", "error")
+        if conflict_warnings:
+            for cw in conflict_warnings:
+                flash(f"Warning: {cw}", "warning")
+
+        return redirect(url_for("bulk_update_dates"))
+
+    return render_template("bulk_update_dates.html")
+
+
 @app.route("/delete/<int:case_id>")
 @login_required
 def delete_case(case_id):
@@ -773,9 +1149,10 @@ def delete_case(case_id):
         flash("Case not found.", "error")
         return redirect(url_for("dashboard"))
 
-    # Remove the case's hearing history first - the cases table can't be
-    # deleted while hearing_history rows still point to it.
+    # Clean up dependent records first
     cur.execute("DELETE FROM hearing_history WHERE case_id=%s", (case_id,))
+    cur.execute("DELETE FROM case_audit_log WHERE case_id=%s", (case_id,))
+    cur.execute("DELETE FROM case_tasks WHERE case_id=%s", (case_id,))
     cur.execute("DELETE FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
     conn.commit()
     cur.close()

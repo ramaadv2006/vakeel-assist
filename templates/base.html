@@ -23,7 +23,7 @@
         <a href="{{ url_for('dashboard') }}" style="text-decoration: none;">
             <h1>Vakeel <span>Assist</span></h1>
         </a>
-        <div style="display: flex; align-items: center; gap: 16px;">
+        <div class="header-controls">
             <button class="theme-toggle" id="theme-toggle-btn" title="Toggle Light/Dark Mode">
                 <svg viewBox="0 0 24 24" width="20" height="20">
                     <!-- Sun icon -->
@@ -33,7 +33,15 @@
                 </svg>
             </button>
             {% if current_advocate_name %}
-            <div class="nav-links">
+            <button class="nav-toggle" id="nav-toggle-btn" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="nav-links">
+                <span class="nav-toggle-bar"></span>
+                <span class="nav-toggle-bar"></span>
+                <span class="nav-toggle-bar"></span>
+            </button>
+            {% endif %}
+        </div>
+        {% if current_advocate_name %}
+            <nav class="nav-links" id="nav-links">
                 <span class="nav-user" style="display: flex; align-items: center; gap: 8px;">
                     {% if current_advocate_avatar %}
                     <img src="{{ url_for('static', filename='uploads/avatars/' + current_advocate_avatar) }}" alt="Avatar" style="width: 26px; height: 26px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--accent);">
@@ -42,27 +50,42 @@
                     {% endif %}
                     {{ current_advocate_name }}
                 </span>
-                <a href="{{ url_for('client_directory') }}" class="nav-link">
+                <a href="{{ url_for('client_directory') }}" class="nav-link {{ 'active' if request.endpoint == 'client_directory' }}">
                     <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                     Clients
                 </a>
-                <a href="{{ url_for('templates_page') }}" class="nav-link">
+                <a href="{{ url_for('templates_page') }}" class="nav-link {{ 'active' if request.endpoint == 'templates_page' }}">
                     <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                     Drafts
                 </a>
-                <a href="{{ url_for('billing') }}" class="nav-link">
+                <a href="{{ url_for('billing') }}" class="nav-link {{ 'active' if request.endpoint == 'billing' }}">
                     <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                     Billing
                 </a>
-                <a href="{{ url_for('settings') }}" class="nav-link">
+                <a href="{{ url_for('bulk_update_dates') }}" class="nav-link {{ 'active' if request.endpoint == 'bulk_update_dates' }}">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="M9 12h6"></path><path d="M9 16h6"></path></svg>
+                    Bulk Import
+                </a>
+                <a href="{{ url_for('case_archive') }}" class="nav-link {{ 'active' if request.endpoint == 'case_archive' }}">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+                    Archive
+                </a>
+                <a href="{{ url_for('tasks_hub') }}" class="nav-link {{ 'active' if request.endpoint == 'tasks_hub' }}">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+                    Tasks
+                </a>
+                <a href="{{ url_for('court_diary') }}" class="nav-link {{ 'active' if request.endpoint == 'court_diary' }}">
+                    <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="14" x2="16" y2="14"></line></svg>
+                    Diary
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-link {{ 'active' if request.endpoint == 'settings' }}">
                     <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                     Settings
                 </a>
                 <a href="{{ url_for('add_case') }}" class="nav-link btn-add-nav">+ Add Case</a>
                 <a href="{{ url_for('logout') }}" class="nav-link" style="opacity: 0.85;">Logout</a>
-            </div>
-            {% endif %}
-        </div>
+            </nav>
+        {% endif %}
     </header>
     <main>
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -72,6 +95,8 @@
                         <div class="flash {{ category }}">
                             {% if category == 'success' %}
                                 <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            {% elif category == 'warning' %}
+                                <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                             {% else %}
                                 <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                             {% endif %}
@@ -90,6 +115,46 @@
             const theme = document.body.classList.contains('dark') ? 'dark' : 'light';
             localStorage.setItem('theme', theme);
         });
+
+        // Mobile hamburger nav: toggles the nav-links dropdown panel
+        const navToggleBtn = document.getElementById('nav-toggle-btn');
+        const navLinks = document.getElementById('nav-links');
+        if (navToggleBtn && navLinks) {
+            const closeNav = () => {
+                navLinks.classList.remove('open');
+                navToggleBtn.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
+            };
+            const openNav = () => {
+                navLinks.classList.add('open');
+                navToggleBtn.setAttribute('aria-expanded', 'true');
+                document.body.style.overflow = 'hidden';
+            };
+            navToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (navLinks.classList.contains('open')) {
+                    closeNav();
+                } else {
+                    openNav();
+                }
+            });
+            document.addEventListener('click', (e) => {
+                if (navLinks.classList.contains('open') && !navLinks.contains(e.target) && !navToggleBtn.contains(e.target)) {
+                    closeNav();
+                }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && navLinks.classList.contains('open')) {
+                    closeNav();
+                }
+            });
+            // Collapse the panel automatically if the viewport is resized back to desktop width
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 900 && navLinks.classList.contains('open')) {
+                    closeNav();
+                }
+            });
+        }
 
         // Auto-dismiss flash messages after 4 seconds with slideOut animation
         document.addEventListener('DOMContentLoaded', () => {
@@ -127,6 +192,59 @@
                     flash.remove();
                 }, 500);
             }
+        }
+
+        // Scroll-triggered reveal: any element with .reveal-up fades/slides in
+        // once when it enters the viewport, then stops being observed.
+        if ('IntersectionObserver' in window) {
+            const revealObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('in-view');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+            document.querySelectorAll('.reveal-up').forEach(el => revealObserver.observe(el));
+
+            // Stat-card count-up: tween each ".stat-card .num" from 0 to its
+            // target value once its card scrolls into view. Numbers may carry
+            // a non-numeric prefix/suffix (e.g. "₹12,000") which is preserved.
+            const countObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) return;
+                    const el = entry.target;
+                    observer.unobserve(el);
+
+                    const raw = el.textContent.trim();
+                    const match = raw.match(/-?[\d,]+/);
+                    if (!match) return;
+
+                    const target = parseInt(match[0].replace(/,/g, ''), 10);
+                    if (isNaN(target)) return;
+
+                    const prefix = raw.slice(0, match.index);
+                    const suffix = raw.slice(match.index + match[0].length);
+                    const duration = 800;
+                    const start = performance.now();
+
+                    function tick(now) {
+                        const progress = Math.min((now - start) / duration, 1);
+                        const eased = 1 - Math.pow(1 - progress, 3);
+                        const current = Math.round(target * eased);
+                        el.textContent = prefix + current.toLocaleString('en-IN') + suffix;
+                        if (progress < 1) {
+                            requestAnimationFrame(tick);
+                        } else {
+                            el.textContent = raw;
+                        }
+                    }
+                    requestAnimationFrame(tick);
+                });
+            }, { threshold: 0.3 });
+
+            document.querySelectorAll('.stat-card .num').forEach(el => countObserver.observe(el));
         }
     </script>
 </body>

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"static css HTTP status: %{http_code}\\\\n\" http://127.0.0.1:5000/static/css/style.css)",
+      "Bash(curl -s -o /dev/null -w \"dashboard \\(unauth, expect redirect\\) HTTP status: %{http_code}\\\\n\" http://127.0.0.1:5000/)",
+      "Bash(curl -s -o /dev/null -w \"archive \\(unauth, expect redirect\\) HTTP status: %{http_code}\\\\n\" http://127.0.0.1:5000/archive)",
+      "Bash(./.venv/Scripts/python.exe -c ' *)",
+      "Bash(where chromium-cli *)",
+      "Bash(\"./.venv/Scripts/python.exe\" -m pip show playwright)"
+    ]
+  }
+}

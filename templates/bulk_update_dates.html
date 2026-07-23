@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Bulk Update Hearing Dates - Vakeel Assist{% endblock %}
+{% block content %}
+
+<div class="form-container staggered-entry" style="max-width: 720px;">
+    <a href="{{ url_for('dashboard') }}" class="back-link">
+        <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back to Dashboard
+    </a>
+
+    <div class="form-header">
+        <h2>Cause List Bulk Date Import</h2>
+        <p>Paste lines from your daily court cause list to update hearing dates for multiple cases at once.</p>
+    </div>
+
+    <div class="card-form" style="margin-bottom: 24px; padding: 18px 22px; background: var(--bg-card); border-left: 4px solid var(--accent); border-radius: var(--radius-md);">
+        <h4 style="margin: 0 0 8px 0; color: var(--text-dark); font-size: 14.5px;">Formatting Instructions</h4>
+        <p style="margin: 0 0 8px 0; font-size: 13.5px; color: var(--text-main);">
+            Paste each item on a new line in the exact format: <code>case_number, YYYY-MM-DD</code>
+        </p>
+        <div style="background: var(--bg-app); padding: 10px 14px; border-radius: var(--radius-sm); font-family: monospace; font-size: 13px; color: var(--primary-light);">
+            OS/123/2023, 2026-08-15<br>
+            CC/4567/2024, 2026-09-01<br>
+            W.P. 8901/2022, 2026-08-20
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('bulk_update_dates') }}">
+        <div class="form-group">
+            <label for="cause_list_text">Paste Cause List Lines (case_number, new_hearing_date)</label>
+            <textarea id="cause_list_text" name="cause_list_text" rows="10" placeholder="OS/123/2023, 2026-08-15&#10;CC/4567/2024, 2026-09-01" required style="width: 100%; font-family: monospace; font-size: 13.5px; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-card); background: var(--bg-card); color: var(--text-dark);"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button type="submit" class="btn-submit" style="flex: 1;">
+                Import & Update Dates
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn-cancel" style="text-decoration: none; text-align: center; display: inline-block;">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

@@ -17,7 +17,7 @@
     {% if clients %}
     <div id="clients-list" style="display: flex; flex-direction: column; gap: 16px;">
         {% for client in clients %}
-        <div class="card-form staggered-entry client-card" style="padding: 20px; transition: transform 0.25s ease, box-shadow 0.25s ease;">
+        <div class="card-form {{ 'staggered-entry' if loop.index <= 4 else 'reveal-up' }} client-card" style="padding: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                 <div>
                     <h3 class="client-name" style="font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: var(--text-dark);">
@@ -30,7 +30,7 @@
                             {{ client['phone'] }}
                         </span>
                         {% else %}
-                        <span style="color: #94a3b8; font-style: italic;">No Phone Number Listed</span>
+                        <span style="color: var(--gray-400); font-style: italic;">No Phone Number Listed</span>
                         {% endif %}
                         <span class="meta-divider">|</span>
                         <span style="font-weight: 600; color: var(--accent-hover);">
@@ -65,7 +65,7 @@
                         <div>
                             <div style="font-weight: 700; font-size: 14px; color: var(--text-dark);">
                                 {{ case['case_number'] }}
-                                <span style="font-size: 12px; font-weight: 600; color: #64748b; margin-left: 6px;">({{ case['court_name'] }})</span>
+                                <span style="font-size: 12px; font-weight: 600; color: var(--gray-500); margin-left: 6px;">({{ case['court_name'] }})</span>
                             </div>
                             <div style="font-size: 12.5px; color: var(--text-main); margin-top: 2px;">
                                 Next Hearing: <strong style="color: var(--primary-light);">{{ case['next_hearing_date'] }}</strong>

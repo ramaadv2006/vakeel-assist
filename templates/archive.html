@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_case %}
+{% block title %}Case Archive - Vakeel Assist{% endblock %}
+{% block content %}
+
+<div class="form-container" style="max-width: 1000px;">
+    <div class="form-header staggered-entry">
+        <h2>Case Archive</h2>
+        <p>Closed and on-hold cases — reopen any of them back to Active in one click</p>
+    </div>
+
+    {% if closed_cases %}
+    <div class="section-title staggered-entry" style="color: var(--gray-500); border-color: rgba(100, 116, 139, 0.2);">
+        <svg class="icon-svg" viewBox="0 0 24 24" style="stroke: var(--gray-500);"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+        Closed Cases
+    </div>
+    <div class="case-list">
+        {% for case in closed_cases %}
+            {{ render_case(case, 0, 'archived', case['status']) }}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if onhold_cases %}
+    <div class="section-title reveal-up" style="color: var(--accent); border-color: rgba(184, 147, 94, 0.25); margin-top: 32px;">
+        <svg class="icon-svg" viewBox="0 0 24 24" style="stroke: var(--accent);"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+        On Hold Cases
+    </div>
+    <div class="case-list reveal-up">
+        {% for case in onhold_cases %}
+            {{ render_case(case, 0, 'archived', case['status']) }}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if total_archived == 0 %}
+    <div class="empty-state staggered-entry">
+        <svg class="icon-svg" style="width: 48px; height: 48px; stroke: #cbd5e1;" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+        <span>No archived cases. Cases marked Closed or On Hold from the Edit form will appear here.</span>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Checklist drawer logic, copied from dashboard.html so the drawer
+    // rendered by the shared render_case macro stays functional here too.
+    document.querySelectorAll('.btn-toggle-card-tasks').forEach(btn => {
+        const caseId = btn.dataset.caseId;
+        const drawer = document.getElementById(`tasks-drawer-${caseId}`);
+        const summaryCount = document.getElementById(`task-summary-${caseId}`);
+
+        fetchTasksCount(caseId, summaryCount);
+
+        btn.addEventListener('click', () => {
+            const svgIcon = btn.querySelector('svg');
+            if (drawer.style.display === 'none') {
+                drawer.style.display = 'flex';
+                svgIcon.style.transform = 'rotate(180deg)';
+                if (drawer.children.length === 0 || drawer.querySelector('.loading-text')) {
+                    loadCardTasks(caseId, drawer, summaryCount);
+                }
+            } else {
+                drawer.style.display = 'none';
+                svgIcon.style.transform = 'rotate(0)';
+            }
+        });
+    });
+
+    async function fetchTasksCount(caseId, countElement) {
+        try {
+            const res = await fetch(`/case/${caseId}/tasks`);
+            const data = await res.json();
+            if (data.tasks) {
+                const total = data.tasks.length;
+                const completed = data.tasks.filter(t => t.is_completed === 1).length;
+                countElement.textContent = `${completed}/${total}`;
+            }
+        } catch (e) {
+            countElement.textContent = 'Checklist';
+        }
+    }
+
+    async function loadCardTasks(caseId, drawer, countElement) {
+        drawer.innerHTML = '<div class="loading-text"><div class="skeleton-line" style="width:70%;"></div><div class="skeleton-line" style="width:45%; margin-top:6px;"></div></div>';
+        try {
+            const res = await fetch(`/case/${caseId}/tasks`);
+            const data = await res.json();
+            drawer.innerHTML = '';
+
+            const addRow = document.createElement('div');
+            addRow.style.display = 'flex';
+            addRow.style.gap = '8px';
+            addRow.style.marginBottom = '6px';
+            addRow.innerHTML = `
+                <input type="text" placeholder="Add checklist item..." style="flex:1; padding:6px 10px; font-size:12px; height:28px;" class="card-add-task-input">
+                <button type="button" class="btn-submit card-add-task-btn" style="padding:0 10px; font-size:11px; height:28px; line-height:28px;">Add</button>
+            `;
+
+            const taskInput = addRow.querySelector('.card-add-task-input');
+            const addBtn = addRow.querySelector('.card-add-task-btn');
+
+            const executeAddTask = async () => {
+                const title = taskInput.value.trim();
+                if (!title) return;
+                addBtn.disabled = true;
+                const form = new FormData();
+                form.append('case_id', caseId);
+                form.append('title', title);
+
+                try {
+                    const postRes = await fetch('/task/add', { method: 'POST', body: form });
+                    const postData = await postRes.json();
+                    if (postData.success) {
+                        taskInput.value = '';
+                        loadCardTasks(caseId, drawer, countElement);
+                    }
+                } catch(err) {
+                     console.error(err);
+                } finally {
+                    addBtn.disabled = false;
+                }
+            };
+
+            addBtn.addEventListener('click', executeAddTask);
+            taskInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    executeAddTask();
+                }
+            });
+
+            drawer.appendChild(addRow);
+
+            if (data.tasks && data.tasks.length > 0) {
+                const listContainer = document.createElement('div');
+                listContainer.style.display = 'flex';
+                listContainer.style.flexDirection = 'column';
+                listContainer.style.gap = '4px';
+
+                data.tasks.forEach(task => {
+                    const taskRow = document.createElement('div');
+                    taskRow.style.display = 'flex';
+                    taskRow.style.alignItems = 'center';
+                    taskRow.style.justifyContent = 'space-between';
+                    taskRow.style.padding = '6px 10px';
+                    taskRow.style.background = 'var(--bg-app)';
+                    taskRow.style.borderRadius = 'var(--radius-sm)';
+                    taskRow.style.gap = '8px';
+
+                    const chkLabel = document.createElement('div');
+                    chkLabel.className = 'checkbox-group';
+                    chkLabel.style.gap = '8px';
+
+                    const chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.checked = task.is_completed === 1;
+                    chk.id = `card-task-${task.id}`;
+                    chk.style.width = '32px !important';
+                    chk.style.height = '18px !important';
+
+                    const label = document.createElement('label');
+                    label.setAttribute('for', `card-task-${task.id}`);
+                    label.textContent = task.title;
+                    label.style.fontSize = '12.5px';
+                    if (task.is_completed === 1) {
+                        label.style.textDecoration = 'line-through';
+                        label.style.opacity = '0.5';
+                    }
+
+                    chk.addEventListener('change', async () => {
+                        try {
+                            const toggleRes = await fetch(`/task/toggle/${task.id}`, { method: 'POST' });
+                            const toggleData = await toggleRes.json();
+                            if (toggleData.success) {
+                                if (toggleData.is_completed) {
+                                    label.style.textDecoration = 'line-through';
+                                    label.style.opacity = '0.5';
+                                } else {
+                                    label.style.textDecoration = 'none';
+                                    label.style.opacity = '1';
+                                }
+                                fetchTasksCount(caseId, countElement);
+                             }
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    });
+
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.innerHTML = '&times;';
+                    delBtn.style.background = 'none';
+                    delBtn.style.border = 'none';
+                    delBtn.style.cursor = 'pointer';
+                    delBtn.style.color = 'var(--danger)';
+                    delBtn.style.fontSize = '16px';
+                    delBtn.style.lineHeight = '1';
+                    delBtn.style.padding = '0 4px';
+
+                    delBtn.addEventListener('click', async () => {
+                        try {
+                            const delRes = await fetch(`/task/delete/${task.id}`, { method: 'POST' });
+                            const delData = await delRes.json();
+                            if (delData.success) {
+                                taskRow.style.opacity = '0';
+                                taskRow.style.transform = 'scale(0.9)';
+                                setTimeout(() => {
+                                    loadCardTasks(caseId, drawer, countElement);
+                                }, 300);
+                            }
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    });
+
+                    chkLabel.appendChild(chk);
+                    chkLabel.appendChild(label);
+                    taskRow.appendChild(chkLabel);
+                    taskRow.appendChild(delBtn);
+                    listContainer.appendChild(taskRow);
+                });
+                drawer.appendChild(listContainer);
+            } else {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.style.color = 'var(--gray-400)';
+                emptyMsg.style.fontSize = '12px';
+                emptyMsg.style.fontStyle = 'italic';
+                emptyMsg.textContent = 'No tasks added yet.';
+                drawer.appendChild(emptyMsg);
+            }
+        } catch (e) {
+            console.error(e);
+            drawer.innerHTML = '<div style="color:var(--danger); font-size:12px;">Error loading checklist.</div>';
+        }
+    }
+
+    window.shareOnWhatsApp = function(phone, caseNo, court, hall, item, date, stage, judge) {
+        if (!phone) {
+            alert("No client phone number listed for this case. Please add a phone number via 'Edit'.");
+            return;
+        }
+        let cleanPhone = phone.replace(/\D/g, '');
+        if (cleanPhone.length === 10) {
+            cleanPhone = "91" + cleanPhone;
+        }
+
+        let message = `Respected Client, \n\nThis is to inform you that your case details are as follows:\n`;
+        message += `- Case Number: ${caseNo}\n`;
+        message += `- Court: ${court}\n`;
+        if (hall) message += `- Court Hall: ${hall}\n`;
+        if (item) message += `- Item Number: ${item}\n`;
+        if (judge) message += `- Judge: ${judge}\n`;
+        message += `- Next Hearing Date: ${date}\n`;
+        if (stage) message += `- Case Stage: ${stage}\n\n`;
+        message += `Please be present.\nRegards,\n(Sent via Vakeel Assist)`;
+
+        const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    };
+</script>
+
+{% endblock %}

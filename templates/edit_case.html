@@ -147,7 +147,7 @@
         <!-- Tasks List -->
         <div id="tasks-list" style="display: flex; flex-direction: column; gap: 10px;">
             <!-- Rendered dynamically via JS -->
-            <div id="tasks-loading" style="color: #64748b; font-size: 13px;">Loading checklist...</div>
+            <div id="tasks-loading" style="color: var(--gray-500); font-size: 13px;">Loading checklist...</div>
         </div>
     </div>
 </div>
@@ -196,7 +196,7 @@
                         renderTask(task);
                     });
                 } else {
-                    tasksList.innerHTML = '<div style="color: #94a3b8; font-size: 13.5px; font-style: italic;">No checklist tasks added yet.</div>';
+                    tasksList.innerHTML = '<div style="color: var(--gray-400); font-size: 13.5px; font-style: italic;">No checklist tasks added yet.</div>';
                 }
             } catch (err) {
                 console.error(err);
@@ -313,7 +313,7 @@
                     setTimeout(() => {
                         rowElement.remove();
                         if (tasksList.children.length === 0) {
-                            tasksList.innerHTML = '<div style="color: #94a3b8; font-size: 13.5px; font-style: italic;">No checklist tasks added yet.</div>';
+                            tasksList.innerHTML = '<div style="color: var(--gray-400); font-size: 13.5px; font-style: italic;">No checklist tasks added yet.</div>';
                         }
                     }, 300);
                 }

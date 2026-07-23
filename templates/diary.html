@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Court Diary - Vakeel Assist{% endblock %}
+{% block content %}
+
+<div class="form-container no-print" style="max-width: 900px; margin-bottom: 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;" class="staggered-entry">
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <a href="{{ url_for('court_diary', date=prev_date) }}" class="btn-export" title="Previous day">&larr; Prev Day</a>
+            <span style="font-weight: 700; color: var(--text-dark); padding: 0 4px;">
+                {{ selected_date }}{% if is_today %} (Today){% endif %}
+            </span>
+            <a href="{{ url_for('court_diary', date=next_date) }}" class="btn-export" title="Next day">Next Day &rarr;</a>
+        </div>
+        <button type="button" class="btn-submit" onclick="window.print()" style="margin: 0;">Print Diary</button>
+    </div>
+</div>
+
+<div class="form-container" style="max-width: 900px;">
+    <div class="diary-sheet staggered-entry">
+        <div class="diary-letterhead">
+            <h2>{{ advocate['name'] }}</h2>
+            <p>
+                {% if advocate['bar_council_number'] %}Bar Council No: {{ advocate['bar_council_number'] }}{% endif %}
+                {% if advocate['office_address'] %}{% if advocate['bar_council_number'] %} &bull; {% endif %}{{ advocate['office_address'] }}{% endif %}
+            </p>
+        </div>
+
+        <div class="diary-subheading">Court Board — {{ selected_date }}</div>
+
+        {% if hearings %}
+        <div class="table-scroll">
+        <table class="diary-table">
+            <thead>
+                <tr>
+                    <th>Court</th>
+                    <th>Hall</th>
+                    <th>Item No</th>
+                    <th>Case Number</th>
+                    <th>Client</th>
+                    <th>Judge</th>
+                    <th>Opposing Counsel</th>
+                    <th>Stage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns = namespace(last_court=None) %}
+                {% for case in hearings %}
+                    {% if case['court_name'] != ns.last_court %}
+                    <tr class="diary-court-group">
+                        <td colspan="8">{{ case['court_name'] }}</td>
+                    </tr>
+                    {% set ns.last_court = case['court_name'] %}
+                    {% endif %}
+                    <tr>
+                        <td>{{ case['court_name'] }}</td>
+                        <td>{{ case['court_hall'] or '—' }}</td>
+                        <td>{{ case['item_number'] or '—' }}</td>
+                        <td>{{ case['case_number'] }}</td>
+                        <td>{{ case['client_name'] }}</td>
+                        <td>{{ case['judge_name'] or '—' }}</td>
+                        <td>{{ case['opposing_counsel'] or '—' }}</td>
+                        <td>{{ case['case_stage'] or '—' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p style="color: var(--text-main); font-size: 14px;">No hearings scheduled for this date.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

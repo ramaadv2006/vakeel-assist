@@ -1,19 +1,26 @@
 """
 Vakeel Assist - Daily Reminder Sender
 
-Run this script once a day (e.g. via Windows Task Scheduler) to send each
-advocate a WhatsApp or SMS reminder about hearings coming up, based on
-their personal settings (see the "Reminders" page in the app).
+Run this script once a day (e.g. via Windows Task Scheduler, or a cron job
+on your host) to send each advocate a WhatsApp or SMS reminder about
+hearings coming up, based on their personal settings (see the "Reminders"
+section of the Settings page in the app).
 
 Usage:
     python send_reminders.py
 
 Requires:
     pip install twilio
-    (and your Twilio credentials filled in inside config.py)
+    (and your Twilio credentials filled in inside config.py, or set as
+    environment variables - see get_setting() below)
+
+Database: this script reuses app.py's get_db() so it always talks to
+whatever backend the web app itself is using (local SQLite by default,
+or Postgres if DATABASE_URL is set) - it must never open its own
+separate sqlite3 connection, or it would silently read/write nothing
+once the app is migrated to Postgres in production.
 """
 
-import sqlite3
 import os
 from datetime import datetime, timedelta
 
@@ -22,6 +29,8 @@ try:
 except ImportError:
     print("Twilio is not installed. Run: pip install twilio")
     raise SystemExit(1)
+
+from app import get_db
 
 # Prefer environment variables (used on cloud hosting like Render) and fall
 # back to config.py (used for local testing on your own computer).
@@ -45,14 +54,6 @@ TWILIO_AUTH_TOKEN = get_setting("TWILIO_AUTH_TOKEN", "TWILIO_AUTH_TOKEN")
 TWILIO_SMS_FROM = get_setting("TWILIO_SMS_FROM", "TWILIO_SMS_FROM")
 TWILIO_WHATSAPP_FROM = get_setting("TWILIO_WHATSAPP_FROM", "TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "vakeel.db")
-
-
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 
 def format_phone(phone):
     """Turns a 10-digit Indian number into E.164 format (+91XXXXXXXXXX)."""
@@ -74,11 +75,13 @@ def send_message(client, to_phone, method, body):
 def main():
     client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     conn = get_db()
+    cur = conn.cursor()
     today = datetime.now().date()
 
-    advocates = conn.execute(
+    cur.execute(
         "SELECT * FROM advocates WHERE reminder_method IN ('whatsapp', 'sms') AND phone IS NOT NULL AND phone != ''"
-    ).fetchall()
+    )
+    advocates = cur.fetchall()
 
     total_sent = 0
 
@@ -87,17 +90,18 @@ def main():
         target_date = today + timedelta(days=days_before)
         target_date_str = target_date.strftime("%Y-%m-%d")
 
-        cases = conn.execute(
-            "SELECT * FROM cases WHERE advocate_id=? AND status='Active' AND next_hearing_date=?",
+        cur.execute(
+            "SELECT * FROM cases WHERE advocate_id=%s AND status='Active' AND next_hearing_date=%s",
             (advocate["id"], target_date_str),
-        ).fetchall()
+        )
+        cases = cur.fetchall()
 
         if not cases:
             continue
 
         phone = format_phone(advocate["phone"])
         if not phone:
-            print(f"Skipping {advocate['name']} - invalid phone number: {advocate['phone']}")
+            print(f"Skipping {advocate['name']} - invalid phone number on file.")
             continue
 
         for case in cases:
@@ -118,7 +122,7 @@ def main():
             if case["notify_client"] and case["client_phone"]:
                 client_phone_fmt = format_phone(case["client_phone"])
                 if not client_phone_fmt:
-                    print(f"Skipping client {case['client_name']} - invalid phone number: {case['client_phone']}")
+                    print(f"Skipping client of case {case['case_number']} - invalid phone number on file.")
                     continue
 
                 client_body = (
@@ -133,6 +137,7 @@ def main():
                 except Exception as e:
                     print(f"Failed to send to client {case['client_name']}: {e}")
 
+    cur.close()
     conn.close()
     print(f"\nDone. {total_sent} reminder(s) sent.")
 

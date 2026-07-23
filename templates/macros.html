@@ -1,0 +1,133 @@
+{% macro render_case(case, days_left, css_class, badge_text) %}
+<div class="case-card {{ css_class }}" data-date="{{ case['next_hearing_date'] }}">
+    <div class="case-info">
+        <div class="client">{{ case['client_name'] }}</div>
+        <div class="meta">
+            <span class="meta-item" title="Case Number">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                {{ case['case_number'] }}
+            </span>
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Court Name">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M3 21h18M9 21V9a3 3 0 0 1 6 0v12"></path></svg>
+                {{ case['court_name'] }}
+            </span>
+            {% if case['case_type'] %}
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Case Type">
+                <strong>{{ case['case_type'] }}</strong>
+            </span>
+            {% endif %}
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Hearing Date" style="color: var(--primary-light); font-weight: 600;">
+                <svg class="icon-svg" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                {{ case['next_hearing_date'] }}
+            </span>
+            {% if case['client_phone'] %}
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Client Phone">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                {{ case['client_phone'] }}
+            </span>
+            {% endif %}
+            {% set pending_fee = (case['total_fee'] or 0) - (case['fee_paid'] or 0) %}
+            {% if pending_fee > 0 %}
+            <span class="meta-divider">|</span>
+            <span class="meta-item" title="Pending Balance" style="color: var(--danger); font-weight: 600;">
+                Pending: ₹{{ "{:,}".format(pending_fee) }}
+            </span>
+            {% endif %}
+        </div>
+
+        {% if case['court_hall'] or case['item_number'] or case['case_stage'] %}
+        <div class="meta" style="margin-top: 6px; opacity: 0.95; color: var(--text-dark);">
+            {% if case['court_hall'] %}
+            <span class="meta-item" title="Court Hall">
+                <strong>Hall:</strong> {{ case['court_hall'] }}
+            </span>
+            {% endif %}
+            {% if case['court_hall'] and (case['item_number'] or case['case_stage']) %}<span class="meta-divider">|</span>{% endif %}
+
+            {% if case['item_number'] %}
+            <span class="meta-item" title="Item Number">
+                <strong>Item No:</strong> {{ case['item_number'] }}
+            </span>
+            {% endif %}
+            {% if case['item_number'] and case['case_stage'] %}<span class="meta-divider">|</span>{% endif %}
+
+            {% if case['case_stage'] %}
+            <span class="meta-item" title="Case Stage">
+                <strong>Stage:</strong> <span style="color: var(--accent-hover); font-weight: 600;">{{ case['case_stage'] }}</span>
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if case['judge_name'] or case['opposing_counsel'] %}
+        <div class="meta" style="margin-top: 6px; opacity: 0.85;">
+            {% if case['judge_name'] %}
+            <span class="meta-item" title="Presiding Judge">
+                <strong>Judge:</strong> {{ case['judge_name'] }}
+            </span>
+            {% endif %}
+            {% if case['judge_name'] and case['opposing_counsel'] %}<span class="meta-divider">|</span>{% endif %}
+            {% if case['opposing_counsel'] %}
+            <span class="meta-item" title="Opposing Counsel">
+                <strong>Opponent:</strong> {{ case['opposing_counsel'] }}
+                {% if case['opposing_counsel_phone'] %}
+                ({{ case['opposing_counsel_phone'] }})
+                {% endif %}
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px;">
+        <span class="badge {{ css_class }}">{{ badge_text }}</span>
+        {% if case['is_stale'] %}
+        <span class="badge badge-stale" title="No new hearing history update in {{ case['days_since_update'] }} days">⚠️ Stale ({{ case['days_since_update'] }}d)</span>
+        {% endif %}
+    </div>
+
+    <div class="actions">
+        <a href="https://services.ecourts.gov.in/ecourtindia_v6/?p=casestatus/index" target="_blank" rel="noopener" class="btn-icon-text btn-ecourts" title="Opens eCourts official site">
+            Verify ↗
+        </a>
+        <button type="button" class="btn-icon-text" style="background: #25D366; color: white; border: none; font-weight: 600; cursor: pointer;" onclick="shareOnWhatsApp('{{ case['client_phone'] or '' }}', '{{ case['case_number'] }}', '{{ case['court_name'] }}', '{{ case['court_hall'] or '' }}', '{{ case['item_number'] or '' }}', '{{ case['next_hearing_date'] }}', '{{ case['case_stage'] or '' }}', '{{ case['judge_name'] or '' }}')" title="Share hearing details on WhatsApp">
+            WhatsApp
+        </button>
+        <a href="{{ url_for('case_history', case_id=case['id']) }}" class="btn-icon-text btn-edit" title="View hearing date history for this case">
+            History
+        </a>
+        <a href="{{ url_for('edit_case', case_id=case['id']) }}" class="btn-icon-text btn-edit">
+            Edit
+        </a>
+        {% if case['status'] != 'Active' %}
+        <a href="{{ url_for('reopen_case', case_id=case['id']) }}" class="btn-icon-text btn-edit" onclick="return confirm('Reopen this case and set status back to Active?')" title="Move this case back to Active">
+            Reopen
+        </a>
+        {% endif %}
+        <a href="{{ url_for('delete_case', case_id=case['id']) }}" class="btn-icon-text btn-delete" onclick="return confirm('Remove this case?')">
+            Delete
+        </a>
+    </div>
+
+    {% if case['notes'] %}
+    <div class="case-notes">
+        <strong>Notes:</strong> {{ case['notes'] }}
+    </div>
+    {% endif %}
+
+    <!-- Checklist Accordion Drawer -->
+    <div class="card-checklist-section" style="grid-column: 1 / -1; margin-top: 10px; border-top: 1px dashed var(--border-card); padding-top: 8px;">
+        <button type="button" class="btn-toggle-card-tasks" data-case-id="{{ case['id'] }}" style="background: none; border: none; cursor: pointer; color: var(--accent-hover); font-size: 12.5px; font-weight: 600; padding: 0; display: flex; align-items: center; gap: 4px; transition: color 0.2s;">
+            <svg class="icon-svg" viewBox="0 0 24 24" style="width: 14px; height: 14px; transform: rotate(0); transition: transform 0.25s;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            Show Pre-Hearing Checklist (<span class="task-summary-count" id="task-summary-{{ case['id'] }}">...</span>)
+        </button>
+        <div class="card-tasks-drawer" id="tasks-drawer-{{ case['id'] }}" style="display: none; margin-top: 8px; flex-direction: column; gap: 8px;">
+            <!-- Rendered dynamically -->
+        </div>
+    </div>
+</div>
+{% endmacro %}

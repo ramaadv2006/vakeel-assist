@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Audit Trail - Vakeel Assist{% endblock %}
+{% block content %}
+
+<div class="form-container">
+    <a href="{{ url_for('dashboard') }}" class="back-link staggered-entry">
+        <svg class="icon-svg" viewBox="0 0 24 24" stroke="currentColor"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        Back to Dashboard
+    </a>
+
+    <div class="form-header staggered-entry">
+        <h2>Case Audit Trail</h2>
+        <p>{{ case['client_name'] }} — {{ case['case_number'] }} ({{ case['court_name'] }})</p>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;" class="staggered-entry">
+        <a href="{{ url_for('case_history', case_id=case['id']) }}" class="btn-export" style="padding: 8px 16px; border-radius: var(--radius-md); text-decoration: none;">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Hearing Timeline
+        </a>
+        <a href="{{ url_for('case_audit', case_id=case['id']) }}" class="btn-export active-view" style="padding: 8px 16px; border-radius: var(--radius-md); text-decoration: none;">
+            <svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            Audit Trail
+        </a>
+    </div>
+
+    {% if audit_logs %}
+    <div class="timeline-container staggered-entry">
+        {% for entry in audit_logs %}
+        <div class="timeline-item">
+            <div class="timeline-dot active"></div>
+            <div class="case-card week" style="margin: 0;">
+                <div class="case-info">
+                    <div class="client" style="font-size: 15px; font-weight: 700; color: var(--text-dark);">
+                        Changed <span style="color: var(--accent-hover); font-weight: 700;">{{ entry['field_changed']|replace('_', ' ')|title }}</span>
+                    </div>
+                    <div class="meta" style="margin-top: 4px; font-size: 13.5px;">
+                        <span style="color: var(--danger); text-decoration: line-through;">
+                            Old: {{ entry['old_value'] if entry['old_value'] != '' else '(empty)' }}
+                        </span>
+                        <span class="meta-divider">&rarr;</span>
+                        <span style="color: var(--success); font-weight: 600;">
+                            New: {{ entry['new_value'] if entry['new_value'] != '' else '(empty)' }}
+                        </span>
+                    </div>
+                    <div class="meta" style="margin-top: 4px; opacity: 0.75; font-size: 12px;">
+                        Timestamp: {{ entry['changed_at'] }}
+                    </div>
+                </div>
+                <span class="badge week">Field Modified</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state staggered-entry">
+        <span>No field updates recorded in audit trail yet.</span>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
