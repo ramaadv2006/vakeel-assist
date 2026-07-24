@@ -1,5 +1,5 @@
 """
-Vakeel Assist - Case & Hearing Tracker for Advocates (Multi-User Version)
+Advo Buddy - Case & Hearing Tracker for Advocates (Multi-User Version)
 Many advocates can sign up and use this app - each advocate only sees
 their own cases. Built to save advocates time on manual diary management.
 """
@@ -21,7 +21,7 @@ except ImportError:
     HAS_POSTGRES = False
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "vakeel-assist-secret-key-change-this-in-production")
+app.secret_key = os.environ.get("SECRET_KEY", "advo-buddy-secret-key-change-this-in-production")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 STALE_CASE_DAYS = 60
@@ -107,7 +107,7 @@ def get_db():
         return conn
     else:
         # Fallback to local SQLite database
-        db_path = os.path.join(os.path.dirname(__file__), "vakeel.db")
+        db_path = os.path.join(os.path.dirname(__file__), "advo_buddy.db")
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON;")
@@ -337,7 +337,7 @@ def signup():
         session["advocate_id"] = advocate_id
         session["advocate_name"] = name
         session["advocate_avatar"] = None
-        flash(f"Welcome to Vakeel Assist, {name}!", "success")
+        flash(f"Welcome to Advo Buddy, {name}!", "success")
         return redirect(url_for("dashboard"))
 
     return render_template("signup.html")
@@ -1198,7 +1198,7 @@ def export_cases():
         ])
 
     response = Response(output.getvalue(), mimetype="text/csv")
-    response.headers["Content-Disposition"] = "attachment; filename=vakeel_cases_export.csv"
+    response.headers["Content-Disposition"] = "attachment; filename=advo_buddy_cases_export.csv"
     return response
 
 
@@ -1332,6 +1332,16 @@ def billing():
 def templates_page():
     return render_template("templates.html")
 
+
+# Rename old SQLite database file vakeel.db to advo_buddy.db if it exists
+old_db_path = os.path.join(os.path.dirname(__file__), "vakeel.db")
+new_db_path = os.path.join(os.path.dirname(__file__), "advo_buddy.db")
+if os.path.exists(old_db_path) and not os.path.exists(new_db_path):
+    try:
+        os.rename(old_db_path, new_db_path)
+        print(f"Successfully migrated database from {old_db_path} to {new_db_path}")
+    except Exception as e:
+        print(f"Error migrating database: {e}")
 
 init_db()
 if __name__ == "__main__":

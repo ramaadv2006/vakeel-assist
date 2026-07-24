@@ -1,4 +1,4 @@
-# Vakeel Assist — Case & Hearing Tracker for Advocates
+# Advo Buddy — Case & Hearing Tracker for Advocates
 
 A simple Python (Flask) web app to help advocates track cases and hearing dates,
 so nothing is missed and less time is spent on manual diary management.
@@ -37,7 +37,7 @@ The project has been upgraded with the following system features and UI/UX anima
    http://localhost:5000
    ```
 
-The database file `vakeel.db` will be created automatically on first run.
+The database file `advo_buddy.db` will be created automatically on first run.
 
 ## WhatsApp / SMS Reminders (New!)
 
@@ -71,12 +71,12 @@ Advocates can now get a reminder on their own phone before each hearing.
 ### Automating it daily (Windows)
 
 Use **Task Scheduler** (search for it in the Start menu):
-1. Create a new Basic Task, name it "Vakeel Assist Reminders"
+1. Create a new Basic Task, name it "Advo Buddy Reminders"
 2. Trigger: Daily, pick a time (e.g. 8:00 AM)
 3. Action: Start a program
    - Program: `python`
    - Arguments: `send_reminders.py`
-   - Start in: the full path to your `vakeel_assist` folder
+   - Start in: the full path to your project folder
 4. Finish - it will now run automatically every day.
 
 **Note:** Twilio's free trial account can only send messages to phone
@@ -94,7 +94,7 @@ without restriction, you'll need to upgrade to a paid Twilio account
 
 ## Deployment Options (When Ready to Launch)
 - **Free/cheap hosting:** Render.com, PythonAnywhere, Railway.app
-- **Domain:** Get a `.in` domain for Tamil Nadu branding (e.g. vakeelassist.in)
+- **Domain:** Get a `.in` domain (e.g. advobuddy.in)
 - **Database upgrade:** Move from SQLite to PostgreSQL when you have real users
 
 ## Tech Stack

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "macros.html" import render_case %}
-{% block title %}Dashboard - Vakeel Assist{% endblock %}
+{% block title %}Dashboard - Advo Buddy{% endblock %}
 {% block content %}
 
 <div class="stats-row">
@@ -567,7 +567,7 @@
         if (judge) message += `- Judge: ${judge}\n`;
         message += `- Next Hearing Date: ${date}\n`;
         if (stage) message += `- Case Stage: ${stage}\n\n`;
-        message += `Please be present.\nRegards,\n(Sent via Vakeel Assist)`;
+        message += `Please be present.\nRegards,\n(Sent via Advo Buddy)`;
         
         const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');

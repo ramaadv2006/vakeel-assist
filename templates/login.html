@@ -1,14 +1,165 @@
 {% extends "base.html" %}
-{% block title %}Log In - Vakeel Assist{% endblock %}
+{% block title %}Log In - Advo Buddy{% endblock %}
 {% block content %}
 
+<style>
+    /* Logo Container & Aura Glow */
+    .brand-logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+        margin-bottom: 20px;
+        height: 70px;
+    }
+    .brand-logo-glow {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        background: radial-gradient(circle, rgba(184, 147, 94, 0.25) 0%, rgba(184, 147, 94, 0) 70%);
+        border-radius: 50%;
+        filter: blur(8px);
+        animation: pulseAura 3s infinite alternate ease-in-out;
+        z-index: 0;
+    }
+    .brand-logo-svg {
+        position: relative;
+        z-index: 1;
+        color: var(--accent);
+        filter: drop-shadow(0 2px 8px rgba(184, 147, 94, 0.2));
+        stroke-dasharray: 1000;
+        stroke-dashoffset: 1000;
+        animation: drawLogo 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    @keyframes pulseAura {
+        0% { transform: scale(0.95); opacity: 0.7; }
+        100% { transform: scale(1.1); opacity: 1; }
+    }
+    @keyframes drawLogo {
+        to { stroke-dashoffset: 0; }
+    }
+
+    /* Glow-following-mouse on form */
+    .auth-container .card-form {
+        position: relative;
+        z-index: 1;
+        overflow: hidden;
+    }
+    /* Cursor glow border overlay */
+    .auth-container .card-form::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: var(--radius-xl);
+        padding: 1.5px;
+        background: radial-gradient(
+            220px circle at var(--mouse-x, 0) var(--mouse-y, 0),
+            rgba(184, 147, 94, 0.45),
+            transparent 80%
+        );
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        z-index: 2;
+    }
+    .auth-container .card-form:hover::before {
+        opacity: 1;
+    }
+
+    /* Input focus border underline slide effect */
+    .floating-group {
+        position: relative;
+    }
+    .floating-group::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--accent) 50%, transparent);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: translateX(-50%);
+        z-index: 3;
+    }
+    .floating-group:focus-within::after {
+        width: 100%;
+    }
+
+    /* Float Animation for Form Header Text */
+    .form-header h2 {
+        background: linear-gradient(135deg, var(--text-dark), var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: textFloat 3s ease-in-out infinite alternate;
+    }
+    body.dark .form-header h2 {
+        background: linear-gradient(135deg, #ffffff, var(--accent));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    @keyframes textFloat {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-3px); }
+    }
+
+    /* Eye-catching login button hover scale & shimmer speedup */
+    .btn-submit {
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(184, 147, 94, 0.25) !important;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    }
+    .btn-submit:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 6px 20px rgba(184, 147, 94, 0.4) !important;
+    }
+    .btn-submit:active {
+        transform: translateY(1px) scale(0.98);
+    }
+    
+    /* Login click progress indicator */
+    .btn-submit.btn-loading {
+        color: transparent !important;
+        pointer-events: none;
+    }
+    .btn-submit.btn-loading::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        top: calc(50% - 10px);
+        left: calc(50% - 10px);
+        border: 2.5px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spinSpinner 0.8s linear infinite;
+    }
+    @keyframes spinSpinner {
+        to { transform: rotate(360deg); }
+    }
+</style>
+
 <div class="auth-container">
+    <div class="brand-logo-container staggered-entry">
+        <div class="brand-logo-glow"></div>
+        <svg class="brand-logo-svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+            <!-- Professional Legal thematic Scales & Gavel icon -->
+            <path d="M12 2v20M17 7l-5-2-5 2M17 17l-5-2-5 2M4 7c0-2 2-3 4-3s4 1 4 3-2 3-4 3-4-1-4-3zm10 0c0-2 2-3 4-3s4 1 4 3-2 3-4 3-4-1-4-3zM3 21h18" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </div>
+
     <div class="form-header staggered-entry">
         <h2>Welcome Back</h2>
         <p>Log in to manage your case diary and schedules</p>
     </div>
 
-    <form class="card-form" method="POST">
+    <form class="card-form" id="login-form" method="POST">
         <div class="form-group floating-group staggered-entry">
             <input type="email" id="email" name="email" required placeholder=" ">
             <label for="email">Email Address</label>
@@ -34,6 +185,11 @@
 <script>
     document.body.classList.add('auth-page-bg');
 
+    // Dynamically assign waterfall load animations to all staggered entry elements page-wide
+    document.querySelectorAll('.staggered-entry').forEach((el, index) => {
+        el.style.animationDelay = `${(index + 1) * 0.08}s`;
+    });
+
     // Password visibility toggle logic
     const togglePw = document.getElementById('toggle-pw');
     const passwordInput = document.getElementById('password');
@@ -50,6 +206,29 @@
             } else {
                 // Eye on icon path
                 pwIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            }
+        });
+    }
+
+    // Card hover cursor position tracker
+    const card = document.querySelector('.auth-container .card-form');
+    if (card) {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            card.style.setProperty('--mouse-x', `${x}px`);
+            card.style.setProperty('--mouse-y', `${y}px`);
+        });
+    }
+
+    // Form submission animation triggers loader
+    const form = document.getElementById('login-form');
+    if (form) {
+        form.addEventListener('submit', () => {
+            const submitBtn = form.querySelector('.btn-submit');
+            if (submitBtn) {
+                submitBtn.classList.add('btn-loading');
             }
         });
     }

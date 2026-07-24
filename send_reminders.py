@@ -1,5 +1,5 @@
 """
-Vakeel Assist - Daily Reminder Sender
+Advo Buddy - Daily Reminder Sender
 
 Run this script once a day (e.g. via Windows Task Scheduler, or a cron job
 on your host) to send each advocate a WhatsApp or SMS reminder about
@@ -106,7 +106,7 @@ def main():
 
         for case in cases:
             body = (
-                f"Vakeel Assist Reminder:\n"
+                f"Advo Buddy Reminder:\n"
                 f"Hearing for {case['client_name']} (Case No: {case['case_number']}) "
                 f"at {case['court_name']} is on {case['next_hearing_date']} "
                 f"({days_before} day{'s' if days_before > 1 else ''} from now)."
@@ -125,7 +125,7 @@ def main():
                     continue
 
                 client_body = (
-                    f"Reminder from {advocate['name']} (Vakeel Assist):\n"
+                    f"Reminder from {advocate['name']} (Advo Buddy):\n"
                     f"Your hearing (Case No: {case['case_number']}) at {case['court_name']} "
                     f"is on {case['next_hearing_date']}."
                 )

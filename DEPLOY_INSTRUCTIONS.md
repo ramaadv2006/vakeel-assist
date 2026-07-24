@@ -1,6 +1,6 @@
-# Vakeel Assist - Deployment Instructions for Developer
+# Advo Buddy - Deployment Instructions for Developer
 
-Hi! This is a Flask (Python) web app called "Vakeel Assist" - a case &
+Hi! This is a Flask (Python) web app called "Advo Buddy" - a case &
 hearing tracker for advocates, with multi-user login and WhatsApp/SMS
 reminders via Twilio.
 
@@ -24,7 +24,7 @@ on anyone's personal laptop being on). Suggested approach:
 
 1. **Host**: Render.com, Railway.app, PythonAnywhere, or similar
    (Render.com free tier works well for Flask apps)
-2. **Database**: Currently uses SQLite (`vakeel.db`, auto-created on first
+2. **Database**: Currently uses SQLite (`advo_buddy.db`, auto-created on first
    run). This is fine for a low-traffic MVP, but note that on most free
    hosts the filesystem resets on redeploy, wiping the DB. If persistence
    matters, consider migrating to the host's free PostgreSQL instead.

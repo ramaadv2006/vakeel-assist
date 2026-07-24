@@ -1,5 +1,5 @@
 """
-Vakeel Assist - Reminder Configuration
+Advo Buddy - Reminder Configuration
 
 Fill in your Twilio credentials below. Get these free by signing up at:
 https://www.twilio.com/try-twilio

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Legal Draft Templates - Vakeel Assist{% endblock %}
+{% block title %}Legal Draft Templates - Advo Buddy{% endblock %}
 {% block content %}
 
 <style>
@@ -396,7 +396,7 @@ ${f.advocate}, Advocate`
         
         const a = document.createElement('a');
         a.href = url;
-        a.download = `vakeel_draft_${activeTemplateKey}_${new Date().toISOString().split('T')[0]}.txt`;
+        a.download = `advo_buddy_draft_${activeTemplateKey}_${new Date().toISOString().split('T')[0]}.txt`;
         document.body.appendChild(a);
         a.click();
         
