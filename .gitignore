@@ -1,6 +1,6 @@
 config.py
-vakeel.db
 __pycache__/
 *.pyc
 .venv/
 reminder_log.txt
+.env

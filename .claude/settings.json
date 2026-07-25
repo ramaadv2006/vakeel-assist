@@ -6,7 +6,8 @@
       "Bash(curl -s -o /dev/null -w \"archive \\(unauth, expect redirect\\) HTTP status: %{http_code}\\\\n\" http://127.0.0.1:5000/archive)",
       "Bash(./.venv/Scripts/python.exe -c ' *)",
       "Bash(where chromium-cli *)",
-      "Bash(\"./.venv/Scripts/python.exe\" -m pip show playwright)"
+      "Bash(\"./.venv/Scripts/python.exe\" -m pip show playwright)",
+      "Bash(.venv/Scripts/python.exe -m pip install \"supabase>=2.10\")"
     ]
   }
 }

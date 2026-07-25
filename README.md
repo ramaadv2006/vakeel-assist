@@ -28,7 +28,8 @@ Two servers, run in separate terminals:
 pip install -r requirements.txt
 python app.py
 ```
-The SQLite database file `advo_buddy.db` is created automatically on first run.
+Requires a Postgres database (Supabase) — set `DATABASE_URL` in `.env`
+before starting the server; tables are created automatically on first run.
 
 **Frontend (port 5173):**
 ```
@@ -48,26 +49,7 @@ deployed Flask API's origin.
 - Add / edit / delete cases with client details, court name, hearing date
 - Dashboard auto-sorts cases into: **Overdue, Today, This Week, Upcoming**
 - Stats overview at a glance
-- Local SQLite database (no external setup needed) - fine for hundreds/thousands of advocates before you need to upgrade to PostgreSQL
-
-## How to Run
-
-1. Install Flask (only dependency needed):
-   ```
-   pip install flask
-   ```
-
-2. Run the app:
-   ```
-   python app.py
-   ```
-
-3. Open in browser:
-   ```
-   http://localhost:5000
-   ```
-
-The database file `advo_buddy.db` will be created automatically on first run.
+- Postgres (Supabase) database via `DATABASE_URL`
 
 ## WhatsApp / SMS Reminders (New!)
 
@@ -125,9 +107,9 @@ without restriction, you'll need to upgrade to a paid Twilio account
 ## Deployment Options (When Ready to Launch)
 - **Free/cheap hosting:** Render.com, PythonAnywhere, Railway.app
 - **Domain:** Get a `.in` domain (e.g. advobuddy.in)
-- **Database upgrade:** Move from SQLite to PostgreSQL when you have real users
+- **Database:** Supabase (Postgres) via `DATABASE_URL`
 
 ## Tech Stack
 - Backend: Python + Flask (JSON API only, stateless token auth, Flask-Cors)
-- Database: SQLite by default (built into Python, zero setup), Postgres via `DATABASE_URL`
+- Database: Postgres (Supabase) via `DATABASE_URL` (required)
 - Frontend: React + Vite + React Router, single global CSS design system

@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api } from '../api/client';
+import { Link, useNavigate } from 'react-router-dom';
+import { supabase } from '../api/supabaseClient';
 import { useFlash } from '../context/FlashContext';
 import { useStaggeredEntry } from '../hooks/useStaggeredEntry';
 
 export default function ResetPassword() {
-  const { token } = useParams();
   const navigate = useNavigate();
   const addFlash = useFlash();
 
-  const [checking, setChecking] = useState(true);
-  const [email, setEmail] = useState(null);
+  const [ready, setReady] = useState(false);
   const [invalid, setInvalid] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,16 +19,26 @@ export default function ResetPassword() {
     document.body.classList.add('auth-page-bg');
     return () => document.body.classList.remove('auth-page-bg');
   }, []);
-  useStaggeredEntry([checking]);
+  useStaggeredEntry([ready]);
+
+  // Supabase parses the recovery link's URL hash automatically and fires
+  // a PASSWORD_RECOVERY auth event once it's established a temporary
+  // session for the reset - that's our signal the form is safe to show.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setReady(true);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
-    api.get(`/auth/reset-password/${token}`)
-      .then((data) => setEmail(data.email))
-      .catch(() => setInvalid(true))
-      .finally(() => setChecking(false));
-  }, [token]);
-
-  if (checking) return null;
+    if (ready) return;
+    const timeout = setTimeout(() => setInvalid(true), 4000);
+    return () => clearTimeout(timeout);
+  }, [ready]);
 
   if (invalid) {
     return (
@@ -46,6 +54,8 @@ export default function ResetPassword() {
     );
   }
 
+  if (!ready) return null;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password.length < 6) {
@@ -58,8 +68,10 @@ export default function ResetPassword() {
     }
     setLoading(true);
     try {
-      const data = await api.post(`/auth/reset-password/${token}`, { password, confirm_password: confirmPassword });
-      addFlash(data.message, 'success');
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw error;
+      addFlash('Your password has been reset successfully! You can now log in.', 'success');
+      await supabase.auth.signOut();
       navigate('/login', { replace: true });
     } catch (err) {
       addFlash(err.message, 'error');
@@ -71,7 +83,7 @@ export default function ResetPassword() {
     <div className="auth-container">
       <div className="form-header staggered-entry">
         <h2>Reset Password</h2>
-        <p>Set a new password for account <strong>{email}</strong></p>
+        <p>Set a new password for your account</p>
       </div>
 
       <form className="card-form" onSubmit={handleSubmit}>

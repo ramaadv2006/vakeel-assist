@@ -5,28 +5,30 @@ their own cases. Built to save advocates time on manual diary management.
 
 This is a pure JSON API. The frontend is a decoupled React (Vite) SPA
 that lives in frontend/ and talks to these endpoints over fetch(). Auth
-is stateless: POST /api/auth/login and /api/auth/signup return a signed
-bearer token (itsdangerous) that the client stores and sends back as
-`Authorization: Bearer <token>` on every subsequent request.
+is handled by Supabase Auth: the frontend signs up/logs in directly via
+the Supabase JS client and sends the resulting Supabase access token back
+as `Authorization: Bearer <token>` on every request; this app verifies
+that token with Supabase and maps it to a local `advocates` row (see
+`login_required`/`resolve_advocate` below) for all business data.
 """
 
 from flask import Flask, request, jsonify, Response, g
-from flask_cors import CORS
-from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from datetime import datetime, timedelta
 from functools import wraps
 import csv
 import io
 import os
-import sqlite3
 
 try:
-    import psycopg2
-    import psycopg2.extras
-    HAS_POSTGRES = True
+    from dotenv import load_dotenv
+    load_dotenv()
 except ImportError:
-    HAS_POSTGRES = False
+    pass
+
+import psycopg2
+import psycopg2.extras
+from flask_cors import CORS
+from supabase import create_client
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "advo-buddy-secret-key-change-this-in-production")
@@ -34,102 +36,38 @@ app.secret_key = os.environ.get("SECRET_KEY", "advo-buddy-secret-key-change-this
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
+
 STALE_CASE_DAYS = 60
-AUTH_TOKEN_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 
 UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "avatars")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-def get_serializer():
-    return URLSafeTimedSerializer(app.secret_key)
-
-
-# ---------- Auth token helpers (stateless, replaces Flask session) ----------
-
-def generate_auth_token(advocate_id):
-    return get_serializer().dumps({"id": advocate_id}, salt="auth-token")
-
-
-def verify_auth_token(token):
-    try:
-        data = get_serializer().loads(token, salt="auth-token", max_age=AUTH_TOKEN_MAX_AGE)
-        return data.get("id")
-    except (SignatureExpired, BadSignature):
-        return None
-
-
-def generate_reset_token(email):
-    return get_serializer().dumps(email, salt="password-reset-salt")
-
-
-def verify_reset_token(token, max_age=3600):
-    try:
-        return get_serializer().loads(token, salt="password-reset-salt", max_age=max_age)
-    except (SignatureExpired, BadSignature):
-        return None
-
-
-# Wrapper classes to make SQLite act like psycopg2 with RealDictCursor and %s placeholders
-class SQLiteCursorWrapper:
-    def __init__(self, cursor):
-        self.cursor = cursor
-
-    def execute(self, query, params=None):
-        query = query.replace('%s', '?')
-        if "SERIAL PRIMARY KEY" in query:
-            query = query.replace("SERIAL PRIMARY KEY", "INTEGER PRIMARY KEY AUTOINCREMENT")
-
-        if params is not None:
-            if not isinstance(params, (list, tuple)):
-                params = (params,)
-            self.cursor.execute(query, params)
-        else:
-            self.cursor.execute(query)
-        return self
-
-    def fetchone(self):
-        row = self.cursor.fetchone()
-        if row is None:
-            return None
-        return dict(row)
-
-    def fetchall(self):
-        rows = self.cursor.fetchall()
-        return [dict(row) for row in rows]
-
-    def close(self):
-        self.cursor.close()
-
-
-class SQLiteConnectionWrapper:
-    def __init__(self, conn):
-        self.conn = conn
-
-    def cursor(self):
-        return SQLiteCursorWrapper(self.conn.cursor())
-
-    def commit(self):
-        self.conn.commit()
-
-    def rollback(self):
-        self.conn.rollback()
-
-    def close(self):
-        self.conn.close()
+def get_supabase():
+    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+        raise RuntimeError(
+            "SUPABASE_URL / SUPABASE_ANON_KEY are not set - required to verify "
+            "Supabase Auth tokens. Set them in your .env / host environment."
+        )
+    return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 
 def get_db():
-    if DATABASE_URL and HAS_POSTGRES:
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-        return conn
-    else:
-        db_path = os.path.join(os.path.dirname(__file__), "advo_buddy.db")
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON;")
-        return SQLiteConnectionWrapper(conn)
+    if not DATABASE_URL:
+        raise RuntimeError(
+            "DATABASE_URL is not set. Advo Buddy now requires a Postgres "
+            "(Supabase) database - set DATABASE_URL in your .env / host "
+            "environment variables."
+        )
+    # Standardize postgres:// to postgresql:// for psycopg2 compatibility
+    db_url = DATABASE_URL
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
+    return conn
 
 
 def init_db():
@@ -201,20 +139,13 @@ def init_db():
         )
     """)
 
-    if DATABASE_URL and HAS_POSTGRES:
-        def col_exists(col):
-            cur.execute("""
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name='cases' AND column_name=%s
-            """, (col,))
-            return cur.fetchone() is not None
-    else:
-        cur.execute("PRAGMA table_info(cases)")
-        columns = [row['name'] for row in cur.fetchall()]
-
-        def col_exists(col):
-            return col in columns
+    def col_exists(col):
+        cur.execute("""
+            SELECT column_name
+            FROM information_schema.columns
+            WHERE table_name='cases' AND column_name=%s
+        """, (col,))
+        return cur.fetchone() is not None
 
     cols_to_add = [
         ("opposing_counsel", "TEXT"),
@@ -234,22 +165,22 @@ def init_db():
     advocate_cols_to_add = [
         ("profile_image", "TEXT"),
         ("office_address", "TEXT"),
-        ("specialization", "TEXT")
+        ("specialization", "TEXT"),
+        ("auth_user_id", "UUID UNIQUE"),
     ]
     for col, col_type in advocate_cols_to_add:
-        if DATABASE_URL and HAS_POSTGRES:
-            cur.execute("""
-                SELECT column_name FROM information_schema.columns
-                WHERE table_name='advocates' AND column_name=%s
-            """, (col,))
-            has_col = cur.fetchone() is not None
-        else:
-            cur.execute("PRAGMA table_info(advocates)")
-            adv_cols = [row['name'] for row in cur.fetchall()]
-            has_col = col in adv_cols
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name='advocates' AND column_name=%s
+        """, (col,))
+        has_col = cur.fetchone() is not None
 
         if not has_col:
             cur.execute(f"ALTER TABLE advocates ADD COLUMN {col} {col_type}")
+
+    # Supabase Auth now owns credentials; local password_hash is unused for
+    # new rows (kept, not dropped, to avoid a destructive column removal).
+    cur.execute("ALTER TABLE advocates ALTER COLUMN password_hash DROP NOT NULL")
 
     conn.commit()
     cur.close()
@@ -310,15 +241,58 @@ def advocate_public(row):
 
 # ---------- Auth ----------
 
+def resolve_advocate_id(supa_user):
+    """Maps a verified Supabase Auth user to the local advocates.id,
+    auto-provisioning a row the first time a given Supabase user is seen
+    (profile fields come from the signup metadata set via the frontend's
+    supabase.auth.signUp({ options: { data: {...} } }) call)."""
+    metadata = supa_user.user_metadata or {}
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, email FROM advocates WHERE auth_user_id=%s", (supa_user.id,))
+    row = cur.fetchone()
+
+    if row is None:
+        cur.execute(
+            """INSERT INTO advocates (name, email, phone, bar_council_number, auth_user_id)
+               VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+            (
+                metadata.get("name") or supa_user.email,
+                supa_user.email,
+                metadata.get("phone") or "",
+                metadata.get("bar_council_number") or "",
+                supa_user.id,
+            ),
+        )
+        advocate_id = cur.fetchone()["id"]
+    else:
+        advocate_id = row["id"]
+        if row["email"] != supa_user.email:
+            cur.execute("UPDATE advocates SET email=%s WHERE id=%s", (supa_user.email, advocate_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return advocate_id
+
+
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         auth_header = request.headers.get("Authorization", "")
         token = auth_header[7:] if auth_header.startswith("Bearer ") else None
-        advocate_id = verify_auth_token(token) if token else None
-        if advocate_id is None:
+        if not token:
             return jsonify({"error": "Please log in to continue."}), 401
-        g.advocate_id = advocate_id
+
+        try:
+            supa_user = get_supabase().auth.get_user(token).user
+        except Exception:
+            supa_user = None
+
+        if supa_user is None:
+            return jsonify({"error": "Please log in to continue."}), 401
+
+        g.advocate_id = resolve_advocate_id(supa_user)
         return f(*args, **kwargs)
     return wrapper
 
@@ -326,67 +300,6 @@ def login_required(f):
 @app.route("/")
 def index():
     return jsonify({"service": "Advo Buddy API", "status": "ok"})
-
-
-@app.route("/api/auth/signup", methods=["POST"])
-def signup():
-    data = request.get_json(silent=True) or {}
-    name = (data.get("name") or "").strip()
-    email = (data.get("email") or "").strip().lower()
-    phone = (data.get("phone") or "").strip()
-    bar_number = (data.get("bar_council_number") or "").strip()
-    password = data.get("password") or ""
-
-    if not name or not email or not password:
-        return jsonify({"error": "Please fill all required fields."}), 400
-    if len(password) < 6:
-        return jsonify({"error": "Password should be at least 6 characters."}), 400
-
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT id FROM advocates WHERE email=%s", (email,))
-    existing = cur.fetchone()
-    if existing:
-        cur.close()
-        conn.close()
-        return jsonify({"error": "An account with this email already exists. Please log in."}), 409
-
-    password_hash = generate_password_hash(password)
-    cur.execute(
-        """INSERT INTO advocates (name, email, phone, bar_council_number, password_hash)
-           VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-        (name, email, phone, bar_number, password_hash),
-    )
-    advocate_id = cur.fetchone()["id"]
-    conn.commit()
-
-    cur.execute("SELECT * FROM advocates WHERE id=%s", (advocate_id,))
-    advocate = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    token = generate_auth_token(advocate_id)
-    return jsonify({"token": token, "advocate": advocate_public(advocate)}), 201
-
-
-@app.route("/api/auth/login", methods=["POST"])
-def login():
-    data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
-
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM advocates WHERE email=%s", (email,))
-    advocate = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    if advocate is None or not check_password_hash(advocate["password_hash"], password):
-        return jsonify({"error": "Invalid email or password."}), 401
-
-    token = generate_auth_token(advocate["id"])
-    return jsonify({"token": token, "advocate": advocate_public(advocate)})
 
 
 @app.route("/api/auth/me")
@@ -401,67 +314,6 @@ def me():
     if not advocate:
         return jsonify({"error": "Not found"}), 404
     return jsonify({"advocate": advocate_public(advocate)})
-
-
-@app.route("/api/auth/forgot-password", methods=["POST"])
-def forgot_password():
-    data = request.get_json(silent=True) or {}
-    email = (data.get("email") or "").strip().lower()
-    if not email:
-        return jsonify({"error": "Please enter your registered email address."}), 400
-
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT id, name FROM advocates WHERE email=%s", (email,))
-    advocate = cur.fetchone()
-    cur.close()
-    conn.close()
-
-    if advocate:
-        token = generate_reset_token(email)
-        # No email transport is configured for this project, so (same as the
-        # original server-rendered flash message) we hand the reset link
-        # straight back in the response for local/demo use.
-        return jsonify({
-            "message": f"Password reset link generated for {email}!",
-            "reset_token": token,
-        })
-
-    return jsonify({"message": "If an account with that email exists, a password reset link has been generated."})
-
-
-@app.route("/api/auth/reset-password/<token>", methods=["GET"])
-def check_reset_token(token):
-    email = verify_reset_token(token)
-    if not email:
-        return jsonify({"valid": False, "error": "The password reset link is invalid or has expired."}), 400
-    return jsonify({"valid": True, "email": email})
-
-
-@app.route("/api/auth/reset-password/<token>", methods=["POST"])
-def reset_password(token):
-    email = verify_reset_token(token)
-    if not email:
-        return jsonify({"error": "The password reset link is invalid or has expired. Please request a new one."}), 400
-
-    data = request.get_json(silent=True) or {}
-    password = data.get("password") or ""
-    confirm_password = data.get("confirm_password") or ""
-
-    if not password or len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters."}), 400
-    if password != confirm_password:
-        return jsonify({"error": "Passwords do not match."}), 400
-
-    password_hash = generate_password_hash(password)
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("UPDATE advocates SET password_hash=%s WHERE email=%s", (password_hash, email))
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return jsonify({"message": "Your password has been reset successfully! You can now log in."})
 
 
 # ---------- Settings ----------
@@ -481,9 +333,11 @@ def get_settings():
 @app.route("/api/settings", methods=["PUT"])
 @login_required
 def update_settings():
+    # Email is owned by Supabase Auth now (changed client-side via
+    # supabase.auth.updateUser({ email })), so it's not writable here -
+    # login_required keeps advocates.email synced to Supabase's copy.
     data = request.get_json(silent=True) or {}
     name = (data.get("name") or "").strip()
-    email = (data.get("email") or "").strip().lower()
     phone = (data.get("phone") or "").strip()
     bar_number = (data.get("bar_council_number") or "").strip()
     office_address = (data.get("office_address") or "").strip()
@@ -491,23 +345,17 @@ def update_settings():
     reminder_method = data.get("reminder_method", "none")
     reminder_days_before = data.get("reminder_days_before", 1)
 
-    if not name or not email:
-        return jsonify({"error": "Name and email are required."}), 400
+    if not name:
+        return jsonify({"error": "Name is required."}), 400
 
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute("SELECT id FROM advocates WHERE email=%s AND id!=%s", (email, g.advocate_id))
-    if cur.fetchone():
-        cur.close()
-        conn.close()
-        return jsonify({"error": "Another account is already using this email address."}), 409
-
     cur.execute(
-        """UPDATE advocates SET name=%s, email=%s, phone=%s, bar_council_number=%s,
+        """UPDATE advocates SET name=%s, phone=%s, bar_council_number=%s,
            office_address=%s, specialization=%s, reminder_method=%s, reminder_days_before=%s
            WHERE id=%s""",
-        (name, email, phone, bar_number, office_address, specialization,
+        (name, phone, bar_number, office_address, specialization,
          reminder_method, reminder_days_before, g.advocate_id),
     )
     conn.commit()
@@ -1320,16 +1168,6 @@ def billing():
         "total_pending": total_pending,
     })
 
-
-# Rename old SQLite database file vakeel.db to advo_buddy.db if it exists
-old_db_path = os.path.join(os.path.dirname(__file__), "vakeel.db")
-new_db_path = os.path.join(os.path.dirname(__file__), "advo_buddy.db")
-if os.path.exists(old_db_path) and not os.path.exists(new_db_path):
-    try:
-        os.rename(old_db_path, new_db_path)
-        print(f"Successfully migrated database from {old_db_path} to {new_db_path}")
-    except Exception as e:
-        print(f"Error migrating database: {e}")
 
 init_db()
 if __name__ == "__main__":

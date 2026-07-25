@@ -1,15 +1,8 @@
-const TOKEN_KEY = 'advo_buddy_token';
+import { supabase } from './supabaseClient';
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token) {
-  if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
-  } else {
-    localStorage.removeItem(TOKEN_KEY);
-  }
+async function getAccessToken() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
 }
 
 class ApiError extends Error {
@@ -21,12 +14,12 @@ class ApiError extends Error {
 }
 
 /**
- * Thin fetch wrapper: attaches the bearer token, assumes JSON in/out unless
- * `raw` is requested (used for the CSV export download).
+ * Thin fetch wrapper: attaches the Supabase session's bearer token, assumes
+ * JSON in/out unless `raw` is requested (used for the CSV export download).
  */
 async function request(path, { method = 'GET', body, isForm = false, raw = false } = {}) {
   const headers = {};
-  const token = getToken();
+  const token = await getAccessToken();
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (body && !isForm) headers['Content-Type'] = 'application/json';
 

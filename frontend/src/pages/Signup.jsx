@@ -25,9 +25,14 @@ export default function Signup() {
     e.preventDefault();
     setLoading(true);
     try {
-      const advocate = await signup(form);
-      addFlash(`Welcome to Advo Buddy, ${advocate.name}!`, 'success');
-      navigate('/', { replace: true });
+      const result = await signup(form);
+      if (result.confirmationRequired) {
+        addFlash('Account created! Check your email for a confirmation link, then log in.', 'success');
+        navigate('/login', { replace: true });
+      } else {
+        addFlash(`Welcome to Advo Buddy, ${result.advocate.name}!`, 'success');
+        navigate('/', { replace: true });
+      }
     } catch (err) {
       addFlash(err.message, 'error');
       setLoading(false);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../api/client';
+import { supabase } from '../api/supabaseClient';
 import { useFlash } from '../context/FlashContext';
 import { useStaggeredEntry } from '../hooks/useStaggeredEntry';
 
@@ -8,7 +8,7 @@ export default function ForgotPassword() {
   const addFlash = useFlash();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resetLink, setResetLink] = useState(null);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
     document.body.classList.add('auth-page-bg');
@@ -24,11 +24,12 @@ export default function ForgotPassword() {
     }
     setLoading(true);
     try {
-      const data = await api.post('/auth/forgot-password', { email });
-      addFlash(data.message, 'success');
-      if (data.reset_token) {
-        setResetLink(`/reset-password/${data.reset_token}`);
-      }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      addFlash('If an account with that email exists, a password reset link has been sent.', 'success');
+      setSent(true);
     } catch (err) {
       addFlash(err.message, 'error');
     } finally {
@@ -48,13 +49,12 @@ export default function ForgotPassword() {
           <input type="email" id="email" required placeholder=" " value={email} onChange={(e) => setEmail(e.target.value)} />
           <label htmlFor="email">Email Address</label>
         </div>
-        <button type="submit" className={`btn-submit staggered-entry${loading ? ' btn-loading' : ''}`}>Generate Reset Link</button>
+        <button type="submit" className={`btn-submit staggered-entry${loading ? ' btn-loading' : ''}`}>Send Reset Link</button>
       </form>
 
-      {resetLink && (
+      {sent && (
         <div className="card-info staggered-entry" style={{ marginTop: 18 }}>
-          No email delivery is configured for this project, so here is your reset link directly:{' '}
-          <Link to={resetLink}>{window.location.origin}{resetLink}</Link>
+          Check your email for a password reset link.
         </div>
       )}
 

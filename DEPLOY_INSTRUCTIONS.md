@@ -33,12 +33,12 @@ on anyone's personal laptop being on). Suggested approach:
    Pages) serving `frontend/dist/` after running `npm run build`. Point it at
    the deployed API's URL (see below) - it does not need to be the same origin
    as the API as long as CORS stays enabled.
-3. **Database**: Currently uses SQLite (`advo_buddy.db`, auto-created on first
-   run). This is fine for a low-traffic MVP, but note that on most free
-   hosts the filesystem resets on redeploy, wiping the DB. If persistence
-   matters, consider migrating to the host's free PostgreSQL instead.
+3. **Database**: Postgres via Supabase - `DATABASE_URL` must be set as an
+   environment variable on the API host (see `.env` locally for the
+   expected format). Tables are created/migrated automatically on startup.
 4. **Environment variables to set** on the API host (instead of using
    config.py, since we removed real secrets from this zip):
+   - `DATABASE_URL` - required - the Supabase Postgres connection string
    - `SECRET_KEY` - any random string, used to sign auth tokens (and password
      reset links) - keep this stable across deploys or existing logins/reset
      links will be invalidated
