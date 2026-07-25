@@ -1,12 +1,18 @@
 # Advo Buddy - Deployment Instructions for Developer
 
-Hi! This is a Flask (Python) web app called "Advo Buddy" - a case &
-hearing tracker for advocates, with multi-user login and WhatsApp/SMS
-reminders via Twilio.
+Hi! "Advo Buddy" is a case & hearing tracker for advocates, with multi-user
+login and WhatsApp/SMS reminders via Twilio. It's now two separately deployed
+pieces:
+
+- **`app.py`** - a Flask JSON API (no server-rendered HTML anymore). Stateless
+  bearer-token auth, CORS enabled via Flask-Cors.
+- **`frontend/`** - a Vite + React single-page app that talks to the API.
 
 ## What's in this zip
 
-- `app.py` - main Flask application
+- `app.py` - the Flask JSON API
+- `frontend/` - the React (Vite) SPA; build with `npm run build` (in
+  `frontend/`) to produce static assets in `frontend/dist/`
 - `send_reminders.py` - script that sends WhatsApp/SMS reminders (via Twilio)
 - `run_reminders.bat` - Windows batch wrapper for scheduling
 - `config.py` - placeholder for Twilio credentials (currently empty/dummy
@@ -14,7 +20,6 @@ reminders via Twilio.
   which was NOT included here for security; ask them for it, or set up a
   fresh Twilio account)
 - `requirements.txt` - Python dependencies
-- `templates/` - HTML templates (Jinja2)
 - `.gitignore` - excludes config.py and the local SQLite DB from git
 
 ## What's needed
@@ -22,15 +27,21 @@ reminders via Twilio.
 Please deploy this so it's accessible on the internet 24/7 (not dependent
 on anyone's personal laptop being on). Suggested approach:
 
-1. **Host**: Render.com, Railway.app, PythonAnywhere, or similar
+1. **API host**: Render.com, Railway.app, PythonAnywhere, or similar
    (Render.com free tier works well for Flask apps)
-2. **Database**: Currently uses SQLite (`advo_buddy.db`, auto-created on first
+2. **Frontend host**: any static host works (Render/Netlify/Vercel/Cloudflare
+   Pages) serving `frontend/dist/` after running `npm run build`. Point it at
+   the deployed API's URL (see below) - it does not need to be the same origin
+   as the API as long as CORS stays enabled.
+3. **Database**: Currently uses SQLite (`advo_buddy.db`, auto-created on first
    run). This is fine for a low-traffic MVP, but note that on most free
    hosts the filesystem resets on redeploy, wiping the DB. If persistence
    matters, consider migrating to the host's free PostgreSQL instead.
-3. **Environment variables to set** on the host (instead of using
+4. **Environment variables to set** on the API host (instead of using
    config.py, since we removed real secrets from this zip):
-   - `SECRET_KEY` - any random string, for Flask session security
+   - `SECRET_KEY` - any random string, used to sign auth tokens (and password
+     reset links) - keep this stable across deploys or existing logins/reset
+     links will be invalidated
    - `TWILIO_ACCOUNT_SID`
    - `TWILIO_AUTH_TOKEN`
    - `TWILIO_SMS_FROM`
@@ -40,8 +51,13 @@ on anyone's personal laptop being on). Suggested approach:
    (`send_reminders.py` already reads these from environment variables
    first, falling back to `config.py` only for local dev — see the code.)
 
-4. **Run command**: `gunicorn app:app` (gunicorn is in requirements.txt)
-5. **Reminders**: `send_reminders.py` needs to run once a day (a cron job
+   On the frontend build, if the API isn't same-origin in production, set
+   the frontend's API base URL accordingly (currently the frontend calls
+   relative `/api/...` paths, assuming it's served from the same origin as
+   the API, or proxied there - adjust `frontend/src/api/client.js` if you
+   deploy them on separate domains).
+5. **Run command (API)**: `gunicorn app:app` (gunicorn is in requirements.txt)
+6. **Reminders**: `send_reminders.py` needs to run once a day (a cron job
    / scheduled job on the host, since `run_reminders.bat` is Windows-only
    and won't work on Linux hosts). Most hosts (Render, Railway) support
    scheduled jobs/cron in their dashboard.
