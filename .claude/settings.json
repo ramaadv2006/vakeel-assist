@@ -6,7 +6,16 @@
       "Bash(curl -s -o /dev/null -w \"archive \\(unauth, expect redirect\\) HTTP status: %{http_code}\\\\n\" http://127.0.0.1:5000/archive)",
       "Bash(./.venv/Scripts/python.exe -c ' *)",
       "Bash(where chromium-cli *)",
-      "Bash(\"./.venv/Scripts/python.exe\" -m pip show playwright)"
+      "Bash(\"./.venv/Scripts/python.exe\" -m pip show playwright)",
+      "Bash(.venv/Scripts/python.exe -m pip install \"supabase>=2.10\")",
+      "PowerShell(Get-Process -Name node -ErrorAction SilentlyContinue)",
+      "PowerShell(Stop-Process -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 5173,5174,5175,5176 -State Listen -ErrorAction SilentlyContinue)",
+      "Bash(npm run *)",
+      "Bash(disown)",
+      "Bash(timeout 30 bash -c 'until curl -sf http://localhost:5173 >/dev/null 2>&1; do sleep 1; done')",
+      "Bash(.venv/Scripts/python.exe \"C:\\\\Users\\\\karth\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--My-Work-vakeel-assist\\\\142f5d07-7934-469f-8ecd-e71f00584ff1\\\\scratchpad\\\\flip_test.py\")",
+      "Bash(.venv/Scripts/python.exe \"C:\\\\Users\\\\karth\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--My-Work-vakeel-assist\\\\142f5d07-7934-469f-8ecd-e71f00584ff1\\\\scratchpad\\\\full_verify.py\")"
     ]
   }
 }

@@ -14,11 +14,9 @@ Requires:
     (and your Twilio credentials filled in inside config.py, or set as
     environment variables - see get_setting() below)
 
-Database: this script reuses app.py's get_db() so it always talks to
-whatever backend the web app itself is using (local SQLite by default,
-or Postgres if DATABASE_URL is set) - it must never open its own
-separate sqlite3 connection, or it would silently read/write nothing
-once the app is migrated to Postgres in production.
+Database: this script reuses app.py's get_db(), which connects to the
+Postgres (Supabase) database via DATABASE_URL - it must never open its
+own separate connection, or it would silently read/write the wrong data.
 """
 
 import os
