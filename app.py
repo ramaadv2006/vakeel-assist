@@ -12,7 +12,7 @@ that token with Supabase and maps it to a local `advocates` row (see
 `login_required`/`resolve_advocate` below) for all business data.
 """
 
-from flask import Flask, request, jsonify, Response, g, has_app_context
+from flask import Flask, request, jsonify, Response, g, has_app_context, send_from_directory
 from datetime import datetime, timedelta
 from functools import wraps
 import csv
@@ -45,6 +45,13 @@ STALE_CASE_DAYS = 60
 UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "avatars")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Built React frontend (frontend/dist, produced by `npm run build`) - served
+# directly by this same Flask app in production so one deployment covers
+# both the API and the UI. In local dev this directory won't exist (the
+# frontend runs under its own Vite dev server instead), so routes below fall
+# back to the plain JSON health check.
+FRONTEND_DIST = os.path.join(app.root_path, "frontend", "dist")
 
 
 _supabase_client = None
@@ -409,7 +416,24 @@ def login_required(f):
 
 @app.route("/")
 def index():
+    if os.path.isfile(os.path.join(FRONTEND_DIST, "index.html")):
+        return send_from_directory(FRONTEND_DIST, "index.html")
     return jsonify({"service": "Advo Buddy API", "status": "ok"})
+
+
+@app.route("/<path:path>")
+def serve_frontend(path):
+    # Only reached for paths that don't match any other route above (Flask/
+    # Werkzeug prefers the more specific /api/* and /static/* rules first),
+    # so this is either a real built asset (JS/CSS/images) or a client-side
+    # route like /dashboard that only React Router knows about - fall back
+    # to index.html for the latter so a hard refresh on any page still works.
+    if not os.path.isdir(FRONTEND_DIST):
+        return jsonify({"error": "Not found"}), 404
+    requested = os.path.join(FRONTEND_DIST, path)
+    if os.path.isfile(requested):
+        return send_from_directory(FRONTEND_DIST, path)
+    return send_from_directory(FRONTEND_DIST, "index.html")
 
 
 @app.route("/api/auth/me")
