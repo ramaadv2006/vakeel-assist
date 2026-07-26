@@ -370,18 +370,30 @@ def resolve_advocate_id(supa_user):
     row = cur.fetchone()
 
     if row is None:
-        cur.execute(
-            """INSERT INTO advocates (name, email, phone, bar_council_number, auth_user_id)
-               VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-            (
-                metadata.get("name") or supa_user.email,
-                supa_user.email,
-                metadata.get("phone") or "",
-                metadata.get("bar_council_number") or "",
-                supa_user.id,
-            ),
-        )
-        advocate_id = cur.fetchone()["id"]
+        # No row linked to this Supabase identity yet - but the same email
+        # may already have a row from an earlier Supabase user (e.g. their
+        # old Supabase Auth account got deleted/recreated, so their email
+        # is now attached to a new UUID). Re-claim that row instead of
+        # inserting a duplicate, which would violate the UNIQUE constraint
+        # on advocates.email and 500 the request.
+        cur.execute("SELECT id FROM advocates WHERE email=%s", (supa_user.email,))
+        existing = cur.fetchone()
+        if existing:
+            advocate_id = existing["id"]
+            cur.execute("UPDATE advocates SET auth_user_id=%s WHERE id=%s", (supa_user.id, advocate_id))
+        else:
+            cur.execute(
+                """INSERT INTO advocates (name, email, phone, bar_council_number, auth_user_id)
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                (
+                    metadata.get("name") or supa_user.email,
+                    supa_user.email,
+                    metadata.get("phone") or "",
+                    metadata.get("bar_council_number") or "",
+                    supa_user.id,
+                ),
+            )
+            advocate_id = cur.fetchone()["id"]
     else:
         advocate_id = row["id"]
         if row["email"] != supa_user.email:
