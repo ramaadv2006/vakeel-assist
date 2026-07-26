@@ -1471,8 +1471,12 @@ body.dark.auth-page-bg {
     -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
     border: 1px solid rgba(184, 147, 94, 0.22) !important;
     box-shadow: var(--shadow-xl) !important;
-    border-radius: var(--radius-xl) !important;
-    transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+    /* Asymmetric "scoop" corner - large sweep on the left, small on the
+       right - rather than a uniform rounded rect. Left padding is widened
+       so labels/inputs clear the curve instead of crowding it. */
+    border-radius: 110px 24px 24px 110px !important;
+    padding: var(--space-7) var(--space-6) var(--space-7) 44px !important;
+    transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, border-radius 0.4s ease;
 }
 
 .auth-container .form-header h2 {
@@ -1508,9 +1512,9 @@ body.dark.auth-page-bg {
 
 /* Dark theme overrides for Auth card content */
 body.dark .auth-container .card-form {
-    background: rgba(14, 21, 36, 0.72) !important;
-    border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    box-shadow: 0 24px 60px 0 rgba(0, 0, 0, 0.4) !important;
+    background: rgba(8, 12, 22, 0.68) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 30px 70px 0 rgba(0, 0, 0, 0.55) !important;
 }
 
 body.dark .auth-container .form-header h2 {
@@ -1752,6 +1756,37 @@ body.dark .floating-group label {
     font-size: var(--text-xs);
     color: var(--accent) !important;
     font-weight: 700;
+}
+
+/* Leading field icon (mail/lock/etc.) - opt-in via .has-icon so it only
+   affects the auth screens, not every .floating-group user. */
+.floating-group.has-icon .field-icon {
+    position: absolute;
+    left: 2px;
+    top: 13px;
+    width: 18px;
+    height: 18px;
+    color: var(--gray-400);
+    pointer-events: none;
+    transition: color 0.25s ease;
+}
+
+.floating-group.has-icon input {
+    padding-left: 26px !important;
+}
+
+.floating-group.has-icon label {
+    left: 26px;
+}
+
+.floating-group.has-icon input:focus ~ label,
+.floating-group.has-icon input:not(:placeholder-shown) ~ label {
+    left: 4px;
+}
+
+.floating-group.has-icon input:focus ~ .field-icon,
+.floating-group.has-icon input:not(:placeholder-shown) ~ .field-icon {
+    color: var(--accent);
 }
 
 /* Validation Shaking */

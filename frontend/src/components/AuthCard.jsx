@@ -6,6 +6,7 @@ import { supabase } from '../api/supabaseClient';
 import { useCursorGlow } from '../hooks/useCursorGlow';
 import { useTilt } from '../hooks/useTilt';
 import { useStaggeredEntry } from '../hooks/useStaggeredEntry';
+import Icon from './Icon';
 
 function PasswordToggle({ shown, onToggle }) {
   return (
@@ -158,12 +159,14 @@ export default function AuthCard() {
             onMouseMove={handleFrontMouseMove}
             onMouseLeave={onFrontTiltLeave}
           >
-            <div className="form-group floating-group staggered-entry">
+            <div className="form-group floating-group has-icon staggered-entry" style={{ position: 'relative' }}>
               <input type="email" id="email" required placeholder=" " value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
+              <Icon name="mail" className="field-icon" />
               <label htmlFor="email">Email Address</label>
             </div>
-            <div className="form-group floating-group staggered-entry" style={{ position: 'relative' }}>
+            <div className="form-group floating-group has-icon staggered-entry" style={{ position: 'relative' }}>
               <input type={showLoginPassword ? 'text' : 'password'} id="password" required placeholder=" " value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
+              <Icon name="lock" className="field-icon" />
               <label htmlFor="password">Password</label>
               <PasswordToggle shown={showLoginPassword} onToggle={() => setShowLoginPassword((v) => !v)} />
             </div>
@@ -193,26 +196,31 @@ export default function AuthCard() {
                 onMouseMove={handleBackMouseMove}
                 onMouseLeave={onBackTiltLeave}
               >
-                <div className="form-group floating-group">
+                <div className="form-group floating-group has-icon" style={{ position: 'relative' }}>
                   <input type="text" id="name" required placeholder=" " value={signupForm.name} onChange={updateSignup('name')} />
+                  <Icon name="user" className="field-icon" />
                   <label htmlFor="name">Full Name *</label>
                 </div>
-                <div className="form-group floating-group">
+                <div className="form-group floating-group has-icon" style={{ position: 'relative' }}>
                   <input type="email" id="signup-email" required placeholder=" " value={signupForm.email} onChange={updateSignup('email')} />
+                  <Icon name="mail" className="field-icon" />
                   <label htmlFor="signup-email">Email Address *</label>
                 </div>
                 <div className="form-row">
-                  <div className="form-group floating-group">
+                  <div className="form-group floating-group has-icon" style={{ position: 'relative' }}>
                     <input type="tel" id="phone" placeholder=" " value={signupForm.phone} onChange={updateSignup('phone')} />
+                    <Icon name="phone" className="field-icon" />
                     <label htmlFor="phone">Phone Number</label>
                   </div>
-                  <div className="form-group floating-group">
+                  <div className="form-group floating-group has-icon" style={{ position: 'relative' }}>
                     <input type="text" id="bar_council_number" placeholder=" " value={signupForm.bar_council_number} onChange={updateSignup('bar_council_number')} />
+                    <Icon name="case" className="field-icon" />
                     <label htmlFor="bar_council_number">Bar Enrollment No.</label>
                   </div>
                 </div>
-                <div className="form-group floating-group" style={{ position: 'relative' }}>
+                <div className="form-group floating-group has-icon" style={{ position: 'relative' }}>
                   <input type={showSignupPassword ? 'text' : 'password'} id="signup-password" required minLength={6} placeholder=" " value={signupForm.password} onChange={updateSignup('password')} />
+                  <Icon name="lock" className="field-icon" />
                   <label htmlFor="signup-password">Password *</label>
                   <PasswordToggle shown={showSignupPassword} onToggle={() => setShowSignupPassword((v) => !v)} />
                 </div>
@@ -237,8 +245,9 @@ export default function AuthCard() {
                 onMouseMove={handleBackMouseMove}
                 onMouseLeave={onBackTiltLeave}
               >
-                <div className="form-group floating-group">
+                <div className="form-group floating-group has-icon" style={{ position: 'relative' }}>
                   <input type="email" id="forgot-email" required placeholder=" " value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
+                  <Icon name="mail" className="field-icon" />
                   <label htmlFor="forgot-email">Email Address</label>
                 </div>
                 <button type="submit" className={`btn-submit${forgotLoading ? ' btn-loading' : ''}`}>Send Reset Link</button>
