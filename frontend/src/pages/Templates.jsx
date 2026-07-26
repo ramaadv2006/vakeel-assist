@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useFlash } from '../context/FlashContext';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -198,6 +199,7 @@ const TEMPLATE_ORDER = [
 
 export default function Templates() {
   const { advocate } = useAuth();
+  const addFlash = useFlash();
   const templates = useMemo(() => buildTemplates(advocate?.name), [advocate]);
   const [activeKey, setActiveKey] = useState('vakalat');
   const [values, setValues] = useState(() => {
@@ -219,7 +221,7 @@ export default function Templates() {
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(draftText).then(() => {
-      alert('Draft text copied to clipboard successfully!');
+      addFlash('Draft text copied to clipboard successfully!', 'success');
     });
   };
 

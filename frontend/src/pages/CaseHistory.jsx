@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useFlash } from '../context/FlashContext';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
 
 export default function CaseHistory() {
   const { caseId } = useParams();
@@ -18,7 +19,13 @@ export default function CaseHistory() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="form-container">
+        <Skeleton count={3} rows={2} widths={['30%', '70%']} />
+      </div>
+    );
+  }
   const { case: caseData, history } = data;
 
   return (

@@ -2,15 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
+import { useReveal } from '../hooks/useReveal';
 
 const STATUS_BADGE = { Active: 'success', Closed: 'danger' };
 
 function LedgerCard({ caseData, index }) {
   const pending = (caseData.total_fee || 0) - (caseData.fee_paid || 0);
-  const staggerCls = index < 4 ? 'staggered-entry' : 'reveal-up';
+  const [revealRef, inView] = useReveal();
+  const staggerCls = index < 4 ? 'staggered-entry' : `reveal-up${inView ? ' in-view' : ''}`;
 
   return (
-    <div className={`case-card ledger-card ${staggerCls}`} style={{ padding: '16px 20px' }}>
+    <div ref={revealRef} className={`case-card ledger-card ${staggerCls}`} style={{ padding: '16px 20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div style={{ flex: 1, minWidth: 250 }}>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)' }}>
@@ -76,7 +79,13 @@ export default function Billing() {
     );
   }, [data, query]);
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="form-container" style={{ maxWidth: 1000 }}>
+        <Skeleton count={4} rows={2} widths={['35%', '80%']} />
+      </div>
+    );
+  }
 
   return (
     <div className="form-container" style={{ maxWidth: 1000 }}>

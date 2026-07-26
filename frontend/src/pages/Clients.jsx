@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
+import { useReveal } from '../hooks/useReveal';
 
 function ClientCard({ client, index }) {
   const [open, setOpen] = useState(false);
-  const staggerCls = index < 4 ? 'staggered-entry' : 'reveal-up';
+  const [revealRef, inView] = useReveal();
+  const staggerCls = index < 4 ? 'staggered-entry' : `reveal-up${inView ? ' in-view' : ''}`;
 
   return (
-    <div className={`card-form ${staggerCls} client-card`} style={{ padding: 20 }}>
+    <div ref={revealRef} className={`card-form ${staggerCls} client-card`} style={{ padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 className="client-name" style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)' }}>
@@ -89,7 +92,13 @@ export default function Clients() {
     return clients.filter((c) => c.name.toLowerCase().includes(q) || (c.phone || '').toLowerCase().includes(q));
   }, [clients, query]);
 
-  if (!clients) return null;
+  if (!clients) {
+    return (
+      <div className="form-container" style={{ maxWidth: 900 }}>
+        <Skeleton count={3} rows={2} widths={['40%', '70%']} />
+      </div>
+    );
+  }
 
   return (
     <div className="form-container" style={{ maxWidth: 900 }}>

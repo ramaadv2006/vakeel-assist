@@ -3,10 +3,14 @@ import { api } from '../api/client';
 import { useFlash } from '../context/FlashContext';
 import CaseCard from '../components/CaseCard';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
+import { useReveal } from '../hooks/useReveal';
 
 export default function Archive() {
   const addFlash = useFlash();
   const [data, setData] = useState(null);
+  const [onHoldTitleRef, onHoldTitleInView] = useReveal();
+  const [onHoldListRef, onHoldListInView] = useReveal();
 
   const load = () => api.get('/archive').then(setData);
   useEffect(() => { load(); }, []);
@@ -23,7 +27,13 @@ export default function Archive() {
     load();
   };
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="form-container" style={{ maxWidth: 1000 }}>
+        <Skeleton count={3} rows={2} widths={['45%', '75%']} />
+      </div>
+    );
+  }
 
   return (
     <div className="form-container" style={{ maxWidth: 1000 }}>
@@ -48,11 +58,11 @@ export default function Archive() {
 
       {data.onhold_cases.length > 0 && (
         <>
-          <div className="section-title reveal-up" style={{ color: 'var(--accent)', borderColor: 'rgba(184, 147, 94, 0.25)', marginTop: 32 }}>
+          <div ref={onHoldTitleRef} className={`section-title reveal-up${onHoldTitleInView ? ' in-view' : ''}`} style={{ color: 'var(--accent)', borderColor: 'rgba(184, 147, 94, 0.25)', marginTop: 32 }}>
             <Icon name="info" style={{ stroke: 'var(--accent)' }} />
             On Hold Cases
           </div>
-          <div className="case-list reveal-up">
+          <div ref={onHoldListRef} className={`case-list reveal-up${onHoldListInView ? ' in-view' : ''}`}>
             {data.onhold_cases.map((c) => (
               <CaseCard key={c.id} caseData={c} cssClass="archived" badgeText={c.status} onDelete={handleDelete} onReopen={handleReopen} />
             ))}

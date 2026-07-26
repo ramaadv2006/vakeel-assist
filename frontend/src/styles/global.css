@@ -762,8 +762,8 @@ body.dark .btn-export:hover {
 .case-list > .case-card:nth-child(n+6) { animation-delay: 0.3s; }
 
 .case-card:hover {
-    transform: translateX(4px);
-    box-shadow: var(--shadow-md);
+    transform: translateX(4px) translateY(-3px);
+    box-shadow: var(--shadow-lg);
     border-color: var(--gray-300);
 }
 
@@ -2161,6 +2161,67 @@ body.dark .calendar-day.selected-day .calendar-event-dot {
 /* Logo mark drifts subtly opposite the card tilt for a layered-depth feel */
 .brand-logo-container {
     transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Cursor-glow: a soft radial highlight that follows the pointer, driven by
+   the --mouse-x/--mouse-y custom properties useCursorGlow() sets on the
+   card. Sits behind the form's own content via isolation + negative z-index
+   so it never blocks clicks or washes out text. */
+.auth-container .card-form {
+    position: relative;
+    isolation: isolate;
+}
+
+.auth-container .card-form::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: radial-gradient(circle 220px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+                color-mix(in srgb, var(--accent) 45%, transparent), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+}
+
+.auth-container .card-form:hover::after {
+    opacity: 1;
+}
+
+/* ============ Auth flip card: Login <-> Signup / Forgot Password ============ */
+
+/* Both faces are stacked in the same CSS Grid cell (rather than absolutely
+   positioned) so the card auto-sizes to whichever face is taller - Login,
+   Signup, and Forgot Password have very different field counts, and this
+   avoids needing JS to measure/sync heights. */
+.flip-card {
+    position: relative;
+    width: 100%;
+    display: grid;
+    grid-template-areas: "stack";
+    transform-style: preserve-3d;
+    transition: var(--transition-spring);
+}
+
+.flip-card.is-flipped {
+    transform: rotateY(180deg);
+}
+
+.flip-face {
+    grid-area: stack;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.flip-face-back {
+    transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .flip-card {
+        transition: none;
+    }
 }
 
 /* ============ React port additions ============ */

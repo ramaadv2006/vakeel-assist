@@ -5,6 +5,7 @@ import { useFlash } from '../context/FlashContext';
 import CaseCard from '../components/CaseCard';
 import StatCard from '../components/StatCard';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
 import { useReveal } from '../hooks/useReveal';
 
 const MONTH_NAMES = [
@@ -78,7 +79,7 @@ export default function Dashboard() {
     return counts;
   }, [allCases]);
 
-  if (!data) return null;
+  if (!data) return <Skeleton count={4} rows={2} widths={['50%', '85%']} />;
 
   const overdue = filter(data.overdue);
   const today = filter(data.today);
@@ -194,7 +195,7 @@ export default function Dashboard() {
       <Section title="Upcoming" iconColor="var(--gray-500)" cases={upcoming} badgeFor={{ cls: 'upcoming', text: (c) => `${c.days_left} days left` }} onDelete={handleDelete} reveal />
 
       {data.total_cases === 0 && (
-        <div className="empty-state">
+        <div className="empty-state staggered-entry">
           <Icon name="case" style={{ width: 48, height: 48, stroke: '#cbd5e1' }} />
           <span>No cases added yet. Click "+ Add Case" to get started.</span>
         </div>

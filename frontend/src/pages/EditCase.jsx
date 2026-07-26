@@ -5,6 +5,7 @@ import { useFlash } from '../context/FlashContext';
 import CaseForm from '../components/CaseForm';
 import { TasksDrawer } from '../components/CaseCard';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
 
 export default function EditCase() {
   const { caseId } = useParams();
@@ -22,7 +23,13 @@ export default function EditCase() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
 
-  if (!caseData) return null;
+  if (!caseData) {
+    return (
+      <div className="form-container">
+        <Skeleton count={1} rows={5} widths={['30%', '90%', '90%', '60%', '90%']} />
+      </div>
+    );
+  }
 
   const handleSubmit = async (values) => {
     try {

@@ -1,8 +1,38 @@
 import { supabase } from './supabaseClient';
 
+// Cache the access token and keep it in sync via onAuthStateChange instead of
+// calling supabase.auth.getSession() on every request. Supabase's client
+// serializes auth-related calls internally (a cross-tab lock), so firing
+// getSession() from several concurrent API calls (e.g. a page that loads
+// multiple resources at once) can queue up behind that lock and stall for
+// several seconds - caching sidesteps that entirely.
+let cachedToken = null;
+let initPromise = null;
+
+function ensureTokenSynced() {
+  if (!initPromise) {
+    initPromise = supabase.auth.getSession().then(({ data: { session } }) => {
+      cachedToken = session?.access_token ?? null;
+    });
+    supabase.auth.onAuthStateChange((_event, session) => {
+      cachedToken = session?.access_token ?? null;
+    });
+  }
+  return initPromise;
+}
+
 async function getAccessToken() {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
+  await ensureTokenSynced();
+  return cachedToken;
+}
+
+// Lets AuthContext seed the cache directly from a signInWithPassword/signUp
+// response (which already includes the session) instead of making another
+// getSession() call right after - chaining a second auth call immediately
+// after a state-changing one is what was causing multi-second stalls.
+export function setCachedToken(token) {
+  cachedToken = token;
+  initPromise = Promise.resolve();
 }
 
 class ApiError extends Error {

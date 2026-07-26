@@ -5,9 +5,7 @@ import { FlashProvider } from './context/FlashContext';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import ForgotPassword from './pages/ForgotPassword';
+import AuthCard from './components/AuthCard';
 import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
@@ -31,9 +29,9 @@ export default function App() {
           <FlashProvider>
             <Routes>
               <Route element={<Layout />}>
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/login" element={<AuthCard />} />
+                <Route path="/signup" element={<AuthCard />} />
+                <Route path="/forgot-password" element={<AuthCard />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
 
                 <Route element={<ProtectedRoute />}>

@@ -12,7 +12,7 @@ that token with Supabase and maps it to a local `advocates` row (see
 `login_required`/`resolve_advocate` below) for all business data.
 """
 
-from flask import Flask, request, jsonify, Response, g
+from flask import Flask, request, jsonify, Response, g, has_app_context
 from datetime import datetime, timedelta
 from functools import wraps
 import csv
@@ -27,6 +27,7 @@ except ImportError:
 
 import psycopg2
 import psycopg2.extras
+from psycopg2 import pool as pg_pool
 from flask_cors import CORS
 from supabase import create_client
 
@@ -46,28 +47,137 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
+_supabase_client = None
+
+
 def get_supabase():
-    if not SUPABASE_URL or not SUPABASE_ANON_KEY:
-        raise RuntimeError(
-            "SUPABASE_URL / SUPABASE_ANON_KEY are not set - required to verify "
-            "Supabase Auth tokens. Set them in your .env / host environment."
+    # Built once and reused - constructing a fresh Supabase client (and its
+    # underlying HTTP client) on every request added several seconds of
+    # overhead to every authenticated call.
+    global _supabase_client
+    if _supabase_client is None:
+        if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+            raise RuntimeError(
+                "SUPABASE_URL / SUPABASE_ANON_KEY are not set - required to verify "
+                "Supabase Auth tokens. Set them in your .env / host environment."
+            )
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    return _supabase_client
+
+
+_connection_pool = None
+
+
+class _PooledConnection:
+    """Wraps a pooled psycopg2 connection so the existing conn.close() calls
+    throughout this file return it to the pool instead of tearing down the
+    TCP/TLS connection. Opening a fresh connection to Supabase costs ~1s
+    (network round trips for the TLS + Postgres SCRAM auth handshake), and
+    every route was paying that cost on every single request - reusing
+    connections is what actually fixes slow page loads."""
+
+    def __init__(self, pool, conn, shared=False):
+        self._pool = pool
+        self._conn = conn
+        self._returned = False
+        self._shared = shared
+
+    def cursor(self, *args, **kwargs):
+        return self._conn.cursor(*args, **kwargs)
+
+    def commit(self):
+        self._conn.commit()
+
+    def close(self):
+        # Route/helper functions throughout this file call close() when THEY
+        # are done with it - fine when each call got its own connection, but
+        # a shared (request-scoped, see get_db()) connection is still needed
+        # by other code later in the same request. Returning it to the pool
+        # here would let a concurrent request check out the same live
+        # connection object. Only teardown_appcontext (via _release()) may
+        # actually return a shared connection to the pool.
+        if self._shared:
+            return
+        self._release()
+
+    def _release(self):
+        if self._returned:
+            return
+        self._returned = True
+        conn = self._conn
+        try:
+            if not conn.closed:
+                conn.rollback()
+            self._pool.putconn(conn, close=conn.closed)
+        except Exception:
+            try:
+                self._pool.putconn(conn, close=True)
+            except Exception:
+                pass
+
+
+def _get_pool():
+    global _connection_pool
+    if _connection_pool is None:
+        if not DATABASE_URL:
+            raise RuntimeError(
+                "DATABASE_URL is not set. Advo Buddy now requires a Postgres "
+                "(Supabase) database - set DATABASE_URL in your .env / host "
+                "environment variables."
+            )
+        # Standardize postgres:// to postgresql:// for psycopg2 compatibility
+        db_url = DATABASE_URL
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        _connection_pool = pg_pool.ThreadedConnectionPool(
+            1, 10, db_url, cursor_factory=psycopg2.extras.RealDictCursor
         )
-    return create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
+    return _connection_pool
+
+
+def _checkout_live_connection(pool):
+    # A pooled connection can go stale while sitting idle in the free list -
+    # Supabase's pooler can silently drop it server-side, which the client
+    # only discovers on the next query ("connection already closed"). Test
+    # each checkout with a trivial query and discard/retry on a dead one
+    # instead of surfacing that as a 500 to the caller.
+    last_error = None
+    for _ in range(3):
+        conn = pool.getconn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+            return conn
+        except Exception as e:
+            last_error = e
+            try:
+                pool.putconn(conn, close=True)
+            except Exception:
+                pass
+    raise last_error
 
 
 def get_db():
-    if not DATABASE_URL:
-        raise RuntimeError(
-            "DATABASE_URL is not set. Advo Buddy now requires a Postgres "
-            "(Supabase) database - set DATABASE_URL in your .env / host "
-            "environment variables."
-        )
-    # Standardize postgres:// to postgresql:// for psycopg2 compatibility
-    db_url = DATABASE_URL
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    conn = psycopg2.connect(db_url, cursor_factory=psycopg2.extras.RealDictCursor)
-    return conn
+    # Within a single request, share one connection across every get_db()
+    # call (login_required's advocate lookup, plus whatever the route body
+    # does) instead of checking out a separate one for each - each round
+    # trip to Supabase costs real time, so cutting redundant ones matters.
+    # Falls back to an uncached connection outside a request/app context
+    # (e.g. init_db() at startup, or send_reminders.py run as a standalone
+    # script), since Flask's `g` only exists inside one.
+    pool = _get_pool()
+    if has_app_context():
+        if not hasattr(g, "_db_conn"):
+            g._db_conn = _PooledConnection(pool, _checkout_live_connection(pool), shared=True)
+        return g._db_conn
+    return _PooledConnection(pool, _checkout_live_connection(pool))
+
+
+@app.teardown_appcontext
+def _release_db_connection(exception=None):
+    conn = g.pop("_db_conn", None)
+    if conn is not None:
+        conn._release()
 
 
 def init_db():

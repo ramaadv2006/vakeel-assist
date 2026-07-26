@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
+import { useReveal } from '../hooks/useReveal';
 
 function HubCase({ group, onChanged }) {
   const [tasks, setTasks] = useState(group.tasks);
   const [newTitle, setNewTitle] = useState('');
   const [busy, setBusy] = useState(false);
+  const [revealRef, inView] = useReveal();
 
   const openCount = tasks.filter((t) => !t.is_completed).length;
 
@@ -43,7 +45,7 @@ function HubCase({ group, onChanged }) {
   if (openCount === 0) return null;
 
   return (
-    <div className="card-form reveal-up hub-case-section" style={{ padding: '20px 24px', opacity: 1, transition: 'opacity 0.3s ease, transform 0.3s ease' }}>
+    <div ref={revealRef} className={`card-form reveal-up hub-case-section${inView ? ' in-view' : ''}`} style={{ padding: '20px 24px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)' }}>

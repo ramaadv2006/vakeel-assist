@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { api } from '../api/client';
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { api, setCachedToken } from '../api/client';
 import { supabase } from '../api/supabaseClient';
 
 const AuthContext = createContext(null);
@@ -7,16 +7,36 @@ const AuthContext = createContext(null);
 export function AuthProvider({ children }) {
   const [advocate, setAdvocate] = useState(null);
   const [loading, setLoading] = useState(true);
+  const inFlightRef = useRef(null);
+  const lastLoadedRef = useRef(null);
+  const RECENT_LOAD_WINDOW_MS = 2000;
 
-  const loadProfile = useCallback(async () => {
-    try {
-      const data = await api.get('/auth/me');
-      setAdvocate(data.advocate);
-      return data.advocate;
-    } catch {
-      setAdvocate(null);
-      return null;
+  // De-duplicated two ways: login()/signup() and the onAuthStateChange
+  // listener below both react to the same sign-in event. Supabase doesn't
+  // fire that listener synchronously, so besides guarding concurrent/
+  // overlapping calls (inFlightRef), a second call arriving shortly after
+  // the first already finished reuses that recent result too, instead of
+  // firing another redundant /auth/me round trip.
+  const loadProfile = useCallback(() => {
+    if (inFlightRef.current) return inFlightRef.current;
+    if (lastLoadedRef.current && Date.now() - lastLoadedRef.current.time < RECENT_LOAD_WINDOW_MS) {
+      return Promise.resolve(lastLoadedRef.current.advocate);
     }
+    const promise = (async () => {
+      try {
+        const data = await api.get('/auth/me');
+        setAdvocate(data.advocate);
+        lastLoadedRef.current = { time: Date.now(), advocate: data.advocate };
+        return data.advocate;
+      } catch {
+        setAdvocate(null);
+        return null;
+      } finally {
+        inFlightRef.current = null;
+      }
+    })();
+    inFlightRef.current = promise;
+    return promise;
   }, []);
 
   useEffect(() => {
@@ -37,8 +57,11 @@ export function AuthProvider({ children }) {
   }, [loadProfile]);
 
   const login = async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    // Seed the token cache from this response directly rather than calling
+    // getSession() again right after - see client.js's setCachedToken.
+    setCachedToken(data.session?.access_token ?? null);
     const advocate = await loadProfile();
     if (!advocate) throw new Error('Logged in, but failed to load your profile. Please try again.');
     return advocate;
@@ -57,6 +80,7 @@ export function AuthProvider({ children }) {
     if (!data.session) {
       return { confirmationRequired: true };
     }
+    setCachedToken(data.session.access_token);
     const advocate = await loadProfile();
     if (!advocate) throw new Error('Account created, but failed to load your profile. Please try logging in.');
     return { confirmationRequired: false, advocate };

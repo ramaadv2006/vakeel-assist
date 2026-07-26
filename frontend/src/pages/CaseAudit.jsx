@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useFlash } from '../context/FlashContext';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
 
 function titleCase(s) {
   return s.replace(/_/g, ' ').replace(/\w\S*/g, (t) => t.charAt(0).toUpperCase() + t.slice(1));
@@ -22,7 +23,13 @@ export default function CaseAudit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [caseId]);
 
-  if (!data) return null;
+  if (!data) {
+    return (
+      <div className="form-container">
+        <Skeleton count={3} rows={2} widths={['30%', '70%']} />
+      </div>
+    );
+  }
   const { case: caseData, audit_logs: auditLogs } = data;
 
   return (
