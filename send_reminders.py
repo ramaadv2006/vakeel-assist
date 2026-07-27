@@ -76,14 +76,14 @@ def send_message(client, to_phone, method, body, content_variables=None):
     to_number = f"whatsapp:{to_phone}" if method == "whatsapp" else to_phone
 
     if method == "whatsapp" and TWILIO_WHATSAPP_CONTENT_SID and content_variables:
-        client.messages.create(
+        return client.messages.create(
             content_sid=TWILIO_WHATSAPP_CONTENT_SID,
             content_variables=json.dumps(content_variables),
             from_=from_number,
             to=to_number,
         )
     else:
-        client.messages.create(body=body, from_=from_number, to=to_number)
+        return client.messages.create(body=body, from_=from_number, to=to_number)
 
 
 def main():
