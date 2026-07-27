@@ -2259,6 +2259,55 @@ body.dark .calendar-day.selected-day .calendar-event-dot {
     }
 }
 
+/* Touch devices: WebKit/mobile browsers have a long-standing bug where text
+   inputs nested inside an ancestor with an active 3D transform context
+   (transform-style: preserve-3d / backface-visibility: hidden) can gain
+   focus and open the on-screen keyboard, but fail to actually register
+   keystrokes - the compositor's hit-testing gets confused inside the
+   flattened 3D layer. Since the flip is a nice-to-have and not needed for
+   the form to be usable, drop the 3D transform on touch devices and swap
+   faces with a plain display toggle instead, which sidesteps the bug. */
+@media (hover: none) and (pointer: coarse) {
+    .flip-card {
+        transform-style: flat;
+        transition: none;
+    }
+
+    .flip-card.is-flipped {
+        transform: none;
+    }
+
+    .flip-face {
+        backface-visibility: visible;
+        -webkit-backface-visibility: visible;
+    }
+
+    .flip-face-back {
+        transform: none;
+    }
+
+    .flip-card:not(.is-flipped) .flip-face-back,
+    .flip-card.is-flipped .flip-face-front {
+        display: none;
+    }
+
+    /* Same 3D-transform-breaks-typing bug applies to the tilt-card parallax
+       effect: .floating-group (the input's direct wrapper) carries a
+       permanent translateZ, and .tilt-card a permanent preserve-3d, on
+       every device - not just while actively tilting via JS mousemove.
+       Touch devices never fire mousemove, so the tilt effect itself is
+       already inert there; flattening it removes the 3D context without
+       losing any visible interaction. */
+    .tilt-card {
+        transform-style: flat;
+    }
+
+    .tilt-card .btn-submit,
+    .tilt-card .floating-group {
+        transform: none;
+    }
+}
+
 /* ============ React port additions ============ */
 
 /* .btn-cancel was referenced (bulk import page) but never defined in the
