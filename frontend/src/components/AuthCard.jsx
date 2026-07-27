@@ -137,6 +137,20 @@ export default function AuthCard() {
 
   return (
     <div className="auth-container login-animated" style={{ maxWidth: 520 }}>
+      {/* Asymmetric squircle clip path for the glass login/signup card - defined
+          once here with clipPathUnits="objectBoundingBox" so it scales with the
+          card's actual rendered size (a plain clip-path path() with pixel
+          coordinates wouldn't be responsive). Corner "radii" are fractions of
+          the card's width/height: huge top-left sweep, tiny top-right, large
+          bottom-right, medium bottom-left - true superellipse-style continuous
+          curves rather than circular border-radius arcs. */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <defs>
+          <clipPath id="authSquircle" clipPathUnits="objectBoundingBox">
+            <path d="M 0,0.38 C 0,0.152 0.152,0 0.38,0 L 0.97,0 C 0.988,0 1,0.012 1,0.03 L 1,0.72 C 1,0.888 0.888,1 0.72,1 L 0.15,1 C 0.06,1 0,0.94 0,0.85 L 0,0.38 Z" />
+          </clipPath>
+        </defs>
+      </svg>
       <div className="brand-logo-container staggered-entry">
         <div className="brand-logo-glow"></div>
         <svg className="brand-logo-svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5">
