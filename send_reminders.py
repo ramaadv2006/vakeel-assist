@@ -19,6 +19,7 @@ Postgres (Supabase) database via DATABASE_URL - it must never open its
 own separate connection, or it would silently read/write the wrong data.
 """
 
+import json
 import os
 from datetime import datetime, timedelta
 
@@ -52,6 +53,13 @@ TWILIO_AUTH_TOKEN = get_setting("TWILIO_AUTH_TOKEN", "TWILIO_AUTH_TOKEN")
 TWILIO_SMS_FROM = get_setting("TWILIO_SMS_FROM", "TWILIO_SMS_FROM")
 TWILIO_WHATSAPP_FROM = get_setting("TWILIO_WHATSAPP_FROM", "TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
 
+# WhatsApp requires a pre-approved Content Template for business-initiated
+# messages (i.e. anything sent without the recipient having messaged first
+# within the last 24h) - which scheduled reminders always are. Without a
+# content SID configured, WhatsApp sends fall back to a freeform body, which
+# Twilio will reject outside that 24h window.
+TWILIO_WHATSAPP_CONTENT_SID = get_setting("TWILIO_WHATSAPP_CONTENT_SID", "TWILIO_WHATSAPP_CONTENT_SID")
+
 
 def format_phone(phone):
     """Turns a 10-digit Indian number into E.164 format (+91XXXXXXXXXX)."""
@@ -63,11 +71,19 @@ def format_phone(phone):
     return None
 
 
-def send_message(client, to_phone, method, body):
+def send_message(client, to_phone, method, body, content_variables=None):
     from_number = TWILIO_WHATSAPP_FROM if method == "whatsapp" else TWILIO_SMS_FROM
     to_number = f"whatsapp:{to_phone}" if method == "whatsapp" else to_phone
 
-    client.messages.create(body=body, from_=from_number, to=to_number)
+    if method == "whatsapp" and TWILIO_WHATSAPP_CONTENT_SID and content_variables:
+        client.messages.create(
+            content_sid=TWILIO_WHATSAPP_CONTENT_SID,
+            content_variables=json.dumps(content_variables),
+            from_=from_number,
+            to=to_number,
+        )
+    else:
+        client.messages.create(body=body, from_=from_number, to=to_number)
 
 
 def main():
@@ -109,8 +125,12 @@ def main():
                 f"at {case['court_name']} is on {case['next_hearing_date']} "
                 f"({days_before} day{'s' if days_before > 1 else ''} from now)."
             )
+            advocate_content_vars = {
+                "date": str(case["next_hearing_date"]),
+                "time": f"{case['case_number']} at {case['court_name']}",
+            }
             try:
-                send_message(client, phone, advocate["reminder_method"], body)
+                send_message(client, phone, advocate["reminder_method"], body, advocate_content_vars)
                 print(f"Sent {advocate['reminder_method']} reminder to {advocate['name']} for case {case['case_number']}")
                 total_sent += 1
             except Exception as e:
@@ -127,8 +147,12 @@ def main():
                     f"Your hearing (Case No: {case['case_number']}) at {case['court_name']} "
                     f"is on {case['next_hearing_date']}."
                 )
+                client_content_vars = {
+                    "date": str(case["next_hearing_date"]),
+                    "time": f"{case['case_number']} at {case['court_name']}",
+                }
                 try:
-                    send_message(client, client_phone_fmt, advocate["reminder_method"], client_body)
+                    send_message(client, client_phone_fmt, advocate["reminder_method"], client_body, client_content_vars)
                     print(f"Sent {advocate['reminder_method']} reminder to client {case['client_name']} for case {case['case_number']}")
                     total_sent += 1
                 except Exception as e:
