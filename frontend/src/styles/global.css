@@ -1437,14 +1437,11 @@ html {
 }
 
 /* Ambient Animated Background for Auth Pages */
-/* Always a dark backdrop on the auth screen, regardless of the site's
-   light/dark theme toggle - the glass card above is only readable (and
-   only looks like the intended premium glassmorphism) against a dark
-   background, so this is a deliberate fixed look rather than theme-aware. */
+/* Ambient Animated Background for Auth Pages */
 body.auth-page-bg {
     min-height: 100vh;
     width: 100%;
-    background: linear-gradient(-45deg, #060a13, #0b1526, #16233d, #1c1608);
+    background: linear-gradient(-45deg, #f6f7fa, #f1ede3, #faf6ee, #eef1f6);
     background-size: 400% 400%;
     animation: gradientMove 15s ease infinite;
     transition: background 0.4s ease, color 0.4s ease;
@@ -1469,57 +1466,81 @@ body.dark.auth-page-bg {
     perspective: 1200px;
 }
 
-/* Asymmetric superellipse/squircle glass card - shape comes from the
-   #authSquircle clipPath (defined inline in AuthCard.jsx, objectBoundingBox
-   units so it scales with the card), not border-radius: huge continuous
-   sweep top-left, small top-right, large bottom-right, medium bottom-left.
-   Generous, corner-biased padding keeps fields clear of the curves. */
+/* Asymmetric leaf/lemon glass card matching user design:
+   large continuous sweep top-left and bottom-right, small top-right and bottom-left. */
 .auth-container .card-form {
+    background: rgba(255, 255, 255, 0.78) !important;
+    backdrop-filter: blur(20px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+    border: 1px solid rgba(184, 147, 94, 0.22) !important;
+    border-radius: 150px 20px 150px 20px !important;
+    box-shadow: var(--shadow-xl) !important;
+    padding: 70px 70px 85px 70px !important;
+    transition: backdrop-filter 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+body.dark .auth-container .card-form {
     background: rgba(255, 255, 255, 0.06) !important;
-    backdrop-filter: blur(20px) saturate(150%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
     border: 1.2px solid rgba(255, 255, 255, 0.18) !important;
-    border-radius: 0 !important;
-    clip-path: url(#authSquircle);
-    -webkit-clip-path: url(#authSquircle);
     box-shadow:
         inset 0 1px 1px rgba(255, 255, 255, 0.16),
         inset 0 -24px 48px rgba(0, 0, 0, 0.22),
         0 30px 70px rgba(0, 0, 0, 0.45),
         0 0 44px rgba(184, 147, 94, 0.12) !important;
-    padding: 40px 36px 36px 40px !important;
-    transition: backdrop-filter 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
 }
 
 .auth-container .card-form:hover {
     backdrop-filter: blur(26px) saturate(160%) !important;
     -webkit-backdrop-filter: blur(26px) saturate(160%) !important;
+}
+
+body.dark .auth-container .card-form:hover {
     border-color: rgba(255, 255, 255, 0.32) !important;
 }
 
 .auth-container .form-header h2 {
     font-size: var(--text-3xl);
-    color: #f5f7fa !important;
+    color: var(--text-dark) !important;
     transition: color 0.4s ease;
+}
+
+body.dark .auth-container .form-header h2 {
+    color: #f5f7fa !important;
 }
 
 .auth-container .form-header p {
-    color: rgba(245, 247, 250, 0.65) !important;
+    color: var(--text-main) !important;
     transition: color 0.4s ease;
 }
 
-/* Field text/labels/icons need to read against the dark glass card, not
-   the light-mode defaults .floating-group assumes elsewhere on the site. */
+body.dark .auth-container .form-header p {
+    color: rgba(245, 247, 250, 0.65) !important;
+}
+
+/* Field text/labels/icons need to read against the dark glass card in dark mode, and light card in light mode */
 .auth-container .floating-group label {
+    color: var(--gray-500) !important;
+}
+
+body.dark .auth-container .floating-group label {
     color: rgba(245, 247, 250, 0.55) !important;
 }
 
 .auth-container .floating-group input {
+    color: var(--text-dark) !important;
+    border-bottom-color: var(--border-card) !important;
+}
+
+body.dark .auth-container .floating-group input {
     color: #f5f7fa !important;
     border-bottom-color: rgba(255, 255, 255, 0.25) !important;
 }
 
 .auth-container .floating-group input:focus {
+    border-bottom-color: var(--accent) !important;
+}
+
+body.dark .auth-container .floating-group input:focus {
     border-bottom-color: var(--accent) !important;
 }
 
@@ -1529,6 +1550,10 @@ body.dark.auth-page-bg {
 }
 
 .auth-container .floating-group.has-icon .field-icon {
+    color: var(--gray-400) !important;
+}
+
+body.dark .auth-container .floating-group.has-icon .field-icon {
     color: rgba(245, 247, 250, 0.45) !important;
 }
 
@@ -1537,37 +1562,22 @@ body.dark.auth-page-bg {
     color: var(--accent) !important;
 }
 
-.auth-container .animated-input-group label {
-    color: var(--primary) !important;
-    transition: color 0.4s ease;
-}
-
-.auth-container .animated-input-group input {
-    color: var(--primary) !important;
-    transition: color 0.4s ease;
-}
-
 .auth-container .auth-footer {
-    color: rgba(245, 247, 250, 0.6) !important;
+    color: var(--text-main) !important;
     transition: color 0.4s ease;
+}
+
+body.dark .auth-container .auth-footer {
+    color: rgba(245, 247, 250, 0.6) !important;
 }
 
 .auth-container .auth-footer a {
-    color: var(--accent) !important;
+    color: var(--primary) !important;
     transition: color 0.4s ease;
 }
 
-/* The squircle glass card above is intentionally dark regardless of the
-   site's light/dark theme toggle (a fixed "premium" look for the auth
-   screen), so no body.dark override is needed for it anymore. These two
-   rules are unrelated dead code (the component uses .floating-group, not
-   .animated-input-group) kept as-is/untouched. */
-body.dark .auth-container .animated-input-group label {
-    color: var(--gray-300) !important;
-}
-
-body.dark .auth-container .animated-input-group input {
-    color: white !important;
+body.dark .auth-container .auth-footer a {
+    color: var(--accent) !important;
 }
 
 /* Underline Animation for Fields */
@@ -1610,11 +1620,33 @@ body.dark .auth-container .animated-input-group input {
     width: 100%;
 }
 
-/* Button Shimmer Effect */
+/* Button Shimmer Effect & Leaf Shape styling */
 .auth-container .btn-submit {
     position: relative;
     overflow: hidden;
     transition: var(--transition);
+    border-radius: 20px 5px 20px 5px !important;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%) !important;
+    color: white !important;
+    border: none !important;
+    padding: 14px 28px !important;
+    box-shadow: 0 4px 15px rgba(11, 21, 38, 0.2) !important;
+    margin-top: 24px !important;
+}
+
+body.dark .auth-container .btn-submit {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
+    color: var(--primary) !important;
+    box-shadow: 0 4px 15px rgba(184, 147, 94, 0.25) !important;
+}
+
+.auth-container .btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(11, 21, 38, 0.35) !important;
+}
+
+body.dark .auth-container .btn-submit:hover {
+    box-shadow: 0 8px 25px rgba(184, 147, 94, 0.45) !important;
 }
 
 .auth-container .btn-submit::before {
@@ -1638,7 +1670,33 @@ body.dark .auth-container .animated-input-group input {
     animation: shimmer 1s ease-in-out;
 }
 
-/* Ambient Background Blobs */
+/* Square Brand Logo Badge */
+.brand-logo-container {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 24px;
+    background: rgba(0, 0, 0, 0.03) !important;
+    border: 1.2px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: 12px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08), 0 0 20px rgba(184, 147, 94, 0.08);
+}
+
+body.dark .brand-logo-container {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1.2px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2), 0 0 20px rgba(184, 147, 94, 0.15);
+}
+
+.brand-logo-svg {
+    color: var(--accent) !important;
+    filter: drop-shadow(0 2px 8px rgba(184, 147, 94, 0.3));
+}
+
+/* Ambient Background Blobs with multi-layered glow */
 .ambient-blobs {
     position: fixed;
     top: 0;
@@ -1650,34 +1708,46 @@ body.dark .auth-container .animated-input-group input {
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
-    opacity: 0.6;
+    opacity: 0.7;
 }
 
 body.dark .ambient-blobs {
-    opacity: 0.35;
+    opacity: 0.4;
 }
 
 .blob {
     position: absolute;
-    width: 320px;
-    height: 320px;
     border-radius: 50%;
-    filter: blur(90px);
-    animation: blobMove 20s infinite alternate ease-in-out;
+    filter: blur(100px);
+    animation: blobMove 25s infinite alternate ease-in-out;
 }
 
 .blob-1 {
-    background: radial-gradient(circle, rgba(184, 147, 94, 0.28) 0%, rgba(184, 147, 94, 0) 70%);
-    top: -100px;
+    width: 450px;
+    height: 450px;
+    background: radial-gradient(circle, rgba(184, 147, 94, 0.3) 0%, rgba(184, 147, 94, 0) 70%);
+    top: -150px;
     left: -100px;
     animation-delay: 0s;
 }
 
 .blob-2 {
-    background: radial-gradient(circle, rgba(29, 78, 216, 0.16) 0%, rgba(29, 78, 216, 0) 70%);
-    bottom: -100px;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(22, 35, 61, 0.6) 0%, rgba(22, 35, 61, 0) 70%);
+    bottom: -150px;
     right: -100px;
-    animation-delay: 5s;
+    animation-delay: 6s;
+}
+
+.blob-3 {
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(29, 78, 216, 0.18) 0%, rgba(29, 78, 216, 0) 75%);
+    top: 35%;
+    right: 12%;
+    animation: blobMove 18s infinite alternate ease-in-out;
+    animation-delay: 3s;
 }
 
 /* Theme Toggle SVG Morphs */
