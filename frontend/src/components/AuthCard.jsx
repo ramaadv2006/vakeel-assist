@@ -139,9 +139,7 @@ export default function AuthCard() {
     <div className="auth-container login-animated" style={{ maxWidth: 520 }}>
       <div className="brand-logo-container staggered-entry">
         <div className="brand-logo-glow"></div>
-        <svg className="brand-logo-svg" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M12 2v20M17 7l-5-2-5 2M17 17l-5-2-5 2M4 7c0-2 2-3 4-3s4 1 4 3-2 3-4 3-4-1-4-3zm10 0c0-2 2-3 4-3s4 1 4 3-2 3-4 3-4-1-4-3zM3 21h18" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <img src="/logo.jpeg" alt="Advo Buddy" width="64" height="64" style={{ borderRadius: '50%', objectFit: 'cover', position: 'relative' }} />
       </div>
 
       <div className={`flip-card${isFlipped ? ' is-flipped' : ''}`}>

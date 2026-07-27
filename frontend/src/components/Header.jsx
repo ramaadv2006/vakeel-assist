@@ -67,7 +67,8 @@ export default function Header() {
 
   return (
     <header>
-      <Link to="/" style={{ textDecoration: 'none' }}>
+      <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <img src="/logo.jpeg" alt="" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
         <h1>Advo <span>Buddy</span></h1>
       </Link>
       <div className="header-controls">
