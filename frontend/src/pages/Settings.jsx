@@ -55,7 +55,7 @@ export default function Settings() {
     e.preventDefault();
     const method = form.reminder_method;
     const phone = form.phone.trim();
-    if (method !== 'none' && (!phone || phone.length < 10 || !/^\d+$/.test(phone))) {
+    if ((method === 'whatsapp' || method === 'sms') && (!phone || phone.length < 10 || !/^\d+$/.test(phone))) {
       setPhoneError(true);
       setShake(true);
       setTimeout(() => setShake(false), 400);
@@ -179,6 +179,7 @@ export default function Settings() {
               <option value="none">Off - No automated alerts</option>
               <option value="whatsapp">WhatsApp Messages</option>
               <option value="sms">SMS Text Messages</option>
+              <option value="email">Email Notifications</option>
             </select>
           </div>
 

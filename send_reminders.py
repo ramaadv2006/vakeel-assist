@@ -21,7 +21,10 @@ own separate connection, or it would silently read/write the wrong data.
 
 import json
 import os
+import smtplib
 from datetime import datetime, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 try:
     from twilio.rest import Client
@@ -60,6 +63,42 @@ TWILIO_WHATSAPP_FROM = get_setting("TWILIO_WHATSAPP_FROM", "TWILIO_WHATSAPP_FROM
 # Twilio will reject outside that 24h window.
 TWILIO_WHATSAPP_CONTENT_SID = get_setting("TWILIO_WHATSAPP_CONTENT_SID", "TWILIO_WHATSAPP_CONTENT_SID")
 
+# SMTP Configuration
+SMTP_SERVER = get_setting("SMTP_SERVER", "SMTP_SERVER")
+SMTP_USERNAME = get_setting("SMTP_USERNAME", "SMTP_USERNAME")
+SMTP_PASSWORD = get_setting("SMTP_PASSWORD", "SMTP_PASSWORD")
+SMTP_FROM_EMAIL = get_setting("SMTP_FROM_EMAIL", "SMTP_FROM_EMAIL")
+
+try:
+    SMTP_PORT = int(get_setting("SMTP_PORT", "SMTP_PORT", 587))
+except (ValueError, TypeError):
+    SMTP_PORT = 587
+
+
+def send_email(to_email, subject, body):
+    if not SMTP_SERVER or not SMTP_USERNAME or not SMTP_PASSWORD:
+        print(f"Skipping email to {to_email} - SMTP credentials not configured.")
+        return False
+
+    smtp_from = SMTP_FROM_EMAIL or SMTP_USERNAME
+
+    try:
+        msg = MIMEMultipart()
+        msg["From"] = smtp_from
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        server.sendmail(smtp_from, to_email, msg.as_string())
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"SMTP Error sending to {to_email}: {e}")
+        return False
+
 
 def format_phone(phone):
     """Turns a 10-digit Indian number into E.164 format (+91XXXXXXXXXX)."""
@@ -87,13 +126,17 @@ def send_message(client, to_phone, method, body, content_variables=None):
 
 
 def main():
-    client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    try:
+        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+    except Exception:
+        client = None
+
     conn = get_db()
     cur = conn.cursor()
     today = datetime.now().date()
 
     cur.execute(
-        "SELECT * FROM advocates WHERE reminder_method IN ('whatsapp', 'sms') AND phone IS NOT NULL AND phone != ''"
+        "SELECT * FROM advocates WHERE reminder_method IN ('whatsapp', 'sms', 'email')"
     )
     advocates = cur.fetchall()
 
@@ -113,10 +156,13 @@ def main():
         if not cases:
             continue
 
-        phone = format_phone(advocate["phone"])
-        if not phone:
-            print(f"Skipping {advocate['name']} - invalid phone number on file.")
-            continue
+        method = advocate["reminder_method"]
+        phone = None
+        if method in ("whatsapp", "sms"):
+            phone = format_phone(advocate["phone"])
+            if not phone:
+                print(f"Skipping {advocate['name']} - invalid phone number on file for Twilio.")
+                continue
 
         for case in cases:
             body = (
@@ -125,38 +171,73 @@ def main():
                 f"at {case['court_name']} is on {case['next_hearing_date']} "
                 f"({days_before} day{'s' if days_before > 1 else ''} from now)."
             )
-            advocate_content_vars = {
-                "date": str(case["next_hearing_date"]),
-                "time": f"{case['case_number']} at {case['court_name']}",
-            }
+            
             try:
-                send_message(client, phone, advocate["reminder_method"], body, advocate_content_vars)
-                print(f"Sent {advocate['reminder_method']} reminder to {advocate['name']} for case {case['case_number']}")
-                total_sent += 1
-            except Exception as e:
-                print(f"Failed to send to {advocate['name']}: {e}")
-
-            if case["notify_client"] and case["client_phone"]:
-                client_phone_fmt = format_phone(case["client_phone"])
-                if not client_phone_fmt:
-                    print(f"Skipping client of case {case['case_number']} - invalid phone number on file.")
-                    continue
-
-                client_body = (
-                    f"Reminder from {advocate['name']} (Advo Buddy):\n"
-                    f"Your hearing (Case No: {case['case_number']}) at {case['court_name']} "
-                    f"is on {case['next_hearing_date']}."
-                )
-                client_content_vars = {
-                    "date": str(case["next_hearing_date"]),
-                    "time": f"{case['case_number']} at {case['court_name']}",
-                }
-                try:
-                    send_message(client, client_phone_fmt, advocate["reminder_method"], client_body, client_content_vars)
-                    print(f"Sent {advocate['reminder_method']} reminder to client {case['client_name']} for case {case['case_number']}")
+                if method == "email":
+                    subject = f"Advo Buddy Reminder: Hearing for {case['client_name']} on {case['next_hearing_date']}"
+                    sent = send_email(advocate["email"], subject, body)
+                    if sent:
+                        print(f"Sent email reminder to {advocate['name']} for case {case['case_number']}")
+                        total_sent += 1
+                else:
+                    if client is None:
+                        raise ValueError("Twilio client not initialized.")
+                    advocate_content_vars = {
+                        "1": str(case["next_hearing_date"]),
+                        "2": f"{case['case_number']} at {case['court_name']}",
+                        "date": str(case["next_hearing_date"]),
+                        "time": f"{case['case_number']} at {case['court_name']}",
+                    }
+                    send_message(client, phone, method, body, advocate_content_vars)
+                    print(f"Sent {method} reminder to {advocate['name']} for case {case['case_number']}")
                     total_sent += 1
-                except Exception as e:
-                    print(f"Failed to send to client {case['client_name']}: {e}")
+            except Exception as e:
+                print(f"Failed to send reminder to {advocate['name']}: {e}")
+
+            if case["notify_client"]:
+                if method == "email":
+                    if case.get("client_email"):
+                        client_body = (
+                            f"Reminder from {advocate['name']} (Advo Buddy):\n"
+                            f"Your hearing (Case No: {case['case_number']}) at {case['court_name']} "
+                            f"is on {case['next_hearing_date']}."
+                        )
+                        subject = f"Hearing Reminder: Case No. {case['case_number']} on {case['next_hearing_date']}"
+                        try:
+                            sent = send_email(case["client_email"], subject, client_body)
+                            if sent:
+                                print(f"Sent email reminder to client {case['client_name']} for case {case['case_number']}")
+                                total_sent += 1
+                        except Exception as e:
+                            print(f"Failed to send email to client {case['client_name']}: {e}")
+                    else:
+                        print(f"Skipping client of case {case['case_number']} - no email address on file.")
+                else:
+                    if case["client_phone"]:
+                        client_phone_fmt = format_phone(case["client_phone"])
+                        if not client_phone_fmt:
+                            print(f"Skipping client of case {case['case_number']} - invalid phone number on file.")
+                            continue
+
+                        client_body = (
+                            f"Reminder from {advocate['name']} (Advo Buddy):\n"
+                            f"Your hearing (Case No: {case['case_number']}) at {case['court_name']} "
+                            f"is on {case['next_hearing_date']}."
+                        )
+                        client_content_vars = {
+                            "1": str(case["next_hearing_date"]),
+                            "2": f"{case['case_number']} at {case['court_name']}",
+                            "date": str(case["next_hearing_date"]),
+                            "time": f"{case['case_number']} at {case['court_name']}",
+                        }
+                        try:
+                            if client is None:
+                                raise ValueError("Twilio client not initialized.")
+                            send_message(client, client_phone_fmt, method, client_body, client_content_vars)
+                            print(f"Sent {method} reminder to client {case['client_name']} for case {case['case_number']}")
+                            total_sent += 1
+                        except Exception as e:
+                            print(f"Failed to send to client {case['client_name']}: {e}")
 
     cur.close()
     conn.close()

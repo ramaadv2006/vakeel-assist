@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 const CASE_TYPES = ['Civil', 'Criminal', 'Family', 'Property', 'Consumer', 'Labour', 'Other'];
 
 const EMPTY = {
-  client_name: '', client_phone: '', case_number: '', court_name: '', case_type: '',
+  client_name: '', client_phone: '', client_email: '', case_number: '', court_name: '', case_type: '',
   next_hearing_date: '', opposing_counsel: '', opposing_counsel_phone: '', judge_name: '',
   court_hall: '', item_number: '', case_stage: '', total_fee: '', fee_paid: '', expenses: '',
   notes: '', notify_client: false, status: 'Active',
@@ -41,6 +41,13 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
         <div className="form-group">
           <label htmlFor="client_phone">Client Phone Number</label>
           <input type="tel" id="client_phone" value={form.client_phone} onChange={update('client_phone')} placeholder="e.g. 9876543210" />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+          <label htmlFor="client_email">Client Email Address</label>
+          <input type="email" id="client_email" value={form.client_email} onChange={update('client_email')} placeholder="e.g. client@example.com" />
         </div>
       </div>
 

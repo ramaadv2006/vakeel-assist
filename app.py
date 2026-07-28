@@ -273,7 +273,8 @@ def init_db():
         ("case_stage", "TEXT"),
         ("total_fee", "INTEGER DEFAULT 0"),
         ("fee_paid", "INTEGER DEFAULT 0"),
-        ("expenses", "INTEGER DEFAULT 0")
+        ("expenses", "INTEGER DEFAULT 0"),
+        ("client_email", "TEXT")
     ]
     for col, col_type in cols_to_add:
         if not col_exists(col):
@@ -680,7 +681,7 @@ def client_directory():
 # ---------- Cases ----------
 
 CASE_FIELDS = [
-    "client_name", "client_phone", "case_number", "court_name", "case_type",
+    "client_name", "client_phone", "client_email", "case_number", "court_name", "case_type",
     "next_hearing_date", "notes", "notify_client", "opposing_counsel",
     "opposing_counsel_phone", "judge_name", "court_hall", "item_number",
     "case_stage", "total_fee", "fee_paid", "expenses",
@@ -690,6 +691,7 @@ CASE_FIELDS = [
 def _parse_case_payload(data):
     client_name = (data.get("client_name") or "").strip()
     client_phone = (data.get("client_phone") or "").strip()
+    client_email = (data.get("client_email") or "").strip()
     case_number = (data.get("case_number") or "").strip()
     court_name = (data.get("court_name") or "").strip()
     case_type = (data.get("case_type") or "").strip()
@@ -712,6 +714,7 @@ def _parse_case_payload(data):
     return {
         "client_name": client_name,
         "client_phone": client_phone,
+        "client_email": client_email,
         "case_number": case_number,
         "court_name": court_name,
         "case_type": case_type,
@@ -747,10 +750,10 @@ def add_case():
 
     cur.execute(
         """INSERT INTO cases
-           (advocate_id, client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, notify_client,
+           (advocate_id, client_name, client_phone, client_email, case_number, court_name, case_type, next_hearing_date, notes, notify_client,
             opposing_counsel, opposing_counsel_phone, judge_name, court_hall, item_number, case_stage, total_fee, fee_paid, expenses)
-           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
-        (advocate_id, f["client_name"], f["client_phone"], f["case_number"], f["court_name"], f["case_type"],
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (advocate_id, f["client_name"], f["client_phone"], f["client_email"], f["case_number"], f["court_name"], f["case_type"],
          f["next_hearing_date"], f["notes"], f["notify_client"], f["opposing_counsel"], f["opposing_counsel_phone"],
          f["judge_name"], f["court_hall"], f["item_number"], f["case_stage"], f["total_fee"], f["fee_paid"], f["expenses"]),
     )
@@ -825,12 +828,12 @@ def edit_case(case_id):
     conflicts = check_hearing_conflict(conn, advocate_id, f["court_name"], f["next_hearing_date"], exclude_case_id=case_id)
 
     cur.execute(
-        """UPDATE cases SET client_name=%s, client_phone=%s, case_number=%s, court_name=%s,
+        """UPDATE cases SET client_name=%s, client_phone=%s, client_email=%s, case_number=%s, court_name=%s,
            case_type=%s, next_hearing_date=%s, notes=%s, status=%s, notify_client=%s,
            opposing_counsel=%s, opposing_counsel_phone=%s, judge_name=%s, court_hall=%s,
            item_number=%s, case_stage=%s, total_fee=%s, fee_paid=%s, expenses=%s
            WHERE id=%s AND advocate_id=%s""",
-        (f["client_name"], f["client_phone"], f["case_number"], f["court_name"], f["case_type"],
+        (f["client_name"], f["client_phone"], f["client_email"], f["case_number"], f["court_name"], f["case_type"],
          f["next_hearing_date"], f["notes"], status, f["notify_client"], f["opposing_counsel"],
          f["opposing_counsel_phone"], f["judge_name"], f["court_hall"], f["item_number"], f["case_stage"],
          f["total_fee"], f["fee_paid"], f["expenses"], case_id, advocate_id),
@@ -1160,7 +1163,7 @@ def export_cases():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT client_name, client_phone, case_number, court_name, case_type, next_hearing_date, notes, status FROM cases WHERE advocate_id=%s ORDER BY next_hearing_date ASC",
+        "SELECT client_name, client_phone, client_email, case_number, court_name, case_type, next_hearing_date, notes, status FROM cases WHERE advocate_id=%s ORDER BY next_hearing_date ASC",
         (advocate_id,),
     )
     cases = cur.fetchall()
@@ -1170,13 +1173,14 @@ def export_cases():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
-        "Client Name", "Client Phone", "Case Number", "Court Name",
+        "Client Name", "Client Phone", "Client Email", "Case Number", "Court Name",
         "Case Type", "Next Hearing Date", "Notes", "Status"
     ])
     for case in cases:
         writer.writerow([
             case["client_name"],
             case["client_phone"] or "",
+            case["client_email"] or "",
             case["case_number"],
             case["court_name"],
             case["case_type"] or "",
