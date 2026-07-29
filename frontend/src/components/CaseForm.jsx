@@ -1,6 +1,64 @@
 import { useRef, useState } from 'react';
+import SearchableSelect from './SearchableSelect';
 
-const CASE_TYPES = ['Civil', 'Criminal', 'Family', 'Property', 'Consumer', 'Labour', 'Other'];
+const CASE_TYPES = [
+  'AP-Approval Petition',
+  'Arb.Appeal- Arbitration Appeal',
+  'Arb.Appln-Arbitration Application',
+  'Arb.E.P-Arbitration Enforcement Petition',
+  'Arb.O.P-Arbitration Original Petition',
+  'ARBOP-Arbitration Original Petition',
+  'AS-Appeal Suit',
+  'C-Complaint Petition',
+  'CAS-Commercial Appeal',
+  'CC-Calendar Case',
+  'CMA-Civil Miscellaneous Appeal',
+  'CMACS-Civil Miscellaneous Appeal(CS)',
+  'CMP-Civil Miscellaneous Petition',
+  'COS-Commercial Original Suit',
+  'CP-Claim Petition',
+  'CRLA- Criminal Appeal',
+  'CRLMP-Criminal Miscellaneous Petition',
+  'CRLR-Criminal Revision Petition',
+  'CRP-Civil Revision Petition',
+  'Dist. Application-Distress Application',
+  'DVC-Domestic Violence Case',
+  'EOCC-Economic Offence Case',
+  'EP-Execution Petition',
+  'GWOP- Guardian and Wards Original Petition',
+  'HMOP-Hindu Marriage Original Petition',
+  'ID-Industrial Disputes',
+  'IP-Insolvency Petition',
+  'JC-Juvenile Case',
+  'LAOP-Land Acquisition Original Petition',
+  'MC-Maintenance Case',
+  'MCOP-Motor Accidents Claim Original Petition',
+  'MJC-Miscellaneous Judicial Case',
+  'MTA-Municipal Taxation Appeal/ Corporation Taxation Appeal',
+  'NT Application-New Trial Application',
+  'OA-Original Application',
+  'OP-Original Petition',
+  'POP-Pauper Original Petition',
+  'PRC-Preliminary Register Case',
+  'PWA-Payment Wages Appeal',
+  'RC-Reference Case',
+  'RCA-Rent Control Appeal',
+  'RCOP-Rent Control Original Petition',
+  'RCS-Referred Charge Sheet',
+  'RLTA-Regulation Of Rights and Responsibilities of Landlord and Tenant Appeals',
+  'RLTOP-Regulation of Rights and Responsibilities of Landlord and Tenant Original Petition',
+  'RP-Review Petition',
+  'RTA-Rent Tribunal Appeal',
+  'S-Original Suit',
+  'SA-Second Appeal',
+  'SC-Sessions Case',
+  'SCS-Small Cause Suit',
+  'SOA-Standing Order Appeal',
+  'SPLCC-Special Calendar Case',
+  'SPL.SC-Special Sessions Case',
+  'STC-Small Cause Calendar case Summary Trial Case',
+  'Tr.OP-Transfer Original Petition'
+];
 
 const EMPTY = {
   client_name: '', client_phone: '', client_email: '', case_number: '', court_name: '', case_type: '',
@@ -65,10 +123,12 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="case_type">Case Type</label>
-          <select id="case_type" value={form.case_type} onChange={update('case_type')}>
-            <option value="">-- Select Type --</option>
-            {CASE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <SearchableSelect
+            options={CASE_TYPES}
+            value={form.case_type}
+            onChange={(val) => setForm((f) => ({ ...f, case_type: val }))}
+            placeholder="-- Select Type --"
+          />
         </div>
         <div className="form-group">
           <label htmlFor="next_hearing_date">Next Hearing Date *</label>

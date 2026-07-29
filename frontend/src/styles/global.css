@@ -2519,3 +2519,167 @@ body.dark .btn-cancel:hover {
         grid-template-columns: 1fr;
     }
 }
+
+/* ============================================================
+   SEARCHABLE CUSTOM SELECT DROPDOWN
+   ============================================================ */
+.searchable-select-container {
+    position: relative;
+    width: 100%;
+}
+
+.searchable-select-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: var(--text-base);
+    color: var(--text-dark);
+    background-color: var(--bg-card);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.4s ease;
+}
+
+body.dark .searchable-select-trigger {
+    background-color: var(--gray-100);
+    border-color: var(--border-card);
+    color: var(--text-dark);
+}
+
+.searchable-select-trigger:focus,
+.searchable-select-trigger.open {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(184, 147, 94, 0.15);
+}
+
+.searchable-select-trigger .chevron {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+    color: var(--gray-400);
+}
+
+.searchable-select-trigger.open .chevron {
+    transform: rotate(180deg);
+    color: var(--accent);
+}
+
+.searchable-select-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: scaleUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+body.dark .searchable-select-dropdown {
+    background-color: var(--bg-card);
+    border-color: var(--border-card);
+}
+
+.searchable-select-search-wrapper {
+    position: relative;
+    padding: 10px;
+    border-bottom: 1px solid var(--border-card);
+    background-color: var(--bg-app);
+}
+
+body.dark .searchable-select-search-wrapper {
+    background-color: var(--gray-900);
+    border-bottom-color: var(--border-card);
+}
+
+.searchable-select-search-wrapper .search-icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: var(--gray-400);
+    pointer-events: none;
+}
+
+.searchable-select-search-input {
+    width: 100%;
+    padding: 8px 12px 8px 32px;
+    font-size: var(--text-sm);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-card);
+    color: var(--text-dark);
+}
+
+body.dark .searchable-select-search-input {
+    background-color: var(--gray-100);
+    border-color: var(--border-card);
+}
+
+.searchable-select-options-list {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 6px 0;
+}
+
+.searchable-select-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 14px;
+    font-size: var(--text-sm);
+    color: var(--text-main);
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.searchable-select-option:hover {
+    background-color: var(--gray-100);
+    color: var(--text-dark);
+}
+
+body.dark .searchable-select-option:hover {
+    background-color: var(--gray-200);
+}
+
+.searchable-select-option.selected {
+    font-weight: 600;
+    color: var(--accent-hover);
+    background-color: var(--accent-bg);
+}
+
+body.dark .searchable-select-option.selected {
+    color: var(--accent);
+    background-color: rgba(184, 147, 94, 0.08);
+}
+
+.searchable-select-option .check-icon {
+    width: 14px;
+    height: 14px;
+    color: var(--accent);
+}
+
+.searchable-select-no-results {
+    padding: 16px;
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--gray-400);
+}
+
