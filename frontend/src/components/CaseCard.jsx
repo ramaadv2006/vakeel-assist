@@ -242,19 +242,25 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
           <button
             type="button"
             className="btn-icon-text btn-edit"
-            onClick={() => { if (window.confirm('Reopen this case and set status back to Active?')) onReopen(caseData.id); }}
+            onClick={() => { if (window.confirm(caseData.status === 'Deleted' ? 'Restore this case and set status back to Active?' : 'Reopen this case and set status back to Active?')) onReopen(caseData.id); }}
             title="Move this case back to Active"
           >
-            Reopen
+            {caseData.status === 'Deleted' ? 'Restore' : 'Reopen'}
           </button>
         )}
         {onDelete && (
           <button
             type="button"
             className="btn-icon-text btn-delete"
-            onClick={() => { if (window.confirm('Remove this case?')) onDelete(caseData.id); }}
+            onClick={() => {
+              const isDeletedStatus = caseData.status === 'Deleted';
+              const msg = isDeletedStatus
+                ? 'Are you sure you want to permanently delete this case? This action cannot be undone.'
+                : 'Are you sure you want to delete this case? It will be moved to the deleted archive / trash.';
+              if (window.confirm(msg)) onDelete(caseData.id);
+            }}
           >
-            Delete
+            {caseData.status === 'Deleted' ? 'Delete Permanently' : 'Delete'}
           </button>
         )}
       </div>

@@ -59,8 +59,8 @@ export default function Dashboard() {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (caseId) => {
-    await api.del(`/cases/${caseId}`);
-    addFlash('Case removed.', 'success');
+    const res = await api.del(`/cases/${caseId}`);
+    addFlash(res.message, 'success');
     load();
   };
 

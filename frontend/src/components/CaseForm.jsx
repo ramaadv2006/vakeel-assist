@@ -200,6 +200,7 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
               <option>Active</option>
               <option>Closed</option>
               <option>On Hold</option>
+              {form.status === 'Deleted' && <option>Deleted</option>}
             </select>
           </div>
           <div className="form-group checkbox-group" style={{ justifyContent: 'center' }}>

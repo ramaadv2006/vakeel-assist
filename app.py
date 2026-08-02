@@ -654,7 +654,7 @@ def client_directory():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT * FROM cases WHERE advocate_id=%s ORDER BY client_name ASC",
+        "SELECT * FROM cases WHERE advocate_id=%s AND status != 'Deleted' ORDER BY client_name ASC",
         (advocate_id,),
     )
     all_cases = cur.fetchall()
@@ -856,6 +856,19 @@ def edit_case(case_id):
     })
 
 
+def build_archive_sections(archived_cases):
+    closed_cases = [c for c in archived_cases if str(c.get("status") or "").strip().lower() == "closed"]
+    deleted_cases = [c for c in archived_cases if str(c.get("status") or "").strip().lower() == "deleted"]
+    onhold_cases = [c for c in archived_cases if str(c.get("status") or "").strip().lower() not in {"closed", "deleted"}]
+
+    return {
+        "closed_cases": closed_cases,
+        "deleted_cases": deleted_cases,
+        "onhold_cases": onhold_cases,
+        "total_archived": len(archived_cases),
+    }
+
+
 @app.route("/api/cases/<int:case_id>", methods=["DELETE"])
 @login_required
 def delete_case(case_id):
@@ -863,21 +876,36 @@ def delete_case(case_id):
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute("SELECT id FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
+    cur.execute("SELECT id, status FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
     case = cur.fetchone()
     if case is None:
         cur.close()
         conn.close()
         return jsonify({"error": "Case not found."}), 404
 
-    cur.execute("DELETE FROM hearing_history WHERE case_id=%s", (case_id,))
-    cur.execute("DELETE FROM case_audit_log WHERE case_id=%s", (case_id,))
-    cur.execute("DELETE FROM case_tasks WHERE case_id=%s", (case_id,))
-    cur.execute("DELETE FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return jsonify({"success": True, "message": "Case removed."})
+    old_status = case.get("status") or "Active"
+    if old_status == "Deleted":
+        # Hard delete
+        cur.execute("DELETE FROM hearing_history WHERE case_id=%s", (case_id,))
+        cur.execute("DELETE FROM case_audit_log WHERE case_id=%s", (case_id,))
+        cur.execute("DELETE FROM case_tasks WHERE case_id=%s", (case_id,))
+        cur.execute("DELETE FROM cases WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"success": True, "message": "Case permanently deleted."})
+    else:
+        # Soft delete
+        cur.execute(
+            """INSERT INTO case_audit_log (case_id, advocate_id, field_changed, old_value, new_value)
+               VALUES (%s, %s, %s, %s, %s)""",
+            (case_id, advocate_id, "status", old_status, "Deleted"),
+        )
+        cur.execute("UPDATE cases SET status='Deleted' WHERE id=%s AND advocate_id=%s", (case_id, advocate_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return jsonify({"success": True, "message": "Case moved to archive (Deleted)."})
 
 
 @app.route("/api/cases/<int:case_id>/history")
@@ -945,14 +973,7 @@ def case_archive():
     cur.close()
     conn.close()
 
-    closed_cases = [c for c in archived_cases if c["status"] == "Closed"]
-    onhold_cases = [c for c in archived_cases if c["status"] != "Closed"]
-
-    return jsonify({
-        "closed_cases": closed_cases,
-        "onhold_cases": onhold_cases,
-        "total_archived": len(archived_cases),
-    })
+    return jsonify(build_archive_sections(archived_cases))
 
 
 @app.route("/api/cases/<int:case_id>/reopen", methods=["POST"])
@@ -1294,7 +1315,7 @@ def billing():
     advocate_id = g.advocate_id
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM cases WHERE advocate_id=%s ORDER BY created_at DESC", (advocate_id,))
+    cur.execute("SELECT * FROM cases WHERE advocate_id=%s AND status != 'Deleted' ORDER BY created_at DESC", (advocate_id,))
     cases = cur.fetchall()
     cur.close()
     conn.close()
@@ -1319,6 +1340,10 @@ def billing():
     })
 
 
-init_db()
+if DATABASE_URL:
+    init_db()
+else:
+    app.logger.info("Skipping database initialization because DATABASE_URL is not configured.")
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

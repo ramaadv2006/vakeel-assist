@@ -16,8 +16,8 @@ export default function Archive() {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (caseId) => {
-    await api.del(`/cases/${caseId}`);
-    addFlash('Case removed.', 'success');
+    const res = await api.del(`/cases/${caseId}`);
+    addFlash(res.message, 'success');
     load();
   };
 
@@ -39,8 +39,22 @@ export default function Archive() {
     <div className="form-container" style={{ maxWidth: 1000 }}>
       <div className="form-header staggered-entry">
         <h2>Case Archive</h2>
-        <p>Closed and on-hold cases — reopen any of them back to Active in one click</p>
+        <p>Deleted, closed, and on-hold cases are kept here so you can review them and restore them later.</p>
       </div>
+
+      {data.deleted_cases.length > 0 && (
+        <>
+          <div className="section-title staggered-entry" style={{ color: 'var(--danger)', borderColor: 'rgba(248, 113, 113, 0.24)' }}>
+            <Icon name="archive" style={{ stroke: 'var(--danger)' }} />
+            Deleted Cases
+          </div>
+          <div className="case-list">
+            {data.deleted_cases.map((c) => (
+              <CaseCard key={c.id} caseData={c} cssClass="archived" badgeText="Deleted" onDelete={handleDelete} onReopen={handleReopen} />
+            ))}
+          </div>
+        </>
+      )}
 
       {data.closed_cases.length > 0 && (
         <>
