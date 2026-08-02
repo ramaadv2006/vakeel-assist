@@ -193,17 +193,17 @@ ${e.advocate}
 `).filter(Boolean),n=`-------------------------------------------------------------------------------------------------------
 `;return n+=`S. No. | Date of filing documents | Date of the documents | Description of the documents       | Remarks
 `,n+=`-------------------------------------------------------------------------------------------------------
-`,t.forEach(e=>{let t=e.split(`|`).map(e=>e.trim()),r=t[0]||``,i=t[1]||``,a=t[2]||``,o=t[3]||``,s=t[4]||``;n+=`${r.padEnd(6)} | ${i.padEnd(24)} | ${a.padEnd(21)} | ${o.padEnd(34)} | ${s}\n`}),n+=`-------------------------------------------------------------------------------------------------------`,`APPALICATION FOR COPIES
+`,t.forEach(e=>{let t=e.split(`|`).map(e=>e.trim()),r=t[0]||``,i=t[1]||``,a=t[2]||``,o=t[3]||``,s=t[4]||``;n+=`${r.padEnd(6)} | ${i.padEnd(24)} | ${a.padEnd(21)} | ${o.padEnd(34)} | ${s}\n`}),n+=`-------------------------------------------------------------------------------------------------------`,`APPLICATION FOR COPIES
 
 IN THE COURT OF THE ${e.court}
 
                                No.: ${e.case_no}
 
-${e.client}                                                     ... ${e.client_role}
+${e.client}                                                           ${e.client_role}
 
                                Versus
 
-${e.opponent}                                                 ... ${e.opponent_role}
+${e.opponent}                             ${e.opponent_role}
 
 To
 The judge of the said court
@@ -257,7 +257,7 @@ ${e.complainant}                                              ...Complainant.
                                Versus
 ${e.accused}                                                  ...Accused
 
-        ADVANCE PETITION FILED ON BEHALF OF THE ${e.filed_by.toUpperCase()}.
+        ADVANCE PETITION FILED ON BEHALF OF THE ${(e.filed_by||``).toUpperCase()}.
 
 It is submitted that the above case is pending before this Hon’ble court in trail stage.
 
@@ -286,7 +286,7 @@ ${e.accused}                                                  ...Accused
 
                         ADVANCE PETITION
                      FILED ON BEHALF OF THE
-                     ${e.filed_by.toUpperCase()}.
+                     ${(e.filed_by||``).toUpperCase()}.
 
 By Counsel:
 ${e.advocate}
@@ -426,7 +426,7 @@ IN THE COURT OF THE ${e.court}
 
 By Counsel:
 ${e.advocate}
-`},condone_absence:{title:`Condonation of Absence Petition (Section 355 B.N.S.S.)`,fields:[{id:`court`,label:`Court Name`,default:`Judicial Magistrate Court, Pochampalli`},{id:`crl_mp_no`,label:`Crl. M.P. Number`,default:`16 of 2025`},{id:`case_no`,label:`STC/MC/DVC/C.C. Number`,default:`C.C. No. 120 of 2025`},{id:`client`,label:`Petitioner / Accused Name`,default:`Ravi kumar`},{id:`client_role`,label:`Petitioner Role (e.g. Petitioner / Accused)`,default:`Petitioner / Accused`},{id:`opponent`,label:`Respondent Name`,default:`Sub-Inspector of Police, Pochampalli Police Station`},{id:`opponent_role`,label:`Respondent Role`,default:`Respondent / Complainant`},{id:`reason`,label:`Reason for Absence`,default:`fever and severe illness`},{id:`date`,label:`Date`,default:Jl()},{id:`place`,label:`Place`,default:`Pochampalli`},{id:`advocate`,label:`Advocate Name`,default:t}],generate:e=>`IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${e.court.toUpperCase()}
+`},condone_absence:{title:`Condonation of Absence Petition (Section 355 B.N.S.S.)`,fields:[{id:`court`,label:`Court Name`,default:`Judicial Magistrate Court, Pochampalli`},{id:`crl_mp_no`,label:`Crl. M.P. Number`,default:`16 of 2025`},{id:`case_no`,label:`STC/MC/DVC/C.C. Number`,default:`C.C. No. 120 of 2025`},{id:`client`,label:`Petitioner / Accused Name`,default:`Ravi kumar`},{id:`client_role`,label:`Petitioner Role (e.g. Petitioner / Accused)`,default:`Petitioner / Accused`},{id:`opponent`,label:`Respondent Name`,default:`Sub-Inspector of Police, Pochampalli Police Station`},{id:`opponent_role`,label:`Respondent Role`,default:`Respondent / Complainant`},{id:`reason`,label:`Reason for Absence`,default:`fever and severe illness`},{id:`date`,label:`Date`,default:Jl()},{id:`place`,label:`Place`,default:`Pochampalli`},{id:`advocate`,label:`Advocate Name`,default:t}],generate:e=>`IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${(e.court||``).toUpperCase()}
 
                                Crl. M.P.: ${e.crl_mp_no}
                                In
@@ -436,7 +436,7 @@ ${e.client}                                                   ... ${e.client_rol
                                Versus
 ${e.opponent}                                                 ... ${e.opponent_role}.
 
-       THE PETITION FILED ON BEHALF OF THE ${e.client_role.toUpperCase()} U/s 355/ 279/ 145 OF BNSS.
+       THE PETITION FILED ON BEHALF OF THE ${(e.client_role||``).toUpperCase()} U/s 355/ 279/ 145 OF BNSS.
 
 1. The ${e.client_role} is not in position to appear before this Honorable Court in person due to ${e.reason}.
 
@@ -452,7 +452,7 @@ Place: ${e.place}                                           Counsel for ${e.clie
                            BACKING SHEET / DOCKET
 -------------------------------------------------------------------------
 
-IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${e.court.toUpperCase()}
+IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${(e.court||``).toUpperCase()}
 
                                Crl. M.P.: ${e.crl_mp_no}
                                In
@@ -464,7 +464,7 @@ IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${e.court.toUpperCase()}
 
                         THE PETITION FILED ON
                             BEHALF OF THE
-                        ${e.client_role.toUpperCase()}
+                        ${(e.client_role||``).toUpperCase()}
                         U/s 355/ 279/ 145 OF BNSS.
 
 By Counsel:
@@ -609,7 +609,7 @@ Before me:
                                                        Signature of Surety Advocate
 `},process_memo:{title:`Process Memo`,fields:[{id:`court`,label:`Court Name`,default:`Judicial Magistrate Court, Pochampalli`},{id:`case_no`,label:`C.C. / S.T.C. Number`,default:`C.C. No. 120 of 2025`},{id:`client`,label:`Petitioner/Accused Name`,default:`Ravi kumar`},{id:`client_role`,label:`Petitioner Role (e.g. Petitioner / Accused)`,default:`Petitioner`},{id:`opponent`,label:`Respondent Name`,default:`State represented by Inspector of Police`},{id:`opponent_role`,label:`Respondent Role`,default:`Respondent`},{id:`filed_by`,label:`Filed on behalf of (e.g. Petitioner / Accused)`,default:`Petitioner`},{id:`witness_no`,label:`Prosecution Witness Number`,default:`1`},{id:`channel`,label:`Summons Channel (e.g. through the Sub-Inspector)`,default:`Sub-Inspector of Police, Pochampalli Police Station`},{id:`witness_address`,label:`Address of the Witness`,type:`textarea`,default:`S. Murugan,
 No. 12, Gandhi Street,
-Pochampalli, Krishnagiri`},{id:`advocate`,label:`Advocate Name`,default:t}],generate:e=>`IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${e.court.toUpperCase()}
+Pochampalli, Krishnagiri`},{id:`advocate`,label:`Advocate Name`,default:t}],generate:e=>`IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${(e.court||``).toUpperCase()}
 
                                C.C. / S.T.C. No. ${e.case_no}
 
@@ -617,7 +617,7 @@ ${e.client}                                                   ... ${e.client_rol
                                Versus
 ${e.opponent}                                                 ... ${e.opponent_role}
 
-     PROCESS MEMEO FILED ON BEHALF OF THE ${e.filed_by.toUpperCase()}/ ACCUSED / COMPLAINANT.
+     PROCESS MEMEO FILED ON BEHALF OF THE ${(e.filed_by||``).toUpperCase()}/ ACCUSED / COMPLAINANT.
 
   It is prayed that this Hon’ble Court may be pleased to issue summons to the prosecution witness No. ${e.witness_no} through the ${e.channel} to the under mentioned address and pass necessary orders under the circumstances of the case.
 
@@ -632,14 +632,14 @@ ${e.witness_address}
                            BACKING SHEET / DOCKET
 -------------------------------------------------------------------------
 
-IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${e.court.toUpperCase()}
+IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${(e.court||``).toUpperCase()}
 
                                C.C. / S.T.C. No. ${e.case_no}
 
                          PROCESS MEMEO
                      FILED ON BEHALF OF THE
-                     ${e.filed_by.toUpperCase()}/ ACCUSED / COMPLAINANT.
+                     ${(e.filed_by||``).toUpperCase()}/ ACCUSED / COMPLAINANT.
 
 By Counsel:
 ${e.advocate}
-`}}}var Xl=[{key:`vakalat`,label:`Vakalatnama`,subtitle:`Bilingual Authorization (Eng/Tam)`},{key:`adj`,label:`Adjournment Petition`,subtitle:`Section 309 CrPC / CPC`},{key:`notice138`,label:`Sec 138 Cheque Notice`,subtitle:`Negotiable Instruments Act`},{key:`affidavit`,label:`Affidavit of Assets`,subtitle:`Standard Civil Declaration`},{key:`surrender`,label:`Surrender Petition`,subtitle:`Filed on behalf of Accused`},{key:`copy_app`,label:`Copy Application`,subtitle:`Application for Certified Copies`},{key:`memo_appearance`,label:`Memo of Appearance`,subtitle:`Filed on behalf of Accused`},{key:`advance_petition`,label:`Advance Petition`,subtitle:`Petition to Advance Hearing`},{key:`hc_vakalat`,label:`High Court Vakalat`,subtitle:`Madras High Court Vakalatnama`},{key:`bail_app`,label:`Bail Application`,subtitle:`Section 480 B.N.S.S.`},{key:`recall_warrant`,label:`Recall Warrant`,subtitle:`Section 72(2) B.N.S.S.`},{key:`condone_absence`,label:`Condone Absence`,subtitle:`Section 355 B.N.S.S.`},{key:`solvency_memo`,label:`Solvency Memo`,subtitle:`Filing Solvency Certificates`},{key:`suretyship_app`,label:`Suretyship Form 46`,subtitle:`Application for Suretyship`},{key:`process_memo`,label:`Process Memo`,subtitle:`Summons to Witness`}];function Zl(){let{advocate:e}=Zc(),t=il(),n=(0,_.useMemo)(()=>Yl(e?.name),[e]),[r,i]=(0,_.useState)(`vakalat`),[a,o]=(0,_.useState)(()=>{let e={};return n.vakalat.fields.forEach(t=>{e[t.id]=t.default}),e});(0,_.useEffect)(()=>{let e=n[r],t={};e.fields.forEach(e=>{t[e.id]=e.default}),o(t)},[r]);let s=n[r],c=s.generate(a);return(0,U.jsxs)(`div`,{className:`drafts-container`,children:[(0,U.jsxs)(`div`,{className:`template-sidebar staggered-entry`,children:[(0,U.jsx)(`h3`,{style:{fontSize:15,fontWeight:700,color:`var(--text-dark)`,marginBottom:12,paddingLeft:6},children:`Document Templates`}),Xl.map(e=>(0,U.jsxs)(`button`,{type:`button`,className:`template-btn${r===e.key?` active`:``}`,onClick:()=>i(e.key),children:[(0,U.jsx)(`span`,{children:e.label}),(0,U.jsx)(`span`,{className:`subtitle`,children:e.subtitle})]},e.key))]}),(0,U.jsxs)(`div`,{className:`draft-main staggered-entry`,children:[(0,U.jsxs)(`div`,{className:`card-form`,style:{padding:24},children:[(0,U.jsxs)(`h3`,{style:{marginBottom:18,fontFamily:`'Lora', serif`,fontSize:20,fontWeight:700,color:`var(--text-dark)`},children:[`Fill Template Fields: `,s.title]}),(0,U.jsx)(`div`,{className:`form-grid`,children:s.fields.map(e=>(0,U.jsxs)(`div`,{className:`form-group`,style:e.type===`textarea`?{gridColumn:`span 2`}:{},children:[(0,U.jsx)(`label`,{htmlFor:e.id,children:e.label}),e.type===`textarea`?(0,U.jsx)(`textarea`,{id:e.id,value:a[e.id]??``,onChange:t=>o(n=>({...n,[e.id]:t.target.value})),style:{width:`100%`,minHeight:`100px`,resize:`vertical`}}):(0,U.jsx)(`input`,{type:`text`,id:e.id,value:a[e.id]??``,onChange:t=>o(n=>({...n,[e.id]:t.target.value})),style:{width:`100%`}})]},e.id))})]}),(0,U.jsxs)(`div`,{className:`card-form`,style:{padding:24},children:[(0,U.jsxs)(`div`,{style:{display:`flex`,justifyContent:`space-between`,alignItems:`center`,marginBottom:14,flexWrap:`wrap`,gap:12},children:[(0,U.jsx)(`h3`,{style:{fontFamily:`'Inter', sans-serif`,fontSize:16,fontWeight:700,color:`var(--text-dark)`,margin:0},children:`Live Draft Preview`}),(0,U.jsxs)(`div`,{style:{display:`flex`,gap:8},children:[(0,U.jsx)(`button`,{type:`button`,className:`btn-export`,onClick:()=>{navigator.clipboard.writeText(c).then(()=>{t(`Draft text copied to clipboard successfully!`,`success`)})},style:{padding:`6px 14px`,fontSize:13},children:`Copy Clipboard`}),(0,U.jsx)(`button`,{type:`button`,className:`btn-submit`,onClick:()=>{let e=new Blob([c],{type:`text/plain`}),t=URL.createObjectURL(e),n=document.createElement(`a`);n.href=t,n.download=`advo_buddy_draft_${r}_${Jl()}.txt`,document.body.appendChild(n),n.click(),document.body.removeChild(n),URL.revokeObjectURL(t)},style:{padding:`6px 14px`,fontSize:13,margin:0},children:`Download Text`})]})]}),(0,U.jsx)(`div`,{className:`preview-box`,children:c})]})]})]})}function Ql(){return(0,U.jsx)(Bn,{children:(0,U.jsx)(Xc,{children:(0,U.jsx)($c,{children:(0,U.jsx)(rl,{children:(0,U.jsx)(Xt,{children:(0,U.jsxs)(k,{element:(0,U.jsx)(dl,{}),children:[(0,U.jsx)(k,{path:`/login`,element:(0,U.jsx)(_l,{})}),(0,U.jsx)(k,{path:`/signup`,element:(0,U.jsx)(_l,{})}),(0,U.jsx)(k,{path:`/forgot-password`,element:(0,U.jsx)(_l,{})}),(0,U.jsx)(k,{path:`/reset-password`,element:(0,U.jsx)(vl,{})}),(0,U.jsxs)(k,{element:(0,U.jsx)(fl,{}),children:[(0,U.jsx)(k,{path:`/`,element:(0,U.jsx)(jl,{})}),(0,U.jsx)(k,{path:`/clients`,element:(0,U.jsx)(Nl,{})}),(0,U.jsx)(k,{path:`/add`,element:(0,U.jsx)(Rl,{})}),(0,U.jsx)(k,{path:`/edit/:caseId`,element:(0,U.jsx)(K,{})}),(0,U.jsx)(k,{path:`/history/:caseId`,element:(0,U.jsx)(q,{})}),(0,U.jsx)(k,{path:`/case/:caseId/audit`,element:(0,U.jsx)(Y,{})}),(0,U.jsx)(k,{path:`/archive`,element:(0,U.jsx)(X,{})}),(0,U.jsx)(k,{path:`/tasks`,element:(0,U.jsx)(Bl,{})}),(0,U.jsx)(k,{path:`/diary`,element:(0,U.jsx)(Vl,{})}),(0,U.jsx)(k,{path:`/cases/bulk-update-dates`,element:(0,U.jsx)(Hl,{})}),(0,U.jsx)(k,{path:`/billing`,element:(0,U.jsx)(Gl,{})}),(0,U.jsx)(k,{path:`/settings`,element:(0,U.jsx)(ql,{})}),(0,U.jsx)(k,{path:`/templates`,element:(0,U.jsx)(Zl,{})})]}),(0,U.jsx)(k,{path:`*`,element:(0,U.jsx)(qt,{to:`/`,replace:!0})})]})})})})})})}(0,v.createRoot)(document.getElementById(`root`)).render((0,U.jsx)(_.StrictMode,{children:(0,U.jsx)(Ql,{})}));
+`}}}var Xl=[{key:`surrender`,label:`Surrender Petition`,subtitle:`Filed on behalf of Accused`},{key:`copy_app`,label:`Copy Application`,subtitle:`Application for Certified Copies`},{key:`memo_appearance`,label:`Memo of Appearance`,subtitle:`Filed on behalf of Accused`},{key:`advance_petition`,label:`Advance Petition`,subtitle:`Petition to Advance Hearing`},{key:`hc_vakalat`,label:`High Court Vakalat`,subtitle:`Madras High Court Vakalatnama`},{key:`bail_app`,label:`Bail Application`,subtitle:`Section 480 B.N.S.S.`},{key:`recall_warrant`,label:`Recall Warrant`,subtitle:`Section 72(2) B.N.S.S.`},{key:`condone_absence`,label:`Absent Petition`,subtitle:`Section 355 B.N.S.S.`},{key:`solvency_memo`,label:`Solvency Memo`,subtitle:`Filing Solvency Certificates`},{key:`suretyship_app`,label:`Suretyship Form 46`,subtitle:`Application for Suretyship`},{key:`process_memo`,label:`Process Memo`,subtitle:`Summons to Witness`}];function Zl(){let{advocate:e}=Zc(),t=il(),n=(0,_.useMemo)(()=>Yl(e?.name),[e]),[r,i]=(0,_.useState)(()=>Xl[0]?.key||`vakalat`),[a,o]=(0,_.useState)(()=>{let e={},t=Xl[0]?.key||`vakalat`;return n[t].fields.forEach(t=>{e[t.id]=t.default}),e});(0,_.useEffect)(()=>{let e=n[r],t={};e.fields.forEach(e=>{t[e.id]=e.default}),o(t)},[r]);let s=n[r],c=s.generate(a);return(0,U.jsxs)(`div`,{className:`drafts-container`,children:[(0,U.jsxs)(`div`,{className:`template-sidebar staggered-entry`,children:[(0,U.jsx)(`h3`,{style:{fontSize:15,fontWeight:700,color:`var(--text-dark)`,marginBottom:12,paddingLeft:6},children:`Document Templates`}),Xl.map(e=>(0,U.jsxs)(`button`,{type:`button`,className:`template-btn${r===e.key?` active`:``}`,onClick:()=>i(e.key),children:[(0,U.jsx)(`span`,{children:e.label}),(0,U.jsx)(`span`,{className:`subtitle`,children:e.subtitle})]},e.key))]}),(0,U.jsxs)(`div`,{className:`draft-main staggered-entry`,children:[(0,U.jsxs)(`div`,{className:`card-form`,style:{padding:24},children:[(0,U.jsxs)(`h3`,{style:{marginBottom:18,fontFamily:`'Lora', serif`,fontSize:20,fontWeight:700,color:`var(--text-dark)`},children:[`Fill Template Fields: `,s.title]}),(0,U.jsx)(`div`,{className:`form-grid`,children:s.fields.map(e=>(0,U.jsxs)(`div`,{className:`form-group`,style:e.type===`textarea`?{gridColumn:`span 2`}:{},children:[(0,U.jsx)(`label`,{htmlFor:e.id,children:e.label}),e.type===`textarea`?(0,U.jsx)(`textarea`,{id:e.id,value:a[e.id]??``,onChange:t=>o(n=>({...n,[e.id]:t.target.value})),style:{width:`100%`,minHeight:`100px`,resize:`vertical`}}):(0,U.jsx)(`input`,{type:`text`,id:e.id,value:a[e.id]??``,onChange:t=>o(n=>({...n,[e.id]:t.target.value})),style:{width:`100%`}})]},e.id))})]}),(0,U.jsxs)(`div`,{className:`card-form`,style:{padding:24},children:[(0,U.jsxs)(`div`,{style:{display:`flex`,justifyContent:`space-between`,alignItems:`center`,marginBottom:14,flexWrap:`wrap`,gap:12},children:[(0,U.jsx)(`h3`,{style:{fontFamily:`'Inter', sans-serif`,fontSize:16,fontWeight:700,color:`var(--text-dark)`,margin:0},children:`Live Draft Preview`}),(0,U.jsxs)(`div`,{style:{display:`flex`,gap:8},children:[(0,U.jsx)(`button`,{type:`button`,className:`btn-export`,onClick:()=>{navigator.clipboard.writeText(c).then(()=>{t(`Draft text copied to clipboard successfully!`,`success`)})},style:{padding:`6px 14px`,fontSize:13},children:`Copy Clipboard`}),(0,U.jsx)(`button`,{type:`button`,className:`btn-submit`,onClick:()=>{let e=new Blob([c],{type:`text/plain`}),t=URL.createObjectURL(e),n=document.createElement(`a`);n.href=t,n.download=`advo_buddy_draft_${r}_${Jl()}.txt`,document.body.appendChild(n),n.click(),document.body.removeChild(n),URL.revokeObjectURL(t)},style:{padding:`6px 14px`,fontSize:13,margin:0},children:`Download Text`})]})]}),(0,U.jsx)(`div`,{className:`preview-box`,children:c})]})]})]})}function Ql(){return(0,U.jsx)(Bn,{children:(0,U.jsx)(Xc,{children:(0,U.jsx)($c,{children:(0,U.jsx)(rl,{children:(0,U.jsx)(Xt,{children:(0,U.jsxs)(k,{element:(0,U.jsx)(dl,{}),children:[(0,U.jsx)(k,{path:`/login`,element:(0,U.jsx)(_l,{})}),(0,U.jsx)(k,{path:`/signup`,element:(0,U.jsx)(_l,{})}),(0,U.jsx)(k,{path:`/forgot-password`,element:(0,U.jsx)(_l,{})}),(0,U.jsx)(k,{path:`/reset-password`,element:(0,U.jsx)(vl,{})}),(0,U.jsxs)(k,{element:(0,U.jsx)(fl,{}),children:[(0,U.jsx)(k,{path:`/`,element:(0,U.jsx)(jl,{})}),(0,U.jsx)(k,{path:`/clients`,element:(0,U.jsx)(Nl,{})}),(0,U.jsx)(k,{path:`/add`,element:(0,U.jsx)(Rl,{})}),(0,U.jsx)(k,{path:`/edit/:caseId`,element:(0,U.jsx)(K,{})}),(0,U.jsx)(k,{path:`/history/:caseId`,element:(0,U.jsx)(q,{})}),(0,U.jsx)(k,{path:`/case/:caseId/audit`,element:(0,U.jsx)(Y,{})}),(0,U.jsx)(k,{path:`/archive`,element:(0,U.jsx)(X,{})}),(0,U.jsx)(k,{path:`/tasks`,element:(0,U.jsx)(Bl,{})}),(0,U.jsx)(k,{path:`/diary`,element:(0,U.jsx)(Vl,{})}),(0,U.jsx)(k,{path:`/cases/bulk-update-dates`,element:(0,U.jsx)(Hl,{})}),(0,U.jsx)(k,{path:`/billing`,element:(0,U.jsx)(Gl,{})}),(0,U.jsx)(k,{path:`/settings`,element:(0,U.jsx)(ql,{})}),(0,U.jsx)(k,{path:`/templates`,element:(0,U.jsx)(Zl,{})})]}),(0,U.jsx)(k,{path:`*`,element:(0,U.jsx)(qt,{to:`/`,replace:!0})})]})})})})})})}(0,v.createRoot)(document.getElementById(`root`)).render((0,U.jsx)(_.StrictMode,{children:(0,U.jsx)(Ql,{})}));

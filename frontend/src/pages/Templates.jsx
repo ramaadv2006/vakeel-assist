@@ -282,17 +282,17 @@ ${f.advocate}
         });
         table += '-------------------------------------------------------------------------------------------------------';
 
-        return `APPALICATION FOR COPIES
+        return `APPLICATION FOR COPIES
 
 IN THE COURT OF THE ${f.court}
 
                                No.: ${f.case_no}
 
-${f.client}                                   ${f.client_role}
+${f.client}                                                           ${f.client_role}
 
                                Versus
 
-${f.opponent}                                                 ... ${f.opponent_role}
+${f.opponent}                             ${f.opponent_role}
 
 To
 The judge of the said court
@@ -346,9 +346,9 @@ ${f.advocate}
                                Crime No.: ${f.crime_no || '   '}    Of 20
                                Spl. S.C. / S.C. / C.C. / S.T.C. No.: ${f.case_no || '   '}
 
-${f.complainant}                                              ...Complainant
+${f.complainant}                             Complainant
                                Versus
-${f.accused}                                                  ...Accused
+${f.accused}                                                            Accused
 
                 MEMO OF APPEARANCE FILED ON BEHALF OF THE ACCUSED.
 
@@ -376,11 +376,11 @@ Place: ${f.place}                                           Counsel for Accused.
 
                                C.C. No.: ${f.case_no}
 
-${f.complainant}                                              ...Complainant.
+${f.complainant}                                              Complainant.
                                Versus
-${f.accused}                                                  ...Accused
+${f.accused}                                                             Accused
 
-        ADVANCE PETITION FILED ON BEHALF OF THE ${f.filed_by.toUpperCase()}.
+        ADVANCE PETITION FILED ON BEHALF OF THE ${(f.filed_by || '').toUpperCase()}.
 
 It is submitted that the above case is pending before this Hon’ble court in trail stage.
 
@@ -403,13 +403,13 @@ IN THE COURT OF THE ${f.court}
 
                                C.C. No.: ${f.case_no}
 
-${f.complainant}                                              ...Complainant.
+${f.complainant}                                              Complainant.
                                Versus
-${f.accused}                                                  ...Accused
+${f.accused}                                                      Accused
 
                         ADVANCE PETITION
                      FILED ON BEHALF OF THE
-                     ${f.filed_by.toUpperCase()}.
+                     ${(f.filed_by || '').toUpperCase()}.
 
 By Counsel:
 ${f.advocate}
@@ -437,9 +437,9 @@ ${f.advocate}
                                Against
                                No. ${f.against_no} on the file of the ${f.against_court}
 
-${f.client}                                                   ... ${f.client_role}
+${f.client}                                                     ${f.client_role}
                                Versus
-${f.opponent}                                                 ... ${f.opponent_role}
+${f.opponent}                                                   ${f.opponent_role}
 
 I / We, the ${f.client_role} do hereby appoint and retain:
 
@@ -496,9 +496,9 @@ Counsel for Petitioner / Appellant / Respondent
                                Crime No.: ${f.crime_no}
                                S.T.C. / C.C. No.: ${f.case_no}
 
-${f.client}                                                   ... ${f.client_role}
+${f.client}                                                       ${f.client_role}
                                Versus
-${f.opponent}                                                 ... ${f.opponent_role}
+${f.opponent}                         ${f.opponent_role}
 
      BAIL APPALICATION FILED ON BEHALF OF THE PETITIONER / ACCUSED UNDER SECTION 480 OF B.N.S.S.
 
@@ -527,9 +527,9 @@ IN THE COURT OF THE ${f.court}
                                Crime No.: ${f.crime_no}
                                S.T.C. / C.C. No.: ${f.case_no}
 
-                               ... ${f.client_role}
+                               ${f.client_role}
                                Versus
-                               ... ${f.opponent_role}
+                               ${f.opponent_role}
 
                        BAIL APPALICATION FILED
                            ON BEHALF OF THE
@@ -561,9 +561,9 @@ ${f.advocate}
                                In
                                C.C. / S.T.C. No.: ${f.case_no}
 
-${f.client}                                                   ... ${f.client_role}
+${f.client}                                                           ${f.client_role}
                                Versus
-${f.opponent}.                                                ... ${f.opponent_role}.
+${f.opponent}.                 ${f.opponent_role}.
 
      PETITION FILED ON BEHALF OF THE PETITIONER / ACCUSED UNDER SECTION 72(2) OF THE B.N.S.S.
 
@@ -587,9 +587,9 @@ IN THE COURT OF THE ${f.court}
                                In
                                C.C. / S.T.C. No.: ${f.case_no}
 
-                               ... ${f.client_role}
+                               ${f.client_role}
                                Versus
-                               ... ${f.opponent_role}.
+                               ${f.opponent_role}.
 
                          PETITION FILED ON
                            BEHALF OF THE
@@ -616,17 +616,17 @@ ${f.advocate}
         { id: 'place', label: 'Place', default: 'Pochampalli' },
         { id: 'advocate', label: 'Advocate Name', default: advocateDefault },
       ],
-      generate: (f) => `IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${f.court.toUpperCase()}
+      generate: (f) => `IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${(f.court || '').toUpperCase()}
 
                                Crl. M.P.: ${f.crl_mp_no}
                                In
                                STC/MC/DVC/C.C. No.; ${f.case_no}
 
-${f.client}                                                   ... ${f.client_role}.
+${f.client}                                                           ${f.client_role}.
                                Versus
-${f.opponent}                                                 ... ${f.opponent_role}.
+${f.opponent}                  ${f.opponent_role}.
 
-       THE PETITION FILED ON BEHALF OF THE ${f.client_role.toUpperCase()} U/s 355/ 279/ 145 OF BNSS.
+       THE PETITION FILED ON BEHALF OF THE ${(f.client_role || '').toUpperCase()} U/s 355/ 279/ 145 OF BNSS.
 
 1. The ${f.client_role} is not in position to appear before this Honorable Court in person due to ${f.reason}.
 
@@ -642,19 +642,19 @@ Place: ${f.place}                                           Counsel for ${f.clie
                            BACKING SHEET / DOCKET
 -------------------------------------------------------------------------
 
-IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${f.court.toUpperCase()}
+IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${(f.court || '').toUpperCase()}
 
                                Crl. M.P.: ${f.crl_mp_no}
                                In
                                STC/MC/DVC/C.C. No.; ${f.case_no}
 
-                               ... ${f.client_role}.
+                               ${f.client_role}.
                                Versus
-                               ... ${f.opponent_role}.
+                               ${f.opponent_role}.
 
                         THE PETITION FILED ON
                             BEHALF OF THE
-                        ${f.client_role.toUpperCase()}
+                        ${(f.client_role || '').toUpperCase()}
                         U/s 355/ 279/ 145 OF BNSS.
 
 By Counsel:
@@ -682,9 +682,9 @@ ${f.advocate}
                                Crime No.: ${f.crime_no}
                                C.C. No.: ${f.case_no}
 
-${f.client}                                                   ... ${f.client_role}.
+${f.client}                                                          ${f.client_role}.
                                Versus
-${f.opponent}                                                 ... ${f.opponent_role}.
+${f.opponent}                 ${f.opponent_role}.
 
                 SOLVENCY MEMO FILED ON BEHALF OF THE ACCUSED.
 
@@ -692,7 +692,7 @@ It is respectfully submitted that in the above said case, the Hon’ble Court of
 
 It is therefore prayed that this Hon’ble Court may be pleased to accept the Solvencies filed herewith and released the accused on bail and thereby render justice.
 
-                                                        Counsel for the Petitioner / Accused
+                                            Counsel for the Petitioner / Accused
 
 
 -------------------------------------------------------------------------
@@ -752,9 +752,9 @@ IN THE COURT OF THE ${f.court}
                                  In
                                  Crime No.: ${f.crime_no}
 
-State represented by ${f.complainant}                           ...Complainant
+State represented by ${f.complainant}                                                      Complainant
                                Vs.
-${f.accused}                                                  ...Accused
+${f.accused}                                                             Accused
 
 I, ${f.surety_name} S/O ${f.surety_parent}, solemnly affirm and state as follows:
 
@@ -863,20 +863,20 @@ Before me:
         { id: 'witness_address', label: 'Address of the Witness', type: 'textarea', default: 'S. Murugan,\nNo. 12, Gandhi Street,\nPochampalli, Krishnagiri' },
         { id: 'advocate', label: 'Advocate Name', default: advocateDefault },
       ],
-      generate: (f) => `IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${f.court.toUpperCase()}
+      generate: (f) => `IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${(f.court || '').toUpperCase()}
 
                                C.C. / S.T.C. No. ${f.case_no}
 
-${f.client}                                                   ... ${f.client_role}
+${f.client}                                                       ${f.client_role}
                                Versus
-${f.opponent}                                                 ... ${f.opponent_role}
+${f.opponent}                         ${f.opponent_role}
 
-     PROCESS MEMEO FILED ON BEHALF OF THE ${f.filed_by.toUpperCase()}/ ACCUSED / COMPLAINANT.
+     PROCESS MEMEO FILED ON BEHALF OF THE ${(f.filed_by || '').toUpperCase()}/ ACCUSED / COMPLAINANT.
 
   It is prayed that this Hon’ble Court may be pleased to issue summons to the prosecution witness No. ${f.witness_no} through the ${f.channel} to the under mentioned address and pass necessary orders under the circumstances of the case.
 
 
-                                                        Counsel for the ${f.filed_by}.
+                                                     Counsel for the ${f.filed_by}.
 
 Address of the Witness:
 ${f.witness_address}
@@ -886,13 +886,13 @@ ${f.witness_address}
                            BACKING SHEET / DOCKET
 -------------------------------------------------------------------------
 
-IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${f.court.toUpperCase()}
+IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${(f.court || '').toUpperCase()}
 
                                C.C. / S.T.C. No. ${f.case_no}
 
                          PROCESS MEMEO
                      FILED ON BEHALF OF THE
-                     ${f.filed_by.toUpperCase()}/ ACCUSED / COMPLAINANT.
+                     ${(f.filed_by || '').toUpperCase()}/ ACCUSED / COMPLAINANT.
 
 By Counsel:
 ${f.advocate}
@@ -902,10 +902,10 @@ ${f.advocate}
 }
 
 const TEMPLATE_ORDER = [
-  { key: 'vakalat', label: 'Vakalatnama', subtitle: 'Bilingual Authorization (Eng/Tam)' },
-  { key: 'adj', label: 'Adjournment Petition', subtitle: 'Section 309 CrPC / CPC' },
-  { key: 'notice138', label: 'Sec 138 Cheque Notice', subtitle: 'Negotiable Instruments Act' },
-  { key: 'affidavit', label: 'Affidavit of Assets', subtitle: 'Standard Civil Declaration' },
+  // { key: 'vakalat', label: 'Vakalatnama', subtitle: 'Bilingual Authorization (Eng/Tam)' },
+  // { key: 'adj', label: 'Adjournment Petition', subtitle: 'Section 309 CrPC / CPC' },
+  // { key: 'notice138', label: 'Sec 138 Cheque Notice', subtitle: 'Negotiable Instruments Act' },
+  // { key: 'affidavit', label: 'Affidavit of Assets', subtitle: 'Standard Civil Declaration' },
   { key: 'surrender', label: 'Surrender Petition', subtitle: 'Filed on behalf of Accused' },
   { key: 'copy_app', label: 'Copy Application', subtitle: 'Application for Certified Copies' },
   { key: 'memo_appearance', label: 'Memo of Appearance', subtitle: 'Filed on behalf of Accused' },
@@ -913,7 +913,7 @@ const TEMPLATE_ORDER = [
   { key: 'hc_vakalat', label: 'High Court Vakalat', subtitle: 'Madras High Court Vakalatnama' },
   { key: 'bail_app', label: 'Bail Application', subtitle: 'Section 480 B.N.S.S.' },
   { key: 'recall_warrant', label: 'Recall Warrant', subtitle: 'Section 72(2) B.N.S.S.' },
-  { key: 'condone_absence', label: 'Condone Absence', subtitle: 'Section 355 B.N.S.S.' },
+  { key: 'condone_absence', label: 'Absent Petition', subtitle: 'Section 355 B.N.S.S.' },
   { key: 'solvency_memo', label: 'Solvency Memo', subtitle: 'Filing Solvency Certificates' },
   { key: 'suretyship_app', label: 'Suretyship Form 46', subtitle: 'Application for Suretyship' },
   { key: 'process_memo', label: 'Process Memo', subtitle: 'Summons to Witness' },
@@ -923,10 +923,11 @@ export default function Templates() {
   const { advocate } = useAuth();
   const addFlash = useFlash();
   const templates = useMemo(() => buildTemplates(advocate?.name), [advocate]);
-  const [activeKey, setActiveKey] = useState('vakalat');
+  const [activeKey, setActiveKey] = useState(() => TEMPLATE_ORDER[0]?.key || 'vakalat');
   const [values, setValues] = useState(() => {
     const initial = {};
-    templates.vakalat.fields.forEach((f) => { initial[f.id] = f.default; });
+    const defaultKey = TEMPLATE_ORDER[0]?.key || 'vakalat';
+    templates[defaultKey].fields.forEach((f) => { initial[f.id] = f.default; });
     return initial;
   });
 
