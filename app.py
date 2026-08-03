@@ -1340,6 +1340,244 @@ def billing():
     })
 
 
+# ============================================
+# AI ASSISTANT & CASE ANALYSIS ENDPOINTS
+# ============================================
+import json
+
+def _call_gemini_chat(message, formatted_history, system_instruction):
+    groq_api_key = os.environ.get("GROQ_API_KEY")
+    if groq_api_key:
+        import requests
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {groq_api_key}",
+            "Content-Type": "application/json"
+        }
+        messages = [{"role": "system", "content": system_instruction}]
+        for item in formatted_history:
+            role = "assistant" if item.get("role") in ["assistant", "model"] else "user"
+            content = item.get("parts", [""])[0] if item.get("parts") else ""
+            messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": message})
+
+        model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.7
+        }
+        res = requests.post(url, headers=headers, json=payload)
+        res.raise_for_status()
+        return res.json()["choices"][0]["message"]["content"]
+
+    api_key = os.environ.get("AI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("AI_API_KEY / GEMINI_API_KEY or GROQ_API_KEY is missing in backend environment variables.")
+    import google.generativeai as genai
+    genai.configure(api_key=api_key)
+
+    configured_model = os.environ.get("AI_MODEL", "gemini-2.0-flash")
+    candidate_models = [configured_model, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-1.5-flash-latest"]
+    seen = set()
+    models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
+
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(model_name=model_name, system_instruction=system_instruction)
+            chat = model.start_chat(history=formatted_history)
+            response = chat.send_message(message)
+            return response.text
+        except Exception as e:
+            last_error = e
+            err_str = str(e).lower()
+            if "404" in err_str or "not found" in err_str or "no longer available" in err_str:
+                continue
+            raise e
+    if last_error:
+        raise last_error
+
+
+def _call_gemini_generate(prompt, system_instruction):
+    groq_api_key = os.environ.get("GROQ_API_KEY")
+    if groq_api_key:
+        import requests
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {groq_api_key}",
+            "Content-Type": "application/json"
+        }
+        messages = [
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": prompt}
+        ]
+        model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": 0.2,
+            "response_format": {"type": "json_object"}
+        }
+        res = requests.post(url, headers=headers, json=payload)
+        res.raise_for_status()
+        return res.json()["choices"][0]["message"]["content"]
+
+    api_key = os.environ.get("AI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError("AI_API_KEY / GEMINI_API_KEY or GROQ_API_KEY is missing in backend environment variables.")
+    import google.generativeai as genai
+    genai.configure(api_key=api_key)
+
+    configured_model = os.environ.get("AI_MODEL", "gemini-2.0-flash")
+    candidate_models = [configured_model, "gemini-2.0-flash", "gemini-2.5-flash", "gemini-flash-latest", "gemini-2.0-flash-lite", "gemini-1.5-flash-latest"]
+    seen = set()
+    models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
+
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            model = genai.GenerativeModel(model_name=model_name, system_instruction=system_instruction)
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception as e:
+            last_error = e
+            err_str = str(e).lower()
+            if "404" in err_str or "not found" in err_str or "no longer available" in err_str:
+                continue
+            raise e
+    if last_error:
+        raise last_error
+
+
+
+@app.route("/api/chat", methods=["POST"])
+@login_required
+def ai_chat():
+    try:
+        data = request.get_json(silent=True) or {}
+        message = (data.get("message") or "").strip()
+        history = data.get("history") or []
+
+        if not message:
+            return jsonify({"error": "Message is required."}), 400
+
+        system_instruction = (
+            "You are Advo Buddy, a helpful, precise, and professional legal assistant chatbot. "
+            "Give clear, practical answers about legal questions, procedures, drafting guidance, and case strategy. "
+            "Always maintain a helpful legal context while reminding users that AI guidance is for research "
+            "and operational support and does not replace official judicial rulings or binding legal opinions. "
+            "Keep answers well-structured, formatted cleanly with markdown when helpful."
+        )
+
+        formatted_history = []
+        for item in history[:-1]:
+            role = "model" if item.get("role") in ["assistant", "model"] else "user"
+            text = item.get("text") or item.get("content") or ""
+            if text:
+                formatted_history.append({
+                    "role": role,
+                    "parts": [text]
+                })
+
+        reply = _call_gemini_chat(message, formatted_history, system_instruction)
+        return jsonify({"reply": reply})
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        err_str = str(e)
+        if "429" in err_str or "resourceexhausted" in err_str.lower() or "quota" in err_str.lower():
+            user_msg = "Google Gemini API rate limit or free quota exceeded (429). Please wait 30 seconds and try again, or create a fresh free key at https://aistudio.google.com/app/apikey."
+            return jsonify({"error": user_msg}), 429
+        print(f"AI Chat error: {e}")
+        return jsonify({"error": f"Failed to get AI response: {err_str}"}), 500
+
+
+@app.route("/api/analyze-case", methods=["POST"])
+@login_required
+def analyze_case():
+    try:
+        if "caseFile" not in request.files:
+            return jsonify({"error": "No file uploaded."}), 400
+
+        file = request.files["caseFile"]
+        if not file or file.filename == "":
+            return jsonify({"error": "No file selected."}), 400
+
+        filename = file.filename
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+        extracted_text = ""
+
+        if ext == "pdf":
+            try:
+                import pypdf
+                reader = pypdf.PdfReader(file.stream)
+                pages_text = [page.extract_text() or "" for page in reader.pages]
+                extracted_text = "\n".join(pages_text)
+            except Exception as pe:
+                return jsonify({"error": f"Could not read PDF file: {str(pe)}"}), 400
+
+        elif ext == "docx":
+            try:
+                import docx
+                doc = docx.Document(file.stream)
+                extracted_text = "\n".join([p.text for p in doc.paragraphs if p.text])
+            except Exception as de:
+                return jsonify({"error": f"Could not read DOCX file: {str(de)}"}), 400
+
+        elif ext == "txt":
+            try:
+                extracted_text = file.read().decode("utf-8", errors="ignore")
+            except Exception as te:
+                return jsonify({"error": f"Could not read text file: {str(te)}"}), 400
+
+        else:
+            return jsonify({"error": "Unsupported file type. Please upload a PDF, DOCX, or TXT file."}), 400
+
+        if not extracted_text or len(extracted_text.strip()) < 20:
+            return jsonify({"error": "Could not extract meaningful text from the uploaded document."}), 400
+
+        # Truncate text safely if too long
+        MAX_CHARS = 30000
+        trimmed_text = extracted_text[:MAX_CHARS] + "\n\n[Document truncated for analysis]" if len(extracted_text) > MAX_CHARS else extracted_text
+
+        system_instruction = (
+            "You are Advo Buddy's legal case analysis engine. Analyze the uploaded legal case document "
+            "and respond ONLY in valid JSON with this exact structure, no markdown formatting fences: "
+            '{"summary": "...", "keyParties": ["..."], "keyIssues": ["..."], '
+            '"relevantSections": ["..."], "riskAssessment": "...", "recommendations": ["..."]}'
+        )
+
+        prompt = f"Analyze this legal case document:\n\n{trimmed_text}"
+        raw_text = _call_gemini_generate(prompt, system_instruction)
+        raw = (raw_text or "").strip()
+
+        # Clean markdown code fences if model returned them despite instructions
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            if raw.endswith("```"):
+                raw = raw.rsplit("```", 1)[0]
+            raw = raw.strip()
+
+        try:
+            analysis = json.loads(raw)
+        except Exception:
+            analysis = {"summary": raw, "keyParties": [], "keyIssues": [], "relevantSections": [], "riskAssessment": "", "recommendations": []}
+
+        return jsonify({"fileName": filename, "analysis": analysis})
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        err_str = str(e)
+        if "429" in err_str or "resourceexhausted" in err_str.lower() or "quota" in err_str.lower():
+            user_msg = "Google Gemini API rate limit or free quota exceeded (429). Please wait 30 seconds and try again, or create a fresh free key at https://aistudio.google.com/app/apikey."
+            return jsonify({"error": user_msg}), 429
+        print(f"Case analysis error: {e}")
+        return jsonify({"error": f"Failed to analyze document: {err_str}"}), 500
+
+
 if DATABASE_URL:
     init_db()
 else:

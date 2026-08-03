@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import Icon from './Icon';
 
 const NAV_LINKS = [
+  { to: '/ai-assistant', icon: 'ai', label: 'AI Assistant' },
   { to: '/clients', icon: 'clients', label: 'Clients' },
   { to: '/templates', icon: 'case', label: 'Drafts' },
   { to: '/billing', icon: 'billing', label: 'Billing' },

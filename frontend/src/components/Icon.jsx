@@ -141,6 +141,12 @@ const PATHS = {
       <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
     </>
   ),
+  ai: (
+    <>
+      <path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48l2.12 2.12M5.64 18.36l2.12-2.12m8.48-8.48l2.12-2.12"></path>
+      <circle cx="12" cy="12" r="4"></circle>
+    </>
+  ),
 };
 
 export default function Icon({ name, className = 'icon-svg', style, ...props }) {

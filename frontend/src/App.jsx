@@ -20,6 +20,7 @@ import BulkUpdateDates from './pages/BulkUpdateDates';
 import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import Templates from './pages/Templates';
+import AiAssistant from './pages/AiAssistant';
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
 
                 <Route element={<ProtectedRoute />}>
                   <Route path="/" element={<Dashboard />} />
+                  <Route path="/ai-assistant" element={<AiAssistant />} />
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/add" element={<AddCase />} />
                   <Route path="/edit/:caseId" element={<EditCase />} />
