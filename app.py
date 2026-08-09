@@ -1578,6 +1578,60 @@ def analyze_case():
         return jsonify({"error": f"Failed to analyze document: {err_str}"}), 500
 
 
+@app.route("/api/draftmitra/import", methods=["POST"])
+@login_required
+def draftmitra_import():
+    try:
+        data = request.get_json(silent=True) or {}
+        text = data.get("text")
+        if not text or not isinstance(text, str):
+            return jsonify({"error": "text is required"}), 400
+
+        system_instruction = (
+            "You convert Indian court petition/draft documents into fillable templates.\n"
+            "Given the raw text of a legal draft, do this:\n"
+            "1. Identify every variable part that changes per client/case — names, case numbers, dates, court name, addresses, offence sections, case-specific facts. Do NOT treat fixed legal boilerplate language as variable.\n"
+            "2. Replace each variable part in the text with a placeholder token like {{field_id}} using short snake_case ids (e.g. {{petitioner_name}}, {{crime_no}}, {{court_name}}).\n"
+            "3. Keep every other word of the original document EXACTLY as written — do not paraphrase, shorten, or reword the legal language.\n"
+            "4. Preserve paragraph breaks (use \\n\\n between paragraphs/lines) and numbered clauses as in the original.\n"
+            "5. Produce a short human-readable label for each field, and a 2-4 word document title and a one-line subtitle (e.g. \"u/s 480 B.N.S.S.\" or \"Civil — rent dispute\").\n"
+            "6. Also pick ONE category/group for this document from: \"Bail & Sureties\", \"Appearance & Vakalat\", \"Petitions\", \"Agreements\", \"Notices\", \"Affidavits\", \"Other\".\n\n"
+            "Respond with ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:\n"
+            "{\"name\":\"...\",\"sub\":\"...\",\"group\":\"...\",\"template\":\"...text with {{field_id}} tokens and \\n\\n paragraph breaks...\",\"fields\":[{\"id\":\"field_id\",\"label\":\"Human label\"}]}"
+        )
+
+        response_text = _call_gemini_generate(text[:12000], system_instruction)
+        cleaned = (response_text or "").strip()
+
+        # Clean markdown code fences if model returned them despite instructions
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[-1]
+            if cleaned.endswith("```"):
+                cleaned = cleaned.rsplit("```", 1)[0]
+            cleaned = cleaned.strip()
+
+        import json
+        try:
+            parsed = json.loads(cleaned)
+        except Exception:
+            return jsonify({"error": "Failed to parse AI response as valid JSON", "raw": cleaned}), 422
+
+        if not parsed.get("template") or not isinstance(parsed.get("fields"), list):
+            return jsonify({"error": "AI response did not match the required format structure."}), 422
+
+        return jsonify(parsed)
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        err_str = str(e)
+        if "429" in err_str or "resourceexhausted" in err_str.lower() or "quota" in err_str.lower():
+            user_msg = "Google Gemini API rate limit or free quota exceeded (429). Please wait 30 seconds and try again."
+            return jsonify({"error": user_msg}), 429
+        print(f"DraftMitra import error: {e}")
+        return jsonify({"error": f"Failed to import draft: {err_str}"}), 500
+
+
 if DATABASE_URL:
     init_db()
 else:
