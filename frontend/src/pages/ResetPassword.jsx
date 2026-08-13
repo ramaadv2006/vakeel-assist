@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../api/supabaseClient';
 import { useFlash } from '../context/FlashContext';
+import { SkeletonCard } from '../components/Skeleton';
 import { useStaggeredEntry } from '../hooks/useStaggeredEntry';
 
 export default function ResetPassword() {
@@ -54,7 +55,19 @@ export default function ResetPassword() {
     );
   }
 
-  if (!ready) return null;
+  // Blank until the recovery session lands (up to the 4s timeout above),
+  // so shimmer the form's shape rather than showing an empty page.
+  if (!ready) {
+    return (
+      <div className="auth-container">
+        <div className="form-header staggered-entry">
+          <h2>Reset Password</h2>
+          <p>Verifying your reset link…</p>
+        </div>
+        <SkeletonCard rows={3} widths={['100%', '100%', '55%']} />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();

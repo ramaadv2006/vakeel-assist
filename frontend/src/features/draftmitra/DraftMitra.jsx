@@ -363,7 +363,7 @@ export default function DraftMitra() {
             </div>
           ) : savedDrafts.length === 0 ? (
             <div style={{ padding: "32px 12px", textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
-              <FolderOpen size={36} color="var(--gold)" style={{ opacity: 0.8, marginBottom: 10 }} />
+              <FolderOpen size={36} color="var(--gold-ink)" style={{ opacity: 0.8, marginBottom: 10 }} />
               <div>No saved drafts yet.</div>
               <div style={{ fontSize: 12.5, marginTop: 4 }}>Select any court template, fill in the details, and hit <b>Save</b> to store it here.</div>
             </div>
@@ -383,7 +383,7 @@ export default function DraftMitra() {
                         {dr.title}
                       </div>
                       <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3, display: "flex", gap: 8, alignItems: "center" }}>
-                        <span style={{ fontWeight: 500, color: "var(--maroon)" }}>{tmpl?.name || dr.templateId}</span>
+                        <span style={{ fontWeight: 500, color: "var(--brand-ink)" }}>{tmpl?.name || dr.templateId}</span>
                         <span>•</span>
                         <span>{new Date(dr.savedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
                       </div>
@@ -418,7 +418,7 @@ export default function DraftMitra() {
             disabled={importing}
           />
           {importError && (
-            <div style={{ display: "flex", gap: 8, marginTop: 12, fontSize: 12.5, color: "var(--maroon)", background: "rgba(122,46,46,0.08)", padding: "10px 12px", borderRadius: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, fontSize: 12.5, color: "var(--brand-ink)", background: "var(--brand-wash)", padding: "10px 12px", borderRadius: 8 }}>
               <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} /> {importError}
             </div>
           )}
@@ -470,7 +470,7 @@ function Library({
               <span>My Saved Drafts</span>
             </button>
             <button className="import-tile-btn" style={styles.importTileBtn} onClick={onImportClick}>
-              <Sparkles size={17} color="#fff" />
+              <Sparkles size={17} color="var(--on-brand)" />
               <span>AI Draft Importer</span>
             </button>
           </div>
@@ -510,7 +510,7 @@ function Library({
 
       {Object.keys(groups).length === 0 ? (
         <div style={styles.emptyState}>
-          <AlertCircle size={32} color="var(--gold)" style={{ marginBottom: 10 }} />
+          <AlertCircle size={32} color="var(--gold-ink)" style={{ marginBottom: 10 }} />
           <div style={{ fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>No matching templates found</div>
           <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>Try clearing your search query or switching categories.</div>
           <button style={{ ...styles.btnGhostSm, marginTop: 14 }} onClick={() => { setSearchQuery(""); setSelectedGroup("All"); }}>
@@ -528,7 +528,7 @@ function Library({
               {items.map((t) => (
                 <button key={t.id} style={styles.card} className="draftmitra-card" onClick={() => onPick(t)}>
                   <div className="card-icon" style={styles.cardIcon}>
-                    {t.custom ? <Sparkles size={18} color="var(--maroon)" /> : <FileText size={19} color="var(--maroon)" />}
+                    {t.custom ? <Sparkles size={18} color="var(--brand-ink)" /> : <FileText size={19} color="var(--brand-ink)" />}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={styles.cardTitle}>{t.name}</div>
@@ -616,7 +616,7 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab,
           </div>
 
           <div style={styles.hintBox}>
-            <AlertCircle size={15} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <AlertCircle size={15} color="var(--gold-ink)" style={{ flexShrink: 0, marginTop: 1 }} />
             <span>Review all court names, crime numbers, and section references before printing. This draft serves as an aid for advocate verification.</span>
           </div>
         </div>
@@ -718,39 +718,117 @@ function Modal({ children, onClose, title, wide }) {
 
 const FONT_IMPORT = `
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
+
+/* ------------------------------------------------------------------
+   Palette. Two rules keep this readable in both themes:
+
+   1. A brand colour used as a SOLID FILL and the same brand colour used
+      as TEXT/ICON on a surface cannot be the same value. --brand stays
+      deep enough for white text to sit on it; --brand-ink is the tint
+      that reads against a card. Collapsing the two is what made the
+      maroon card icons vanish.
+   2. Anything that pairs a background with a foreground declares both.
+      --toast-bg/--toast-fg exist because the toast used to take its
+      background from --ink, which flips to near-white in dark mode and
+      left white text on a white pill.
+   ------------------------------------------------------------------ */
 :root {
   --ink: #1C2B39;
-  --paper: transparent;
   --paper-white: #ffffff;
-  --maroon: #7A2E2E;
-  --gold: #A9812F;
-  --line-red: #B5433D;
+  --surface-2: #f8fafc;
   --text: #2B2725;
   --muted: #64748b;
   --border: #e2e8f0;
+
+  --brand: #7A2E2E;
+  --on-brand: #ffffff;
+  --brand-ink: #7A2E2E;
+  --brand-wash: rgba(122,46,46,0.10);
+  --brand-shadow: rgba(122,46,46,0.25);
+
+  --gold: #A9812F;
+  --gold-ink: #7d6023;
+  --gold-wash: rgba(169,129,47,0.14);
+
+  --danger-ink: #B5433D;
+  --danger-wash: rgba(181,67,61,0.08);
+  --danger-border: rgba(181,67,61,0.22);
+
+  --hint-bg: #F7EFD9;
+  --hint-border: #E9D9B0;
+  --hint-text: #6b5a33;
+
+  --toast-bg: #1C2B39;
+  --toast-fg: #ffffff;
+
+  --overlay: rgba(28,43,57,0.5);
+  --card-shadow: rgba(28,43,57,0.08);
+
+  /* The preview sheet is deliberately paper-coloured in both themes —
+     it stands in for the printed page, so it does not invert. */
+  --line-red: #B5433D;
 }
+
+body.dark {
+  --ink: #f5f7fa;
+  --paper-white: #0e1524;
+  --surface-2: #131c2c;
+  --text: #a7b2c4;
+  --muted: #94a3b8;
+  --border: #1e2a3e;
+
+  --brand: #8f3a3a;
+  --brand-ink: #e79a92;
+  --brand-wash: rgba(231,154,146,0.12);
+  --brand-shadow: rgba(0,0,0,0.45);
+
+  --gold: #c9a145;
+  --gold-ink: #d8b163;
+  --gold-wash: rgba(201,161,69,0.16);
+
+  --danger-ink: #ef8079;
+  --danger-wash: rgba(239,128,121,0.12);
+  --danger-border: rgba(239,128,121,0.30);
+
+  --hint-bg: rgba(201,161,69,0.10);
+  --hint-border: rgba(201,161,69,0.28);
+  --hint-text: #cbb27a;
+
+  --toast-bg: #24324a;
+  --toast-fg: #ffffff;
+
+  --overlay: rgba(3,7,15,0.66);
+  --card-shadow: rgba(0,0,0,0.45);
+}
+
 * { box-sizing: border-box; }
 input, textarea, button { font-family: 'Inter', sans-serif; }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Micro-animations & Card hover */
+/* Micro-animations & card hover.
+
+   lucide-react v1 renders the \`color\` prop as the SVG's stroke
+   ATTRIBUTE, so recolouring an icon from CSS has to target \`stroke\`.
+   The old rules set \`color\`, which the stroke attribute ignores — the
+   icon kept its maroon strokes while the tile behind it turned solid
+   maroon on hover, so the document icon disappeared into the fill. */
 .draftmitra-card {
   transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 .draftmitra-card:hover {
   transform: translateY(-2px) !important;
   border-color: var(--gold) !important;
-  box-shadow: 0 6px 20px rgba(28,43,57,0.08) !important;
+  box-shadow: 0 6px 20px var(--card-shadow) !important;
 }
 .draftmitra-card:hover .card-icon {
-  background: var(--maroon) !important;
+  background: var(--brand) !important;
 }
 .draftmitra-card:hover .card-icon svg {
-  color: #fff !important;
+  stroke: var(--on-brand) !important;
 }
 .draftmitra-card:hover .card-arrow {
-  color: var(--maroon) !important;
+  stroke: var(--brand-ink) !important;
   transform: translateX(2px);
 }
 
@@ -759,7 +837,11 @@ input, textarea, button { font-family: 'Inter', sans-serif; }
 }
 .import-tile-btn:hover {
   transform: translateY(-1px) !important;
-  box-shadow: 0 4px 14px rgba(122,46,46,0.35) !important;
+  box-shadow: 0 4px 14px var(--brand-shadow) !important;
+}
+
+.drafts-nav-btn:hover, .draft-row:hover {
+  border-color: var(--gold) !important;
 }
 
 .mobile-tabs { display: none; }
@@ -771,34 +853,19 @@ input, textarea, button { font-family: 'Inter', sans-serif; }
   .form-pane { position: static !important; }
 }
 
-/* Dark mode overrides */
-body.dark {
-  --paper: transparent;
-  --paper-white: #0e1524;
-  --ink: #f5f7fa;
-  --text: #a7b2c4;
-  --muted: #64748b;
-  --border: #1e2a3e;
+/* Dark mode. Surfaces come from the tokens above; only the printed-page
+   preview needs pinning, since it must stay paper-coloured. */
+/* The fields carry inline styles, so the dark surface needs !important
+   to win. Placeholders can't be set inline at all. */
+.draftmitra-app-wrapper input::placeholder,
+.draftmitra-app-wrapper textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
-body.dark .draftmitra-app-wrapper {
-  background: transparent !important;
-}
-body.dark .draftmitra-modal-box {
-  background: #0e1524 !important;
-  border: 1px solid #1e2a3e !important;
-  color: #f5f7fa !important;
-}
-body.dark .draftmitra-modal-input, body.dark input, body.dark textarea {
-  background: #131c2c !important;
-  color: #f5f7fa !important;
-  border-color: #1e2a3e !important;
-}
-body.dark .draftmitra-card {
-  background: #0e1524 !important;
-  border-color: #1e2a3e !important;
-}
-body.dark .card-icon {
-  background: #1e2a3e !important;
+body.dark .draftmitra-app-wrapper input,
+body.dark .draftmitra-app-wrapper textarea,
+body.dark .draftmitra-modal-input {
+  background: var(--surface-2) !important;
 }
 body.dark .preview-pane .paper {
   background: #FBF8F1 !important;
@@ -808,16 +875,19 @@ body.dark .preview-pane .paper {
 body.dark .preview-pane .paper * {
   color: #241f1a !important;
 }
+body.dark .preview-pane .paper svg {
+  stroke: #241f1a !important;
+}
 `;
 
 const styles = {
   app: { minHeight: "100vh", background: "transparent", fontFamily: "'Inter', sans-serif", color: "var(--text)", transition: "background 0.3s ease" },
   libraryMain: { maxWidth: 1080, margin: "0 auto", padding: "32px 24px 60px" },
   libraryIntro: { marginBottom: 28 },
-  eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: 1.4, color: "var(--maroon)", textTransform: "uppercase" },
+  eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: 1.4, color: "var(--brand-ink)", textTransform: "uppercase" },
   libTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 32, fontWeight: 700, margin: "6px 0 8px", color: "var(--ink)" },
   libSub: { fontSize: 14.5, color: "var(--muted)", maxWidth: 620, lineHeight: 1.55 },
-  importTileBtn: { display: "flex", alignItems: "center", gap: 8, background: "var(--maroon)", color: "#fff", border: "none", borderRadius: 10, padding: "11px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px rgba(122,46,46,0.25)" },
+  importTileBtn: { display: "flex", alignItems: "center", gap: 8, background: "var(--brand)", color: "var(--on-brand)", border: "none", borderRadius: 10, padding: "11px 18px", fontSize: 13.5, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px var(--brand-shadow)" },
   btnGhostHeader: { display: "flex", alignItems: "center", gap: 8, background: "var(--paper-white)", color: "var(--ink)", border: "1px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontSize: 13.5, fontWeight: 500, cursor: "pointer", transition: "all 0.2s" },
 
   filterSection: { marginTop: 24, display: "flex", flexDirection: "column", gap: 14 },
@@ -828,11 +898,11 @@ const styles = {
   
   pillContainer: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
   pill: { background: "var(--paper-white)", border: "1px solid var(--border)", color: "var(--muted)", borderRadius: 20, padding: "6px 14px", fontSize: 12.5, fontWeight: 500, cursor: "pointer", transition: "all 0.2s" },
-  pillActive: { background: "var(--maroon)", border: "1px solid var(--maroon)", color: "#fff", borderRadius: 20, padding: "6px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+  pillActive: { background: "var(--brand)", border: "1px solid var(--brand)", color: "var(--on-brand)", borderRadius: 20, padding: "6px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
 
   groupHeader: { display: "flex", alignItems: "center", gap: 10, marginBottom: 12 },
   groupLabel: { fontSize: 13, fontWeight: 700, color: "var(--ink)", letterSpacing: 0.3, textTransform: "uppercase" },
-  groupBadge: { fontSize: 11, fontWeight: 600, background: "rgba(169,129,47,0.14)", color: "var(--gold)", borderRadius: 12, padding: "2px 8px" },
+  groupBadge: { fontSize: 11, fontWeight: 600, background: "var(--gold-wash)", color: "var(--gold-ink)", borderRadius: 12, padding: "2px 8px" },
 
   cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 },
   card: { display: "flex", alignItems: "center", gap: 14, background: "var(--paper-white)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px", cursor: "pointer", textAlign: "left" },
@@ -840,24 +910,24 @@ const styles = {
   cardTitle: { fontSize: 14.5, fontWeight: 600, color: "var(--ink)" },
   cardSub: { fontSize: 12, color: "var(--muted)", marginTop: 2, lineHeight: 1.3 },
   
-  customBadge: { display: "inline-flex", alignItems: "center", gap: 4, background: "rgba(122,46,46,0.1)", color: "var(--maroon)", borderRadius: 6, padding: "2px 7px", fontSize: 10.5, fontWeight: 600 },
+  customBadge: { display: "inline-flex", alignItems: "center", gap: 4, background: "var(--brand-wash)", color: "var(--brand-ink)", borderRadius: 6, padding: "2px 7px", fontSize: 10.5, fontWeight: 600 },
   
   emptyState: { padding: "48px 24px", textAlign: "center", background: "var(--paper-white)", border: "1px dashed var(--border)", borderRadius: 14, margin: "20px 0" },
 
   editorMain: { maxWidth: 1240, margin: "0 auto", padding: "24px 24px 60px" },
   editorHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 18 },
-  backLink: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "var(--maroon)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 6 },
+  backLink: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "var(--brand-ink)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0, marginBottom: 6 },
   editorTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 26, fontWeight: 700, margin: "4px 0 2px", color: "var(--ink)" },
   editorSub: { fontSize: 13.5, color: "var(--muted)" },
   actionRow: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
-  btnPrimary: { display: "flex", alignItems: "center", gap: 7, background: "var(--maroon)", color: "#fff", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px rgba(122,46,46,0.2)" },
+  btnPrimary: { display: "flex", alignItems: "center", gap: 7, background: "var(--brand)", color: "var(--on-brand)", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px var(--brand-shadow)" },
   btnGhost: { display: "flex", alignItems: "center", gap: 7, background: "var(--paper-white)", color: "var(--ink)", border: "1px solid var(--border)", borderRadius: 8, padding: "9px 15px", fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 0.2s" },
   btnGhostSm: { display: "inline-flex", alignItems: "center", gap: 5, background: "var(--paper-white)", color: "var(--ink)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
-  btnDangerSm: { display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(181,67,61,0.08)", color: "var(--line-red)", border: "1px solid rgba(181,67,61,0.2)", borderRadius: 6, padding: "6px 10px", fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
+  btnDangerSm: { display: "inline-flex", alignItems: "center", gap: 5, background: "var(--danger-wash)", color: "var(--danger-ink)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "6px 10px", fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
   
   mobileTabs: { gap: 8, marginBottom: 16 },
   mtab: { flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid var(--border)", background: "var(--paper-white)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer" },
-  mtabActive: { flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid var(--maroon)", background: "var(--maroon)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  mtabActive: { flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid var(--brand)", background: "var(--brand)", color: "var(--on-brand)", fontSize: 13, fontWeight: 600, cursor: "pointer" },
   
   editorGrid: { display: "grid", gridTemplateColumns: "400px 1fr", gap: 20, alignItems: "start" },
   formPane: { background: "var(--paper-white)", border: "1px solid var(--border)", borderRadius: 14, padding: 20, position: "sticky", top: 20, transition: "all 0.3s ease" },
@@ -866,11 +936,11 @@ const styles = {
   label: { display: "block", fontSize: 11.5, fontWeight: 600, color: "var(--muted)", marginBottom: 6, letterSpacing: 0.2 },
   input: { width: "100%", padding: "9.5px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13.5, background: "var(--paper-white)", color: "var(--text)", outline: "none", transition: "all 0.2s" },
   textarea: { width: "100%", padding: "9.5px 12px", borderRadius: 8, border: "1px solid var(--border)", fontSize: 13.5, background: "var(--paper-white)", color: "var(--text)", outline: "none", resize: "vertical", fontFamily: "inherit", transition: "all 0.2s" },
-  hintBox: { marginTop: 18, display: "flex", gap: 9, fontSize: 12, lineHeight: 1.5, color: "var(--muted)", background: "#F7EFD9", border: "1px solid #E9D9B0", borderRadius: 10, padding: "11px 13px" },
+  hintBox: { marginTop: 18, display: "flex", gap: 9, fontSize: 12, lineHeight: 1.5, color: "var(--hint-text)", background: "var(--hint-bg)", border: "1px solid var(--hint-border)", borderRadius: 10, padding: "11px 13px" },
   
   previewPane: { minWidth: 0 },
   pageLabel: { fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: "var(--muted)", marginBottom: 7, textTransform: "uppercase" },
-  paper: { background: "#FBF8F1", borderRadius: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 10px 30px rgba(28,43,57,0.12)", position: "relative", padding: "44px 36px 44px 60px", minHeight: 560, transition: "box-shadow 0.3s ease" },
+  paper: { background: "#FBF8F1", borderRadius: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 10px 30px var(--card-shadow)", position: "relative", padding: "44px 36px 44px 60px", minHeight: 560, transition: "box-shadow 0.3s ease" },
   paperRedLine: { position: "absolute", left: 36, top: 0, bottom: 0, width: 1.5, background: "var(--line-red)", opacity: 0.6 },
   paperContent: { fontFamily: "'Source Serif 4', serif", fontSize: 14, lineHeight: 1.65, color: "#241f1a" },
   foldLine: { position: "absolute", left: "50%", top: 0, bottom: 0, width: 0, borderLeft: "1.5px dashed #B8AA8A" },
@@ -878,9 +948,9 @@ const styles = {
   foldSpacer: { flex: "0 0 53%" },
   foldContent: { flex: "0 0 44%", minWidth: 0, fontFamily: "'Source Serif 4', serif", fontSize: 13.5, lineHeight: 1.6, color: "#241f1a" },
   
-  toast: { position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--ink)", color: "#fff", padding: "11px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 9, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" },
-  modalOverlay: { position: "fixed", inset: 0, background: "rgba(28,43,57,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
-  modalBox: { background: "var(--paper-white)", borderRadius: 14, padding: 22, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.3)", transition: "all 0.3s ease" },
+  toast: { position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--toast-bg)", color: "var(--toast-fg)", padding: "11px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 9, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" },
+  modalOverlay: { position: "fixed", inset: 0, background: "var(--overlay)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
+  modalBox: { background: "var(--paper-white)", border: "1px solid var(--border)", borderRadius: 14, padding: 22, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.3)", transition: "all 0.3s ease" },
   modalHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingBottom: 8, borderBottom: "1px solid var(--border)" },
   modalTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 19, fontWeight: 700, color: "var(--ink)" },
   iconBtn: { background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", alignItems: "center", transition: "all 0.2s" },

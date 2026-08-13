@@ -269,7 +269,7 @@ export default function AiAssistant() {
             )}
 
             {analysisError && (
-              <div className="ai-key-warning" style={{ background: 'var(--danger-bg)', borderColor: '#f7c2c0', color: 'var(--danger)' }}>
+              <div className="ai-key-warning is-error">
                 ⚠️ {analysisError}
               </div>
             )}

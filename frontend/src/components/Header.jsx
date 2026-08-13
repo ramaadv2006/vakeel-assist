@@ -9,7 +9,6 @@ const NAV_LINKS = [
   { to: '/clients', icon: 'clients', label: 'Clients' },
   { to: '/templates', icon: 'case', label: 'Drafts' },
   { to: '/billing', icon: 'billing', label: 'Billing' },
-  { to: '/cases/bulk-update-dates', icon: 'bulk', label: 'Bulk Import' },
   { to: '/archive', icon: 'archive', label: 'Archive' },
   { to: '/tasks', icon: 'tasks', label: 'Tasks' },
   { to: '/diary', icon: 'calendar', label: 'Diary' },

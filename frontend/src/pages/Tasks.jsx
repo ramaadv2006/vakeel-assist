@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
 import { useReveal } from '../hooks/useReveal';
 
 function HubCase({ group, onChanged }) {
@@ -97,11 +98,40 @@ function HubCase({ group, onChanged }) {
 
 export default function Tasks() {
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
 
-  const load = () => api.get('/tasks').then(setData);
-  useEffect(() => { load(); }, []);
+  // useCallback keeps this stable: it is handed to every HubCase as
+  // onChanged, which lists it in an effect dependency array.
+  const load = useCallback(
+    () =>
+      api
+        .get('/tasks')
+        .then((res) => { setData(res); setError(null); })
+        .catch((err) => setError(err.message || 'Could not load your tasks.')),
+    []
+  );
 
-  if (!data) return null;
+  useEffect(() => { load(); }, [load]);
+
+  if (error) {
+    return (
+      <div className="form-container" style={{ maxWidth: 900 }}>
+        <div className="empty-state">
+          <Icon name="warning" />
+          <span>{error}</span>
+          <button type="button" className="btn-export" onClick={load}>Try again</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="form-container" style={{ maxWidth: 900 }}>
+        <Skeleton count={3} rows={2} widths={['45%', '75%']} />
+      </div>
+    );
+  }
 
   const totalOpen = data.case_groups.reduce((sum, g) => sum + g.tasks.filter((t) => !t.is_completed).length, 0);
 

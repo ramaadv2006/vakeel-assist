@@ -103,6 +103,17 @@
   line-height: 1.5;
 }
 
+/* Error flavour of the same box — tokens carry it into dark mode. */
+.ai-key-warning.is-error {
+  background: var(--danger-bg);
+  border-color: rgba(179, 38, 30, 0.32);
+  color: var(--danger);
+}
+
+body.dark .ai-key-warning.is-error {
+  border-color: rgba(240, 115, 106, 0.35);
+}
+
 /* Card Wrapper */
 .ai-card {
   background: var(--bg-card);
@@ -423,4 +434,50 @@
   color: var(--gray-500);
   font-size: 13px;
   margin-top: 12px;
+}
+
+/* ============================================
+   DARK THEME
+   Everything above resolves through design tokens and re-themes on its
+   own. These are the places that don't: --primary stays ink-dark in
+   dark mode (it is the colour that sits ON brass surfaces), and a few
+   rules had literal light hues baked in.
+   ============================================ */
+
+/* --primary as text = near-black on a dark card. Use the heading tint. */
+body.dark .ai-tab-btn.active,
+body.dark .analysis-section h4 {
+  color: var(--text-dark);
+}
+
+/* Brass chip: the token wash is dark, so ink text is unreadable on it. */
+body.dark .chip-suggestion {
+  color: var(--accent);
+}
+
+body.dark .chip-suggestion:hover {
+  background: var(--accent);
+  color: var(--primary);
+}
+
+/* Literal pale-cream hover on the upload dropzone. */
+body.dark .dropzone-box:hover {
+  background: rgba(184, 147, 94, 0.12);
+}
+
+/* Warning boxes: literal border hue against the now-translucent wash. */
+body.dark .ai-key-warning,
+body.dark .risk-box {
+  border-color: rgba(226, 163, 61, 0.35);
+}
+
+/* The user bubble keeps its navy fill, which needs a visible edge once
+   the chat background is nearly black. */
+body.dark .chat-bubble.user {
+  background: var(--primary-light);
+  border: 1px solid var(--border-card);
+}
+
+body.dark .chat-bubble {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }

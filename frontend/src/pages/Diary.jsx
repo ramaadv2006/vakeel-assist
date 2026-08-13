@@ -1,17 +1,47 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
+import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
 
 export default function Diary() {
   const [searchParams, setSearchParams] = useSearchParams();
   const date = searchParams.get('date') || '';
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    api.get(`/diary${date ? `?date=${date}` : ''}`).then(setData);
-  }, [date]);
+  // Day-to-day navigation deliberately keeps the previous day on screen
+  // while the next one loads, so only the first paint shows the shimmer.
+  const load = useCallback(
+    () =>
+      api
+        .get(`/diary${date ? `?date=${date}` : ''}`)
+        .then((res) => { setData(res); setError(null); })
+        .catch((err) => setError(err.message || 'Could not load the court diary.')),
+    [date]
+  );
 
-  if (!data) return null;
+  useEffect(() => { load(); }, [load]);
+
+  if (error) {
+    return (
+      <div className="form-container" style={{ maxWidth: 900 }}>
+        <div className="empty-state">
+          <Icon name="warning" />
+          <span>{error}</span>
+          <button type="button" className="btn-export" onClick={load}>Try again</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="form-container" style={{ maxWidth: 900 }}>
+        <Skeleton count={3} rows={2} widths={['40%', '80%']} />
+      </div>
+    );
+  }
 
   const goDate = (d) => setSearchParams(d ? { date: d } : {});
 

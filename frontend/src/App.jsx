@@ -16,7 +16,6 @@ import CaseAudit from './pages/CaseAudit';
 import Archive from './pages/Archive';
 import Tasks from './pages/Tasks';
 import Diary from './pages/Diary';
-import BulkUpdateDates from './pages/BulkUpdateDates';
 import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import Templates from './pages/Templates';
@@ -46,7 +45,6 @@ export default function App() {
                   <Route path="/archive" element={<Archive />} />
                   <Route path="/tasks" element={<Tasks />} />
                   <Route path="/diary" element={<Diary />} />
-                  <Route path="/cases/bulk-update-dates" element={<BulkUpdateDates />} />
                   <Route path="/billing" element={<Billing />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/templates" element={<Templates />} />

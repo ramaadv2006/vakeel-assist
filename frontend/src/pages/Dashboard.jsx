@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useFlash } from '../context/FlashContext';
 import CaseCard from '../components/CaseCard';
@@ -119,9 +118,6 @@ export default function Dashboard() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button className={`btn-export${view === 'list' ? ' active-view' : ''}`} onClick={() => setView('list')} title="Show list of hearings" type="button">List View</button>
           <button className={`btn-export${view === 'calendar' ? ' active-view' : ''}`} onClick={() => setView('calendar')} title="Show calendar monthly view" type="button">Calendar View</button>
-          <Link to="/cases/bulk-update-dates" className="btn-export" title="Import hearing dates from cause list text">
-            <Icon name="bulk" /> Bulk Import
-          </Link>
           {data.total_cases > 0 && (
             <a href="/api/export" className="btn-export" title="Export case diary to CSV spreadsheet" onClick={(e) => {
               e.preventDefault();

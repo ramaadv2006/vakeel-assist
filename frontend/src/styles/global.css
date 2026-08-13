@@ -99,9 +99,31 @@ body.dark {
     --bg-card: #0e1524;
     --border-card: #1e2a3e;
 
+    /* Neutral scale inverts: low numbers stay the darkest surfaces,
+       high numbers become the readable text tints. 500/600 were left
+       at their light-theme values, which put 2.5:1 body text on a dark
+       card — every "muted" caption in the app was effectively unreadable. */
     --gray-100: #131c2c;
     --gray-200: #1e2a3e;
     --gray-300: #2c3a52;
+    --gray-500: #9aa8bd;
+    --gray-600: #c0cad9;
+
+    /* --primary is deliberately NOT re-mapped: dark mode uses it as the
+       ink colour that sits ON brass/accent surfaces (see .btn-submit,
+       .auth-footer a, .calendar-day.selected-day below). */
+
+    /* Status hues, lightened so they read as text on a dark card, with
+       their surface tints as translucent washes instead of the pale
+       pastels that stayed lit up in dark mode. */
+    --success: #4ec98a;
+    --success-bg: rgba(78, 201, 138, 0.14);
+    --danger: #f0736a;
+    --danger-bg: rgba(240, 115, 106, 0.14);
+    --warning: #e2a33d;
+    --warning-bg: rgba(226, 163, 61, 0.14);
+    --info: #7ba6f7;
+    --info-bg: rgba(123, 166, 247, 0.14);
 }
 
 /* Keyboard accessibility - visible focus ring across every interactive element */
@@ -853,16 +875,13 @@ body.dark .case-notes {
 .badge.warning { background-color: var(--warning-bg); color: var(--warning); }
 .badge.info { background-color: var(--info-bg); color: var(--info); }
 
-body.dark .badge.overdue { background-color: rgba(179, 38, 30, 0.16); }
-body.dark .badge.today { background-color: rgba(178, 91, 10, 0.16); }
-body.dark .badge.week { background-color: rgba(184, 147, 94, 0.16); }
-body.dark .badge.upcoming { background-color: var(--gray-200); color: var(--gray-400); }
+/* overdue / today / week / success / danger / warning / info now follow
+   the status tokens, which carry their own dark-mode wash + text tint.
+   Only the variants with hand-picked hues need a dark override. */
+body.dark .badge.week { background-color: rgba(184, 147, 94, 0.16); color: var(--accent); }
+body.dark .badge.upcoming { background-color: var(--gray-200); color: var(--gray-500); }
 body.dark .badge.stale { background-color: rgba(178, 91, 10, 0.2); color: #f0b458; border-color: rgba(178, 91, 10, 0.35); }
-body.dark .badge.archived { background-color: var(--gray-200); color: var(--gray-400); border-color: var(--gray-300); }
-body.dark .badge.success { background-color: rgba(21, 127, 74, 0.16); }
-body.dark .badge.danger { background-color: rgba(179, 38, 30, 0.16); }
-body.dark .badge.warning { background-color: rgba(178, 91, 10, 0.16); }
-body.dark .badge.info { background-color: rgba(29, 78, 216, 0.16); }
+body.dark .badge.archived { background-color: var(--gray-200); color: var(--gray-500); border-color: var(--gray-300); }
 
 /* Actions */
 .actions {
@@ -947,7 +966,7 @@ body.dark .btn-delete {
 
 body.dark .btn-delete:hover {
     background-color: var(--danger);
-    color: white;
+    color: var(--primary); /* --danger is a light tint in dark mode; ink reads, white doesn't */
 }
 
 /* Empty State */
@@ -2408,35 +2427,6 @@ body.dark .calendar-day.selected-day .calendar-event-dot {
 }
 
 /* ============ React port additions ============ */
-
-/* .btn-cancel was referenced (bulk import page) but never defined in the
-   original stylesheet - it fell back to unstyled browser defaults. Give it
-   a real look consistent with .btn-edit. */
-.btn-cancel {
-    background-color: var(--gray-100);
-    color: var(--gray-600);
-    border: 1px solid var(--border-card);
-    padding: 13px 26px;
-    border-radius: var(--radius-full);
-    font-size: var(--text-base);
-    font-weight: 700;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.btn-cancel:hover {
-    background-color: var(--gray-200);
-    color: var(--primary-light);
-}
-
-body.dark .btn-cancel {
-    background-color: var(--gray-200);
-    color: var(--gray-300);
-}
-
-body.dark .btn-cancel:hover {
-    background-color: var(--gray-300);
-}
 
 /* Legal Draft Templates page (previously an inline <style> block in
    templates.html) */
