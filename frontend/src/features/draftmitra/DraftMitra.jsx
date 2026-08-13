@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 import {
-  TEMPLATES, F, blocksToPlainText, blocksToHtml,
+  TEMPLATES, F, blocksToPlainText, blocksToHtml, foldedPageFragment,
   paramsFromCustomTemplate, generateFromCustomTemplate,
 } from "./templates";
 import { storageGet, storageSet, storageDelete, storageList } from "./storage";
@@ -15,6 +15,13 @@ import { useAuth } from "../../context/AuthContext";
 
 const STORAGE_PREFIX = "draft:";
 const CUSTOM_TPL_PREFIX = "customtpl:";
+
+/* Page 1 + (optional) folded backing sheet as one printable document. */
+function pagesToHtml(page1, page2, title) {
+  const p1 = blocksToHtml(page1, title);
+  if (!page2) return p1;
+  return p1.replace("</body>", `${foldedPageFragment(page2)}</body>`);
+}
 
 /* ---------------------------------------------------------------
    Main component — usage:
@@ -203,19 +210,42 @@ export default function DraftMitra() {
 
   const setField = (id, val) => setData((d) => ({ ...d, [id]: val }));
 
-  const blocks = useMemo(() => (activeTemplate ? activeTemplate.generate(data) : []), [activeTemplate, data]);
+  const page1Blocks = useMemo(() => (activeTemplate ? activeTemplate.generate(data) : []), [activeTemplate, data]);
+  const page2Blocks = useMemo(
+    () => (activeTemplate && activeTemplate.generateCover ? activeTemplate.generateCover(data) : null),
+    [activeTemplate, data]
+  );
 
   const handlePrint = () => {
-    const html = blocksToHtml(blocks, activeTemplate?.name || "Draft");
-    const w = window.open("", "_blank");
-    if (!w) return;
-    w.document.write(html);
-    w.document.close();
-    setTimeout(() => w.print(), 300);
+    const html = pagesToHtml(page1Blocks, page2Blocks, activeTemplate?.name || "Draft");
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    const cleanup = () => {
+      if (iframe.parentNode) document.body.removeChild(iframe);
+    };
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch {
+        flashToast("Could not open print dialog — try the Word download instead");
+      }
+      setTimeout(cleanup, 1500);
+    };
   };
 
   const handleDownloadWord = () => {
-    const html = blocksToHtml(blocks, activeTemplate?.name || "Draft");
+    const html = pagesToHtml(page1Blocks, page2Blocks, activeTemplate?.name || "Draft");
     const blob = new Blob(["\ufeff", html], { type: "application/msword" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -229,7 +259,9 @@ export default function DraftMitra() {
   };
 
   const handleCopy = async () => {
-    const text = blocksToPlainText(blocks);
+    const text =
+      blocksToPlainText(page1Blocks) +
+      (page2Blocks ? `\n\n----- PAGE 2 — BACKING SHEET -----\n\n${blocksToPlainText(page2Blocks)}` : "");
     try {
       await navigator.clipboard.writeText(text);
       flashToast("Copied text to clipboard");
@@ -294,7 +326,8 @@ export default function DraftMitra() {
           template={activeTemplate}
           data={data}
           setField={setField}
-          blocks={blocks}
+          page1Blocks={page1Blocks}
+          page2Blocks={page2Blocks}
           mobileTab={mobileTab}
           setMobileTab={setMobileTab}
           onPrint={handlePrint}
@@ -516,7 +549,7 @@ function Library({
   );
 }
 
-function Editor({ template, data, setField, blocks, mobileTab, setMobileTab, onPrint, onDownload, onCopy, onSaveClick, onDrafts, onBack }) {
+function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab, setMobileTab, onPrint, onDownload, onCopy, onSaveClick, onDrafts, onBack }) {
   return (
     <main style={styles.editorMain}>
       <div style={styles.editorHead}>
@@ -593,21 +626,41 @@ function Editor({ template, data, setField, blocks, mobileTab, setMobileTab, onP
         </div>
 
         <div style={styles.previewPane} className={`preview-pane ${mobileTab === "preview" ? "mobile-active" : ""}`}>
+          <div style={styles.pageLabel}>Page 1 — Petition</div>
           <div style={styles.paper} className="paper">
             <div style={styles.paperRedLine} />
             <div style={styles.paperContent}>
-              {blocks.map((b, i) => (
+              {page1Blocks.map((b, i) => (
                 <Block key={i} b={b} />
               ))}
             </div>
           </div>
+
+          {page2Blocks && (
+            <>
+              <div style={{ ...styles.pageLabel, marginTop: 24 }}>
+                Page 2 — Backing sheet / docket (folds to face out)
+              </div>
+              <div style={styles.paper} className="paper">
+                <div style={styles.foldLine} />
+                <div style={styles.foldRow}>
+                  <div style={styles.foldSpacer} />
+                  <div style={styles.foldContent}>
+                    {page2Blocks.map((b, i) => (
+                      <Block key={i} b={b} folded />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </main>
   );
 }
 
-function Block({ b }) {
+function Block({ b, folded }) {
   switch (b.t) {
     case "small":
       return <p style={{ textAlign: "center", fontSize: 11, margin: "0 0 4px", color: "#555", whiteSpace: "pre-line" }}>{b.v}</p>;
@@ -620,7 +673,12 @@ function Block({ b }) {
     case "right":
       return <p style={{ textAlign: "right", margin: "0 0 2px", whiteSpace: "pre-line" }}>{b.v}</p>;
     case "party":
-      return (
+      return folded ? (
+        <p style={{ margin: "0 0 6px" }}>
+          <span style={{ display: "block", whiteSpace: "pre-line" }}>{b.v}</span>
+          <span style={{ display: "block", fontSize: 12, color: "#444" }}>{b.role}</span>
+        </p>
+      ) : (
         <p style={{ margin: "0 0 2px", display: "flex", justifyContent: "space-between", gap: 12 }}>
           <span style={{ whiteSpace: "pre-line" }}>{b.v}</span><span style={{ whiteSpace: "nowrap", color: "#444" }}>{b.role}</span>
         </p>
@@ -630,25 +688,15 @@ function Block({ b }) {
     case "title":
       return <p style={{ textAlign: "center", fontWeight: 700, textDecoration: "underline", margin: "14px 0", whiteSpace: "pre-line" }}>{b.v}</p>;
     case "num":
-      return <p style={{ margin: "0 0 10px", textAlign: "justify", whiteSpace: "pre-line" }}><b>{b.n}.</b> {b.v}</p>;
+      return <p style={{ margin: "0 0 10px", textAlign: folded ? "left" : "justify", whiteSpace: "pre-line" }}><b>{b.n}.</b> {b.v}</p>;
     case "para":
-      return <p style={{ margin: "0 0 10px", textAlign: "justify", whiteSpace: "pre-line" }}>{b.v}</p>;
+      return <p style={{ margin: "0 0 10px", textAlign: folded ? "left" : "justify", whiteSpace: "pre-line" }}>{b.v}</p>;
     case "signblock":
       return <p style={{ margin: "24px 0 0", textAlign: "right", whiteSpace: "pre-line" }}>{b.v}</p>;
     case "space":
       return <div style={{ height: 8 }} />;
     case "pre":
       return <pre style={{ fontFamily: "monospace", fontSize: 11, whiteSpace: "pre-wrap", overflowX: "auto", margin: "10px 0", background: "#f9f9f9", padding: 8, border: "1px solid #eee", color: "#333" }}>{b.v}</pre>;
-    case "docket":
-      return (
-        <div style={{ margin: "36px 0 20px", borderTop: "2px dashed var(--gold)", paddingTop: 16 }}>
-          <div style={{ textAlign: "center", fontWeight: 700, letterSpacing: 1.5, fontSize: 12, color: "var(--maroon)", margin: "0 0 16px" }}>
-            -------------------------------------------------------------------------<br/>
-            BACKING SHEET / DOCKET<br/>
-            -------------------------------------------------------------------------
-          </div>
-        </div>
-      );
     default:
       return null;
   }
@@ -825,9 +873,14 @@ const styles = {
   hintBox: { marginTop: 18, display: "flex", gap: 9, fontSize: 12, lineHeight: 1.5, color: "var(--muted)", background: "#F7EFD9", border: "1px solid #E9D9B0", borderRadius: 10, padding: "11px 13px" },
   
   previewPane: { minWidth: 0 },
+  pageLabel: { fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: "var(--muted)", marginBottom: 7, textTransform: "uppercase" },
   paper: { background: "#FBF8F1", borderRadius: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 10px 30px rgba(28,43,57,0.12)", position: "relative", padding: "44px 36px 44px 60px", minHeight: 560, transition: "box-shadow 0.3s ease" },
   paperRedLine: { position: "absolute", left: 36, top: 0, bottom: 0, width: 1.5, background: "var(--line-red)", opacity: 0.6 },
   paperContent: { fontFamily: "'Source Serif 4', serif", fontSize: 14, lineHeight: 1.65, color: "#241f1a" },
+  foldLine: { position: "absolute", left: "50%", top: 0, bottom: 0, width: 0, borderLeft: "1.5px dashed #B8AA8A" },
+  foldRow: { display: "flex", minHeight: 460 },
+  foldSpacer: { flex: "0 0 53%" },
+  foldContent: { flex: "0 0 44%", minWidth: 0, fontFamily: "'Source Serif 4', serif", fontSize: 13.5, lineHeight: 1.6, color: "#241f1a" },
   
   toast: { position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--ink)", color: "#fff", padding: "11px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 9, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" },
   modalOverlay: { position: "fixed", inset: 0, background: "rgba(28,43,57,0.5)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },

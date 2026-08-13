@@ -65,17 +65,19 @@ export const TEMPLATES = [
       { t: "num", n: 4, v: "It is therefore prays that this Hon’ble Court may be pleased to release the accused on bail after accepting the surrender and thus render justice." },
       { t: "space" },
       { t: "signblock", v: "Accused                                                Counsel for Accused" },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
       { t: "left", v: `Crime No.: ${d.crimeNo || "____"}\nIn\nS.T.C. / C.C. No.: ${d.caseNo}` },
-      { t: "party", v: "", role: `${d.clientRole}` },
-      { t: "versus" },
-      { t: "party", v: "", role: `${d.opponentRole}` },
       { t: "space" },
-      { t: "center", v: "SURRENDER PETITION\nFILED ON BEHALF OF THE\nACCUSED." },
+      { t: "party", v: d.client || "________________", role: `...${d.clientRole}` },
+      { t: "versus" },
+      { t: "party", v: d.opponent || "________________", role: `...${d.opponentRole}` },
+      { t: "space" },
+      { t: "title", v: "SURRENDER PETITION\nFILED ON BEHALF OF THE\nACCUSED." },
       { t: "space" },
       { t: "signblock", v: `By Counsel:\n${d.advocate}` },
-    ]
+    ],
   },
   {
     id: "copy_app",
@@ -132,17 +134,19 @@ export const TEMPLATES = [
         { t: "pre", v: table },
         { t: "space" },
         { t: "signblock", v: `Counsel for ${d.filedBy || "Accused"}` },
-        { t: "docket" },
-        { t: "left", v: "Date of Hearing:\nDate of disposal:" },
-        { t: "space" },
-        { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
-        { t: "left", v: `No. ${d.caseNo || "____"}` },
-        { t: "center", v: "COPY APPLICATION" },
-        { t: "left", v: `Filed on behalf of the ${d.filedBy || "Accused"}` },
-        { t: "space" },
-        { t: "signblock", v: `By Counsel:\n${d.advocate}` },
       ];
-    }
+    },
+    generateCover: (d) => [
+      { t: "left", v: "Date of Hearing:\nDate of disposal:" },
+      { t: "space" },
+      { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
+      { t: "left", v: `No. ${d.caseNo || "____"}` },
+      { t: "space" },
+      { t: "title", v: "COPY APPLICATION" },
+      { t: "left", v: `Filed on behalf of the ${d.filedBy || "Accused"}` },
+      { t: "space" },
+      { t: "signblock", v: `By Counsel:\n${d.advocate}` },
+    ],
   },
   {
     id: "memo_appearance",
@@ -176,7 +180,19 @@ export const TEMPLATES = [
       { t: "space" },
       { t: "left", v: `Date: ${d.date}\nPlace: ${d.place}` },
       { t: "signblock", v: "Counsel for Accused." },
-    ]
+    ],
+    generateCover: (d) => [
+      { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
+      { t: "left", v: `Crl. M.P. No: ${d.crlMpNo || "____"}\nCrime No.: ${d.crimeNo || "____"}\nSpl. S.C. / S.C. / C.C. / S.T.C. No.: ${d.caseNo || "____"}` },
+      { t: "space" },
+      { t: "party", v: d.complainant || "________________", role: "...Complainant" },
+      { t: "versus" },
+      { t: "party", v: d.accused || "________________", role: "...Accused" },
+      { t: "space" },
+      { t: "title", v: "MEMO OF APPEARANCE\nFILED ON BEHALF OF THE\nACCUSED." },
+      { t: "space" },
+      { t: "signblock", v: `By Counsel:\n${d.advocate}` },
+    ],
   },
   {
     id: "advance_petition",
@@ -212,17 +228,19 @@ export const TEMPLATES = [
       { t: "para", v: `Hence, it prays that the above case may be advanced from date ${d.advFromDate} to ${d.advToDate} for proper adjudication of the case.` },
       { t: "space" },
       { t: "signblock", v: `Counsel for ${d.filedBy}.` },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
       { t: "left", v: `C.C. No.: ${d.caseNo}` },
-      { t: "party", v: d.complainant || "________________", role: "Complainant." },
-      { t: "versus" },
-      { t: "party", v: d.accused || "________________", role: "Accused" },
       { t: "space" },
-      { t: "center", v: `ADVANCE PETITION\nFILED ON BEHALF OF THE\n${(d.filedBy || "ACCUSED").toUpperCase()}.` },
+      { t: "party", v: d.complainant || "________________", role: "...Complainant" },
+      { t: "versus" },
+      { t: "party", v: d.accused || "________________", role: "...Accused" },
+      { t: "space" },
+      { t: "title", v: `ADVANCE PETITION\nFILED ON BEHALF OF THE\n${(d.filedBy || "ACCUSED").toUpperCase()}.` },
       { t: "space" },
       { t: "signblock", v: `By Counsel:\n${d.advocate}` },
-    ]
+    ],
   },
   {
     id: "hc_vakalat",
@@ -259,14 +277,19 @@ export const TEMPLATES = [
       { t: "space" },
       { t: "para", v: "Accepted" },
       { t: "signblock", v: `Counsel for ${d.clientRole}\nThe Address for the service of the said counsel:\n${d.advocateAddr}` },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: "IN THE COURT OF THE JUDICATURE AT MADRAS." },
       { t: "left", v: `No. ${d.appealNo}\nAgainst\nNo. ${d.againstNo}\nOn the file of the ${d.againstCourt}` },
       { t: "space" },
-      { t: "center", v: "VAKALAT\nAccepted" },
+      { t: "party", v: d.client || "________________", role: `...${d.clientRole}` },
+      { t: "versus" },
+      { t: "party", v: d.opponent || "________________", role: `...${d.opponentRole}` },
+      { t: "space" },
+      { t: "title", v: "VAKALAT\nAccepted" },
       { t: "space" },
       { t: "signblock", v: `By counsel:\n${d.advocateName}\n\nCounsel for Petitioner / Appellant / Respondent` },
-    ]
+    ],
   },
   {
     id: "bail_app",
@@ -303,17 +326,19 @@ export const TEMPLATES = [
       { t: "num", n: 6, v: "It is therefore prayed that this Hon’ble Court may pleased to order the release of the Petitioner / Accused on bail pending disposal of the case on such terms as this Hon’ble court may deem fit and proper in the circumstances of the case." },
       { t: "space" },
       { t: "signblock", v: "Counsel for the Petitioner / Accused" },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
       { t: "left", v: `Cr. M.P. No. : ${d.crlMpNo}\nCrime No.: ${d.crimeNo}\nS.T.C. / C.C. No.: ${d.caseNo}` },
-      { t: "party", v: "", role: `${d.clientRole}` },
-      { t: "versus" },
-      { t: "party", v: "", role: `${d.opponentRole}` },
       { t: "space" },
-      { t: "center", v: "BAIL APPLICATION FILED\nON BEHALF OF THE\nPETITIONER / ACCUSED\nUNDER SECTION 480 OF\nB.N.S.S." },
+      { t: "party", v: d.client || "________________", role: `...${d.clientRole}` },
+      { t: "versus" },
+      { t: "party", v: d.opponent || "________________", role: `...${d.opponentRole}` },
+      { t: "space" },
+      { t: "title", v: "BAIL APPLICATION FILED\nON BEHALF OF THE\nPETITIONER / ACCUSED\nUNDER SECTION 480 OF\nB.N.S.S." },
       { t: "space" },
       { t: "signblock", v: `By Counsel:\n${d.advocate}` },
-    ]
+    ],
   },
   {
     id: "recall_warrant",
@@ -347,17 +372,19 @@ export const TEMPLATES = [
       { t: "num", n: 3, v: "It is therefore prayed that this Hon’ble Court may be pleased to recall the Non-Bailable Warrant as against the petitioner and pass necessary orders." },
       { t: "space" },
       { t: "signblock", v: "Accused                                                Counsel for Accused" },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
       { t: "left", v: `Cr. M.P. No.: ${d.crlMpNo}\nIn\nC.C. / S.T.C. No.: ${d.caseNo}` },
-      { t: "party", v: "", role: `${d.clientRole}` },
-      { t: "versus" },
-      { t: "party", v: "", role: `${d.opponentRole}.` },
       { t: "space" },
-      { t: "center", v: "PETITION FILED ON\nBEHALF OF THE\nPETITIONER / ACCUSED\nUNDER SECTION 72(2) OF\nTHE B.N.S.S." },
+      { t: "party", v: d.client || "________________", role: `...${d.clientRole}` },
+      { t: "versus" },
+      { t: "party", v: d.opponent || "________________", role: `...${d.opponentRole}.` },
+      { t: "space" },
+      { t: "title", v: "PETITION FILED ON\nBEHALF OF THE\nPETITIONER / ACCUSED\nUNDER SECTION 72(2) OF\nTHE B.N.S.S." },
       { t: "space" },
       { t: "signblock", v: `By Counsel:\n${d.advocate}` },
-    ]
+    ],
   },
   {
     id: "condone_absence",
@@ -393,17 +420,19 @@ export const TEMPLATES = [
       { t: "space" },
       { t: "left", v: `Date: ${d.date}\nPlace: ${d.place}` },
       { t: "signblock", v: `Counsel for ${d.clientRole}.` },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: `IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${up(d.court)}` },
       { t: "left", v: `Crl. M.P.: ${d.crlMpNo}\nIn\nSTC/MC/DVC/C.C. No.; ${d.caseNo}` },
-      { t: "party", v: "", role: `${d.clientRole}.` },
-      { t: "versus" },
-      { t: "party", v: "", role: `${d.opponentRole}.` },
       { t: "space" },
-      { t: "center", v: `THE PETITION FILED ON\nBEHALF OF THE\n${(d.clientRole || "").toUpperCase()}\nU/s 355/ 279/ 145 OF BNSS.` },
+      { t: "party", v: d.client || "________________", role: `...${d.clientRole}.` },
+      { t: "versus" },
+      { t: "party", v: d.opponent || "________________", role: `...${d.opponentRole}.` },
+      { t: "space" },
+      { t: "title", v: `THE PETITION FILED ON\nBEHALF OF THE\n${(d.clientRole || "").toUpperCase()}\nU/s 355/ 279/ 145 OF BNSS.` },
       { t: "space" },
       { t: "signblock", v: `By Counsel:\n${d.advocate}` },
-    ]
+    ],
   },
   {
     id: "solvency_memo",
@@ -437,14 +466,19 @@ export const TEMPLATES = [
       { t: "para", v: "It is therefore prayed that this Hon’ble Court may be pleased to accept the Solvencies filed herewith and released the accused on bail and thereby render justice." },
       { t: "space" },
       { t: "signblock", v: "Counsel for the Petitioner / Accused" },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
       { t: "left", v: `Cr. M.P. No. : ${d.crlMpNo}\nCrime No.: ${d.crimeNo}\nC.C. No.: ${d.caseNo}` },
       { t: "space" },
-      { t: "center", v: "SOLVENCY MEMO\nFILED ON BEHALF OF THE ACCUSED." },
+      { t: "party", v: d.client || "________________", role: `...${d.clientRole}.` },
+      { t: "versus" },
+      { t: "party", v: d.opponent || "________________", role: `...${d.opponentRole}.` },
+      { t: "space" },
+      { t: "title", v: "SOLVENCY MEMO\nFILED ON BEHALF OF THE ACCUSED." },
       { t: "space" },
       { t: "signblock", v: `By Counsel:\n${d.advocate}` },
-    ]
+    ],
   },
   {
     id: "suretyship_app",
@@ -534,7 +568,7 @@ export const TEMPLATES = [
       { t: "versus" },
       { t: "party", v: d.opponent || "________________", role: `${d.opponentRole}` },
       { t: "space" },
-      { t: "title", v: `PROCESS MEMEO FILED ON BEHALF OF THE ${(d.filedBy || "").toUpperCase()}/ ACCUSED / COMPLAINANT.` },
+      { t: "title", v: `PROCESS MEMO FILED ON BEHALF OF THE ${(d.filedBy || "").toUpperCase()}/ ACCUSED / COMPLAINANT.` },
       { t: "space" },
       { t: "para", v: `It is prayed that this Hon’ble Court may be pleased to issue summons to the prosecution witness No. ${d.witnessNo} through the ${d.channel} to the under mentioned address and pass necessary orders under the circumstances of the case.` },
       { t: "space" },
@@ -542,14 +576,19 @@ export const TEMPLATES = [
       { t: "space" },
       { t: "left", v: "Address of the Witness:" },
       { t: "para", v: d.witnessAddress },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: `IN THE COURT OF THE JUDICIAL MAGISTRATE COURT, ${up(d.court)}` },
       { t: "left", v: `C.C. / S.T.C. No. ${d.caseNo}` },
       { t: "space" },
-      { t: "center", v: `PROCESS MEMEO\nFILED ON BEHALF OF THE\n${(d.filedBy || "").toUpperCase()}/ ACCUSED / COMPLAINANT.` },
+      { t: "party", v: d.client || "________________", role: `...${d.clientRole}` },
+      { t: "versus" },
+      { t: "party", v: d.opponent || "________________", role: `...${d.opponentRole}` },
+      { t: "space" },
+      { t: "title", v: `PROCESS MEMO\nFILED ON BEHALF OF THE\n${(d.filedBy || "").toUpperCase()}/ ACCUSED / COMPLAINANT.` },
       { t: "space" },
       { t: "signblock", v: `By Counsel:\n${d.advocate}` },
-    ]
+    ],
   },
   {
     id: "vakalat_criminal",
@@ -621,11 +660,16 @@ export const TEMPLATES = [
       { t: "space" },
       { t: "right", v: `Date: ${d.date}` },
       { t: "signblock", v: "Counsel for the Petitioner / Complainant" },
-      { t: "docket" },
+    ],
+    generateCover: (d) => [
       { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
       { t: "left", v: `C.M.P. ${d.cmpNo || "____"} /${d.year}\nIN\nS.T.C. No. ${d.stcNo || "____"}` },
       { t: "space" },
-      { t: "center", v: "PETITION FILED UNDER SECTION 256 Cr.P.C." },
+      { t: "party", v: d.petitioner || "________________", role: "...Petitioner / Complainant" },
+      { t: "versus" },
+      { t: "party", v: d.respondent || "________________", role: "...Respondent / Accused" },
+      { t: "space" },
+      { t: "title", v: "PETITION FILED UNDER SECTION\n256 Cr.P.C." },
       { t: "space" },
       { t: "signblock", v: `By Counsel:\n${d.advocate || ADVOCATE_DEFAULTS.advocateName}` },
     ],
@@ -660,8 +704,6 @@ export function blocksToPlainText(blocks) {
           return "";
         case "pre":
           return b.v;
-        case "docket":
-          return "\n\n-------------------------------------------------------------------------\n                           BACKING SHEET / DOCKET\n-------------------------------------------------------------------------\n";
         default:
           return "";
       }
@@ -701,8 +743,6 @@ export function blocksToHtml(blocks, title) {
           return `<div style="height:8px;"></div>`;
         case "pre":
           return `<pre style="font-family:monospace;font-size:11px;white-space:pre-wrap;margin:10px 0;background:#f9f9f9;padding:8px;border:1px solid #eee;">${esc(b.v)}</pre>`;
-        case "docket":
-          return `<div style="margin:36px 0 20px;border-top:2px dashed #b8935e;padding-top:16px;text-align:center;font-weight:bold;letter-spacing:1.5px;color:#7a2e2e;"><p style="margin:0;">-------------------------------------------------------------------------</p><p style="margin:4px 0;">BACKING SHEET / DOCKET</p><p style="margin:0;">-------------------------------------------------------------------------</p></div>`;
         default:
           return "";
       }
@@ -710,7 +750,67 @@ export function blocksToHtml(blocks, title) {
     .join("\n");
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(
     title
-  )}</title></head><body style="font-family:'Times New Roman',serif;font-size:13.5px;line-height:1.55;max-width:720px;margin:40px auto;color:#1a1a1a;">${lines}</body></html>`;
+  )}</title><style>@page { size: A4; margin: 2.5cm 2.5cm 2.5cm 3.2cm; }</style></head><body style="font-family:'Times New Roman',serif;font-size:13.5px;line-height:1.55;max-width:720px;margin:40px auto;color:#1a1a1a;">${lines}</body></html>`;
+}
+
+/**
+ * Renders page 2 — the backing sheet / docket — as an HTML FRAGMENT.
+ * A Word-compatible forced page break followed by a table with a blank
+ * left column and the docket content in the right column, so the sheet
+ * folds with the docket facing outwards, exactly as filed.
+ *
+ * Word's HTML renderer doesn't reliably support flexbox or absolute
+ * positioning, but it does support tables and the mso page-break
+ * marker, so this fragment renders correctly both in a browser (Print)
+ * and when opened in Microsoft Word / Google Docs (.doc download).
+ * Combine with blocksToHtml(page1) — see pagesToHtml in DraftMitra.jsx.
+ */
+export function foldedPageFragment(blocks) {
+  const esc = (s) =>
+    String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>");
+  const rows = blocks
+    .map((b) => {
+      switch (b.t) {
+        case "small":
+          return `<p style="text-align:center;font-size:11px;margin:0 0 4px;">${esc(b.v)}</p>`;
+        case "titleTop":
+          return `<p style="text-align:center;font-weight:bold;text-decoration:underline;letter-spacing:2px;margin:0 0 10px;">${esc(b.v)}</p>`;
+        case "center":
+          return `<p style="text-align:center;font-weight:bold;margin:0 0 6px;white-space:pre-line;">${esc(b.v)}</p>`;
+        case "left":
+          return `<p style="margin:0 0 2px;white-space:pre-line;">${esc(b.v)}</p>`;
+        case "right":
+          return `<p style="text-align:right;margin:0 0 2px;white-space:pre-line;">${esc(b.v)}</p>`;
+        case "party":
+          return `<p style="margin:0 0 6px;white-space:pre-line;">${esc(b.v)}<br/><span style="font-size:12px;color:#333;">${esc(b.role)}</span></p>`;
+        case "versus":
+          return `<p style="text-align:center;font-style:italic;margin:2px 0;">Versus</p>`;
+        case "title":
+          return `<p style="text-align:center;font-weight:bold;text-decoration:underline;margin:14px 0;white-space:pre-line;">${esc(b.v)}</p>`;
+        case "num":
+          return `<p style="margin:0 0 10px;white-space:pre-line;"><b>${b.n}.</b> ${esc(b.v)}</p>`;
+        case "para":
+          return `<p style="margin:0 0 10px;white-space:pre-line;">${esc(b.v)}</p>`;
+        case "signblock":
+          return `<p style="margin:24px 0 0;text-align:right;white-space:pre-line;">${esc(b.v)}</p>`;
+        case "space":
+          return `<div style="height:8px;"></div>`;
+        default:
+          return "";
+      }
+    })
+    .join("\n");
+  return `<br clear=all style="mso-special-character:line-break;page-break-before:always">
+<div style="page-break-before:always;"></div>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:'Times New Roman',serif;font-size:13px;">
+<tr>
+<td width="53%" valign="top">&nbsp;</td>
+<td width="2%" valign="top" style="border-left:1.5px dashed #999999;">&nbsp;</td>
+<td width="45%" valign="top" style="padding:40px 10px 40px 14px;">
+${rows}
+</td>
+</tr>
+</table>`;
 }
 
 /* ---------------------------------------------------------------
