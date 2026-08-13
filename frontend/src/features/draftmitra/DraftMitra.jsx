@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 import {
-  TEMPLATES, F, blocksToPlainText, blocksToHtml, foldedPageFragment,
+  TEMPLATES, F, blocksToPlainText, buildDocumentHtml,
   paramsFromCustomTemplate, generateFromCustomTemplate,
 } from "./templates";
 import { storageGet, storageSet, storageDelete, storageList } from "./storage";
@@ -17,11 +17,7 @@ const STORAGE_PREFIX = "draft:";
 const CUSTOM_TPL_PREFIX = "customtpl:";
 
 /* Page 1 + (optional) folded backing sheet as one printable document. */
-function pagesToHtml(page1, page2, title) {
-  const p1 = blocksToHtml(page1, title);
-  if (!page2) return p1;
-  return p1.replace("</body>", `${foldedPageFragment(page2)}</body>`);
-}
+const pagesToHtml = buildDocumentHtml;
 
 /* ---------------------------------------------------------------
    Main component — usage:

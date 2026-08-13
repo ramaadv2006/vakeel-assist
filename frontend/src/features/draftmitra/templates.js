@@ -711,10 +711,21 @@ export function blocksToPlainText(blocks) {
     .join("\n\n");
 }
 
-export function blocksToHtml(blocks, title) {
-  const esc = (s) =>
-    String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>");
-  const lines = blocks
+const esc = (s) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>");
+
+/**
+ * Blocks → HTML string. `folded` renders for the narrow backing-sheet
+ * column: party name and role stack instead of sitting on one line, and
+ * body text is left-aligned rather than justified.
+ *
+ * Party rows use a two-cell table rather than flexbox — Word's HTML
+ * renderer ignores flex, which would drop the role right beside the
+ * name instead of aligning it to the right margin.
+ */
+function renderBlocks(blocks, { folded = false } = {}) {
+  const align = folded ? "left" : "justify";
+  return blocks
     .map((b) => {
       switch (b.t) {
         case "small":
@@ -728,86 +739,107 @@ export function blocksToHtml(blocks, title) {
         case "right":
           return `<p style="text-align:right;margin:0 0 2px;white-space:pre-line;">${esc(b.v)}</p>`;
         case "party":
-          return `<p style="margin:0 0 2px;display:flex;justify-content:space-between;"><span style="white-space:pre-line;">${esc(b.v)}</span><span style="white-space:nowrap;color:#444;">${esc(b.role)}</span></p>`;
+          return folded
+            ? `<p style="margin:0 0 6px;white-space:pre-line;">${esc(b.v)}<br/><span style="font-size:12px;color:#333;">${esc(b.role)}</span></p>`
+            : `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 2px;"><tr>` +
+              `<td valign="top" style="white-space:pre-line;">${esc(b.v)}</td>` +
+              `<td valign="top" align="right" style="text-align:right;color:#444;white-space:nowrap;">${esc(b.role)}</td>` +
+              `</tr></table>`;
         case "versus":
           return `<p style="text-align:center;font-style:italic;margin:2px 0;">Versus</p>`;
         case "title":
           return `<p style="text-align:center;font-weight:bold;text-decoration:underline;margin:14px 0;white-space:pre-line;">${esc(b.v)}</p>`;
         case "num":
-          return `<p style="margin:0 0 10px;text-align:justify;white-space:pre-line;"><b>${b.n}.</b> ${esc(b.v)}</p>`;
+          return `<p style="margin:0 0 10px;text-align:${align};white-space:pre-line;"><b>${b.n}.</b> ${esc(b.v)}</p>`;
         case "para":
-          return `<p style="margin:0 0 10px;text-align:justify;white-space:pre-line;">${esc(b.v)}</p>`;
+          return `<p style="margin:0 0 10px;text-align:${align};white-space:pre-line;">${esc(b.v)}</p>`;
         case "signblock":
           return `<p style="margin:24px 0 0;text-align:right;white-space:pre-line;">${esc(b.v)}</p>`;
         case "space":
-          return `<div style="height:8px;"></div>`;
+          return `<div style="height:8px;">&nbsp;</div>`;
         case "pre":
-          return `<pre style="font-family:monospace;font-size:11px;white-space:pre-wrap;margin:10px 0;background:#f9f9f9;padding:8px;border:1px solid #eee;">${esc(b.v)}</pre>`;
+          return `<pre style="font-family:'Courier New',monospace;font-size:11px;white-space:pre-wrap;margin:10px 0;">${esc(b.v)}</pre>`;
         default:
           return "";
       }
     })
     .join("\n");
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(
-    title
-  )}</title><style>@page { size: A4; margin: 2.5cm 2.5cm 2.5cm 3.2cm; }</style></head><body style="font-family:'Times New Roman',serif;font-size:13.5px;line-height:1.55;max-width:720px;margin:40px auto;color:#1a1a1a;">${lines}</body></html>`;
 }
 
 /**
- * Renders page 2 — the backing sheet / docket — as an HTML FRAGMENT.
- * A Word-compatible forced page break followed by a table with a blank
- * left column and the docket content in the right column, so the sheet
- * folds with the docket facing outwards, exactly as filed.
+ * Full printable/Word document for page 1 plus an optional page 2
+ * (the folded backing sheet).
  *
- * Word's HTML renderer doesn't reliably support flexbox or absolute
- * positioning, but it does support tables and the mso page-break
- * marker, so this fragment renders correctly both in a browser (Print)
- * and when opened in Microsoft Word / Google Docs (.doc download).
- * Combine with blocksToHtml(page1) — see pagesToHtml in DraftMitra.jsx.
+ * The two pages live in separate WordSection divs with their own @page
+ * rules, separated by an explicit break paragraph — this is the
+ * structure Microsoft Word itself emits for a document with a page
+ * break, and it is the only one Word honours reliably. A bare
+ * `page-break-before` on a div or table is silently dropped by Word,
+ * which is why everything used to land on one page. Browsers honour
+ * the same break paragraph, so Print / Save-as-PDF matches.
+ */
+export function buildDocumentHtml(page1, page2, title) {
+  const section1 = renderBlocks(page1);
+  const section2 = page2 ? foldedPageFragment(page2) : "";
+  // Exactly one break element. A paragraph is the one construct both
+  // Word (maps to the "page break before" paragraph property) and
+  // browsers honour; Word drops the property on divs and tables, and
+  // browsers drop it on the <br> marker Word prefers. Two markers
+  // stacked together would leave a blank page in between.
+  const pageBreak = page2
+    ? `<p style="page-break-before:always;mso-break-type:page-break;font-size:1pt;line-height:1pt;margin:0;">&nbsp;</p>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word">
+<title>${esc(title)}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
+<style>
+@page WordSection1 { size: 21.0cm 29.7cm; margin: 2.5cm 2.5cm 2.5cm 3.2cm; mso-page-orientation: portrait; }
+div.WordSection1 { page: WordSection1; }
+@page WordSection2 { size: 21.0cm 29.7cm; margin: 2.0cm 2.0cm 2.0cm 2.0cm; mso-page-orientation: portrait; }
+div.WordSection2 { page: WordSection2; }
+body { font-family: 'Times New Roman', serif; font-size: 13.5px; line-height: 1.55; color: #1a1a1a; margin: 0; }
+@media screen { body { max-width: 720px; margin: 40px auto; } }
+</style>
+</head>
+<body>
+<div class="WordSection1">
+${section1}
+</div>
+${pageBreak}
+${page2 ? `<div class="WordSection2">\n${section2}\n</div>` : ""}
+</body>
+</html>`;
+}
+
+/** Single page only — kept for callers that don't need a backing sheet. */
+export function blocksToHtml(blocks, title) {
+  return buildDocumentHtml(blocks, null, title);
+}
+
+/**
+ * Page 2 — the backing sheet / docket — as an HTML fragment: a table
+ * with a blank left column, a dashed fold line, and the docket content
+ * in the right column, so the sheet folds with the docket facing
+ * outwards, exactly as filed.
+ *
+ * Word's HTML renderer ignores flexbox and absolute positioning but
+ * handles tables well, so the fold survives both browser Print and the
+ * .doc download. The page break that puts this on its own sheet is
+ * added by buildDocumentHtml, not here.
  */
 export function foldedPageFragment(blocks) {
-  const esc = (s) =>
-    String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, "<br/>");
-  const rows = blocks
-    .map((b) => {
-      switch (b.t) {
-        case "small":
-          return `<p style="text-align:center;font-size:11px;margin:0 0 4px;">${esc(b.v)}</p>`;
-        case "titleTop":
-          return `<p style="text-align:center;font-weight:bold;text-decoration:underline;letter-spacing:2px;margin:0 0 10px;">${esc(b.v)}</p>`;
-        case "center":
-          return `<p style="text-align:center;font-weight:bold;margin:0 0 6px;white-space:pre-line;">${esc(b.v)}</p>`;
-        case "left":
-          return `<p style="margin:0 0 2px;white-space:pre-line;">${esc(b.v)}</p>`;
-        case "right":
-          return `<p style="text-align:right;margin:0 0 2px;white-space:pre-line;">${esc(b.v)}</p>`;
-        case "party":
-          return `<p style="margin:0 0 6px;white-space:pre-line;">${esc(b.v)}<br/><span style="font-size:12px;color:#333;">${esc(b.role)}</span></p>`;
-        case "versus":
-          return `<p style="text-align:center;font-style:italic;margin:2px 0;">Versus</p>`;
-        case "title":
-          return `<p style="text-align:center;font-weight:bold;text-decoration:underline;margin:14px 0;white-space:pre-line;">${esc(b.v)}</p>`;
-        case "num":
-          return `<p style="margin:0 0 10px;white-space:pre-line;"><b>${b.n}.</b> ${esc(b.v)}</p>`;
-        case "para":
-          return `<p style="margin:0 0 10px;white-space:pre-line;">${esc(b.v)}</p>`;
-        case "signblock":
-          return `<p style="margin:24px 0 0;text-align:right;white-space:pre-line;">${esc(b.v)}</p>`;
-        case "space":
-          return `<div style="height:8px;"></div>`;
-        default:
-          return "";
-      }
-    })
-    .join("\n");
-  return `<br clear=all style="mso-special-character:line-break;page-break-before:always">
-<div style="page-break-before:always;"></div>
-<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-family:'Times New Roman',serif;font-size:13px;">
+  return `<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-family:'Times New Roman',serif;font-size:13px;">
 <tr>
-<td width="53%" valign="top">&nbsp;</td>
-<td width="2%" valign="top" style="border-left:1.5px dashed #999999;">&nbsp;</td>
-<td width="45%" valign="top" style="padding:40px 10px 40px 14px;">
-${rows}
+<td width="53%" valign="top" style="width:53%;">&nbsp;</td>
+<td width="2%" valign="top" style="width:2%;border-left:1.5px dashed #999999;">&nbsp;</td>
+<td width="45%" valign="top" style="width:45%;padding:40px 10px 40px 14px;">
+${renderBlocks(blocks, { folded: true })}
 </td>
 </tr>
 </table>`;
