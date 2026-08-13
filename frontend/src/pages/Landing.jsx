@@ -107,6 +107,14 @@ function Section({ id, className = '', band = false, flash = false, children }) 
   return <section id={id} ref={ref} className={classes}>{children}</section>;
 }
 
+function BrandMark() {
+  return (
+    <span className="lp-logo-mark">
+      <img src="/logo.jpeg" alt="" width="50" height="50" decoding="async" />
+    </span>
+  );
+}
+
 function Eyebrow({ children }) {
   return <div className="lp-eyebrow"><span />{children}</div>;
 }
@@ -238,12 +246,7 @@ export default function Landing() {
       <header className={`lp-nav${scrolled ? ' is-scrolled' : ''}`}>
         <div className="lp-nav-inner">
           <Link to="/" className="lp-logo">
-            <span className="lp-logo-mark">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3v17M19 17H5M3 8h18" />
-                <path d="M5 8l-2 6h4l-2-6zm14 0l-2 6h4l-2-6z" />
-              </svg>
-            </span>
+            <BrandMark />
             Advo<em>Buddy</em>
           </Link>
 
@@ -519,12 +522,7 @@ export default function Landing() {
         <div className="lp-footer-inner">
           <div className="lp-footer-brand">
             <Link to="/" className="lp-logo">
-              <span className="lp-logo-mark">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 3v17M19 17H5M3 8h18" />
-                  <path d="M5 8l-2 6h4l-2-6zm14 0l-2 6h4l-2-6z" />
-                </svg>
-              </span>
+              <BrandMark />
               Advo<em>Buddy</em>
             </Link>
             <p>The case diary, drafting desk and fee book for the working advocate.</p>
