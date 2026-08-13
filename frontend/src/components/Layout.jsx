@@ -2,7 +2,10 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import FlashMessages from './FlashMessages';
 
-export default function Layout() {
+// `children` lets the shell wrap a directly-rendered page (see the "/" route,
+// which picks between the landing page and the dashboard); routed pages still
+// come through the Outlet as before.
+export default function Layout({ children }) {
   return (
     <>
       <div className="ambient-blobs">
@@ -13,7 +16,7 @@ export default function Layout() {
       <Header />
       <main>
         <FlashMessages />
-        <Outlet />
+        {children ?? <Outlet />}
       </main>
     </>
   );
