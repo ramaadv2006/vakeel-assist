@@ -3,6 +3,15 @@
    Scoped under .lp so nothing here can leak into the app shell.
    Colour comes from the app's design tokens, so the page follows
    the light/dark theme like every other screen.
+
+   Motion contract for this file:
+   - Anything driven by scroll or pointer reads a custom property
+     (--progress, --mx/--my, --rx/--ry, --drift) that JS writes.
+     No layout-affecting property is ever animated.
+   - Entry animations are keyed off `.in-view` on the section, and
+     stagger off `--i` on the child.
+   - Every one of them is switched off in the reduced-motion block
+     at the bottom. Add nothing above it that is not answered there.
    ============================================================ */
 
 .lp {
@@ -30,6 +39,12 @@
     --art-text: #0b1526;
     --art-paper: #fbf8f1;
     --art-paper-2: #f2ede1;
+
+    /* Shared easings. `out` for anything the eye follows to a stop,
+       `spring` only for small decorative overshoots — a card that
+       overshoots its own layout box reads as a bug, not a flourish. */
+    --lp-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --lp-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
     position: relative;
     overflow-x: hidden;
@@ -94,11 +109,31 @@ body.dark .lp-mesh { opacity: 0.4; }
 @keyframes lpMesh2 { to { transform: translate3d(-12%, -8%, 0) scale(1.15); } }
 @keyframes lpMesh3 { to { transform: translate3d(14%, -10%, 0) scale(0.9); } }
 
-/* Lift content above the fixed mesh. The nav is excluded deliberately:
-   `:not()` contributes its argument's specificity, so this selector is
-   (0,2,0) and would otherwise beat `.lp-nav` (0,1,0) — replacing its
-   `position: sticky` with `relative` and its z-index 40 with 1. */
-.lp > *:not(.lp-mesh):not(.lp-nav) { position: relative; z-index: 1; }
+/* ---------- Grain ----------
+   A blurred mesh over a flat background bands visibly on 8-bit panels.
+   A little static noise breaks the bands up. Drawn as an inline SVG
+   data URI so it costs no request, and left very faint: it is here to
+   dither a gradient, not to be seen. */
+.lp-grain {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+body.dark .lp-grain { opacity: 0.055; }
+
+/* Lift content above the fixed mesh. The nav and the back-to-top button
+   are excluded deliberately: `:not()` contributes its argument's
+   specificity, so this selector outweighs a single class like `.lp-nav`
+   or `.lp-totop` and would otherwise replace their own `position:
+   sticky` / `position: fixed` with `relative` — which is exactly what
+   happened to `.lp-totop` before this exclusion was added: as a direct
+   child of `.lp` it lost `fixed` to this rule and rendered in normal
+   flow, offset by its own right/bottom into negative territory. */
+.lp > *:not(.lp-mesh):not(.lp-grain):not(.lp-nav):not(.lp-totop) { position: relative; z-index: 1; }
 
 /* ---------- Nav ---------- */
 
@@ -134,6 +169,29 @@ body.dark .lp-mesh { opacity: 0.4; }
     height: 1px;
     background: linear-gradient(90deg, transparent 0%, var(--lp-brass) 50%, transparent 100%);
     opacity: 0.55;
+}
+
+/* ---------- Reading progress ----------
+   scaleX off the --progress the scroll hook writes on .lp. A transform
+   on a composited layer, so the bar tracks the scrollbar without ever
+   entering layout. */
+.lp-progress {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.lp-progress i {
+    display: block;
+    height: 100%;
+    transform: scaleX(var(--progress, 0));
+    transform-origin: left center;
+    background: linear-gradient(90deg, var(--lp-brass), #e0c188);
+    box-shadow: 0 0 12px rgba(184, 147, 94, 0.7);
 }
 
 /* ---------- Nav contents, lightened for the dark bar ---------- */
@@ -217,7 +275,7 @@ body.dark .lp-mesh { opacity: 0.4; }
     overflow: hidden;
     background: #10141a;
     border: 1px solid rgba(184, 147, 94, 0.34);
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.4s var(--lp-spring);
 }
 
 .lp-logo-mark img {
@@ -237,7 +295,7 @@ body.dark .lp-mesh { opacity: 0.4; }
 
 .lp-nav-links a {
     position: relative;
-    padding: 8px 14px;
+    padding: 8px 13px;
     border-radius: var(--radius-full);
     font-size: 14.5px;
     font-weight: 600;
@@ -264,7 +322,7 @@ body.dark .lp-mesh { opacity: 0.4; }
     margin-left: -8px;
     border-radius: 2px;
     background: var(--lp-brass);
-    animation: lpNavDot 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: lpNavDot 0.35s var(--lp-out) both;
 }
 
 @keyframes lpNavDot {
@@ -302,7 +360,7 @@ body.dark .lp-mesh { opacity: 0.4; }
 .lp-theme-btn .sun-icon,
 .lp-theme-btn .moon-icon {
     transform-origin: center;
-    transition: opacity 0.4s ease, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: opacity 0.4s ease, transform 0.5s var(--lp-spring);
 }
 
 .lp-theme-btn .sun-icon { opacity: 0; transform: scale(0.5) rotate(-90deg); }
@@ -314,6 +372,7 @@ body.dark .lp-theme-btn .moon-icon { opacity: 0; transform: scale(0.5) rotate(90
 /* ---------- Buttons ---------- */
 
 .lp-btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -326,10 +385,11 @@ body.dark .lp-theme-btn .moon-icon { opacity: 0; transform: scale(0.5) rotate(90
     cursor: pointer;
     border: 1px solid transparent;
     white-space: nowrap;
-    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, background 0.25s ease, color 0.25s ease;
+    overflow: hidden;
+    transition: transform 0.25s var(--lp-out), box-shadow 0.3s ease, background 0.25s ease, color 0.25s ease;
 }
 
-.lp-btn svg { width: 17px; height: 17px; transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.lp-btn svg { width: 17px; height: 17px; transition: transform 0.3s var(--lp-out); position: relative; }
 .lp-btn:hover svg { transform: translateX(3px); }
 
 .lp-btn-lg { padding: 14px 26px; font-size: 15.5px; }
@@ -339,6 +399,19 @@ body.dark .lp-theme-btn .moon-icon { opacity: 0; transform: scale(0.5) rotate(90
     color: #ffffff;
     box-shadow: 0 10px 24px -10px rgba(11, 21, 38, 0.7);
 }
+
+/* A single sheen that crosses the button on hover. Transform-only, and
+   it lives on a pseudo-element so it cannot disturb the label. */
+.lp-btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
+    transform: translateX(-120%);
+    transition: transform 0.7s var(--lp-out);
+}
+
+.lp-btn-primary:hover::after { transform: translateX(120%); }
 
 body.dark .lp-btn-primary {
     background: linear-gradient(135deg, var(--lp-brass), #9c7a48);
@@ -452,7 +525,7 @@ body.dark .lp {
     box-shadow: 0 0 0 5px rgba(184, 147, 94, 0.14),
                 0 0 46px rgba(184, 147, 94, 0.4);
     pointer-events: none;
-    animation: lpFlash 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: lpFlash 1.5s var(--lp-out) forwards;
 }
 
 @keyframes lpFlash {
@@ -487,6 +560,17 @@ body.dark .lp-eyebrow { color: var(--lp-brass); }
     height: 2px;
     border-radius: 2px;
     background: currentColor;
+    transform-origin: left center;
+}
+
+/* The rule draws itself in as the heading arrives. */
+.lp-section.in-view .lp-eyebrow span {
+    animation: lpRule 0.6s var(--lp-out) 0.1s both;
+}
+
+@keyframes lpRule {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
 }
 
 .lp h1, .lp h2, .lp h3 {
@@ -504,8 +588,30 @@ body.dark .lp-eyebrow { color: var(--lp-brass); }
 .lp p { color: var(--lp-body); }
 
 /* Scroll reveal */
-.lp .reveal-up { opacity: 0; transform: translateY(26px); transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
+.lp .reveal-up {
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 0.7s var(--lp-out), transform 0.7s var(--lp-out);
+}
+
 .lp .reveal-up.in-view { opacity: 1; transform: none; }
+
+/* ---------- Staggered children ----------
+   One rule, reused by every grid on the page: set `--i` on the child in
+   JSX and it inherits the section's reveal. Written once here rather
+   than per section so the cadence stays identical everywhere — a page
+   whose cards arrive at six different speeds reads as six pages. */
+.lp-section.in-view .lp-persona,
+.lp-section.in-view .lp-step,
+.lp-section.in-view .lp-outcome,
+.lp-section.in-view .lp-privacy-card,
+.lp-section.in-view .lp-ai-card,
+.lp-section.in-view .lp-draft-feature,
+.lp-section.in-view .lp-draft-group,
+.lp-section.in-view .lp-tab {
+    animation: lpFadeUp 0.62s var(--lp-out) both;
+    animation-delay: calc(0.06s + var(--i, 0) * 0.075s);
+}
 
 /* ---------- Hero ---------- */
 
@@ -531,7 +637,7 @@ body.dark .lp-eyebrow { color: var(--lp-brass); }
     font-size: 13px;
     font-weight: 600;
     color: var(--lp-body);
-    animation: lpFadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: lpFadeUp 0.7s var(--lp-out) both;
 }
 
 .lp-pill-dot {
@@ -549,44 +655,55 @@ body.dark .lp-eyebrow { color: var(--lp-brass); }
     font-size: clamp(38px, 5.6vw, 62px);
     font-weight: 600;
     letter-spacing: -1.2px;
-    animation: lpFadeUp 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
-}
-
-/* Headline stacks as three block lines, so every line keeps the same
-   line-height rhythm and no baseline maths is involved. */
-.lp-hero h1 {
+    /* Headline stacks as three block lines, so every line keeps the same
+       line-height rhythm and no baseline maths is involved. */
     display: flex;
     flex-direction: column;
     align-items: flex-start;
 }
 
-.lp-title-line { display: block; }
-
-/* Rotating word.
-   The mask takes its height from the line box instead of the old explicit
-   `height: 1.2em`, which made this line 1.24px taller than the 1.18em
-   lines above and below it — enough to visibly break the rhythm of a
-   three-line headline at 62px. Dropping the height also drops the need
-   for `vertical-align: bottom`, which was compensating for the fact that
-   an inline-block with clipped overflow takes its baseline from its
-   bottom edge rather than its text. */
-.lp-rotate {
+/* Each line lifts out of its own mask, one after the next. The mask is a
+   wrapper's overflow, so nothing is clipped once the animation lands. */
+.lp-title-line, .lp-rotate {
     display: block;
     overflow: hidden;
-    color: var(--lp-brass-deep);
 }
+
+.lp-title-line > span,
+.lp-hero h1 > .lp-title-line {
+    display: block;
+}
+
+.lp-hero h1 .lp-title-line:first-child { animation: lpLineUp 0.8s var(--lp-out) 0.05s both; }
+.lp-hero h1 .lp-rotate { animation: lpLineUp 0.8s var(--lp-out) 0.14s both; }
+.lp-hero h1 .lp-title-line:last-child { animation: lpLineUp 0.8s var(--lp-out) 0.23s both; }
+
+@keyframes lpLineUp {
+    from { opacity: 0; transform: translateY(0.45em); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Rotating word.
+   The mask takes its height from the line box instead of an explicit
+   height, which would make this line taller than the 1.18em lines above
+   and below it — enough to visibly break the rhythm of a three-line
+   headline at 62px. */
+.lp-rotate { color: var(--lp-brass-deep); }
 
 body.dark .lp-rotate { color: var(--lp-brass); }
 
 .lp-rotate-word {
     display: block;
-    animation: lpRotateIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: lpRotateIn 0.6s var(--lp-out) both;
     white-space: nowrap;
 }
 
+/* The blur is what makes the swap read as one word becoming another
+   rather than two words trading places. */
 @keyframes lpRotateIn {
-    from { opacity: 0; transform: translateY(100%); }
-    to   { opacity: 1; transform: none; }
+    from { opacity: 0; transform: translateY(100%); filter: blur(6px); }
+    60%  { filter: blur(0); }
+    to   { opacity: 1; transform: none; filter: blur(0); }
 }
 
 .lp-hero-sub {
@@ -594,14 +711,14 @@ body.dark .lp-rotate { color: var(--lp-brass); }
     margin: 22px 0 30px;
     font-size: 17px;
     line-height: 1.65;
-    animation: lpFadeUp 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.16s both;
+    animation: lpFadeUp 0.75s var(--lp-out) 0.28s both;
 }
 
 .lp-hero-cta {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    animation: lpFadeUp 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+    animation: lpFadeUp 0.75s var(--lp-out) 0.36s both;
 }
 
 .lp-hero-meta {
@@ -612,7 +729,7 @@ body.dark .lp-rotate { color: var(--lp-brass); }
     font-size: 13.5px;
     font-weight: 600;
     color: var(--gray-500);
-    animation: lpFadeUp 0.75s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both;
+    animation: lpFadeUp 0.75s var(--lp-out) 0.44s both;
 }
 
 .lp-hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
@@ -623,11 +740,57 @@ body.dark .lp-rotate { color: var(--lp-brass); }
     to   { opacity: 1; transform: none; }
 }
 
+/* ---------- Hero proof strip ----------
+   Four checkable numbers, on a rule, immediately under the fold. This is
+   the page's only "stats above the fold" claim, so each one is a fact
+   from content.js rather than a round marketing figure. */
+.lp-proof {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 30px;
+    margin: 30px 0 0;
+    padding-top: 24px;
+    border-top: 1px dashed var(--lp-line);
+}
+
+.lp-proof > div {
+    animation: lpFadeUp 0.6s var(--lp-out) both;
+    animation-delay: calc(0.52s + var(--i) * 0.07s);
+}
+
+.lp-proof dt {
+    font-family: 'Lora', serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--lp-brass-deep);
+}
+
+body.dark .lp-proof dt { color: var(--lp-brass); }
+
+.lp-proof dd {
+    margin: 5px 0 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: var(--gray-500);
+}
+
 /* Hero art */
 .lp-hero-art {
     position: relative;
     transform: translateY(var(--drift, 0));
-    animation: lpFadeUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
+    animation: lpFadeUp 0.9s var(--lp-out) 0.2s both;
+}
+
+/* Tilt lives on its own wrapper so it composes with the parallax
+   translate above instead of fighting it for the transform property. */
+.lp-hero-tilt {
+    perspective: 1100px;
+    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transform-style: preserve-3d;
+    transition: transform 0.4s var(--lp-out);
+    will-change: transform;
 }
 
 .lp-hero-glow {
@@ -650,15 +813,96 @@ body.dark .art-window,
 body.dark .art-phone,
 body.dark .art-draft { filter: drop-shadow(0 28px 50px rgba(0, 0, 0, 0.55)); }
 
+/* ---------- Mock choreography ----------
+   The pieces inside every SVG mock deal themselves in. Each class is
+   keyed off `--i` so a mock's own rows cascade, and the delays are
+   short: this is a product shot animating into place, not a title
+   sequence. */
 .art-row {
-    animation: lpRowIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(0.45s + var(--i) * 0.1s);
+    animation: lpRowIn 0.55s var(--lp-out) both;
+    animation-delay: calc(0.3s + var(--i, 0) * 0.08s);
 }
 
 @keyframes lpRowIn {
     from { opacity: 0; transform: translateX(-14px); }
     to   { opacity: 1; }
 }
+
+.art-pop {
+    animation: lpPopIn 0.5s var(--lp-out) both;
+    animation-delay: calc(0.2s + var(--i, 0) * 0.07s);
+}
+
+@keyframes lpPopIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; }
+}
+
+/* Checkbox tick, drawn rather than faded — the stroke reads as an act. */
+.art-tick {
+    stroke-dasharray: 16;
+    stroke-dashoffset: 16;
+    animation: lpDraw 0.45s var(--lp-out) 0.75s forwards;
+}
+
+@keyframes lpDraw { to { stroke-dashoffset: 0; } }
+
+/* Ledger fill bars grow from the left, so the proportion is legible. */
+.art-fill {
+    transform-origin: 180px center;
+    animation: lpGrowX 0.7s var(--lp-out) both;
+    animation-delay: calc(0.55s + var(--i, 0) * 0.1s);
+}
+
+@keyframes lpGrowX {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+}
+
+/* Draft body lines type themselves in. */
+.art-line {
+    transform-origin: 42px center;
+    animation: lpGrowX 0.5s var(--lp-out) both;
+    animation-delay: calc(0.4s + var(--i, 0) * 0.09s);
+}
+
+/* AI beams: the document resolving into fields. */
+.art-beam {
+    stroke-dasharray: 130;
+    stroke-dashoffset: 130;
+    animation: lpDrawLong 1s var(--lp-out) both;
+    animation-delay: calc(0.35s + var(--i, 0) * 0.12s);
+}
+
+@keyframes lpDrawLong { to { stroke-dashoffset: 0; } }
+
+/* The reminder landing on the handset, and the rings it arrives on. */
+.art-alert { animation: lpAlertIn 0.7s var(--lp-spring) 0.25s both; }
+
+@keyframes lpAlertIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.96); }
+    to   { opacity: 1; transform: none; }
+}
+
+.art-tray {
+    animation: lpPopIn 0.5s var(--lp-out) both;
+    animation-delay: calc(0.5s + var(--i, 0) * 0.09s);
+}
+
+.art-ping {
+    transform-origin: 120px 90px;
+    opacity: 0;
+    animation: lpPing 3.6s ease-out infinite;
+    animation-delay: calc(var(--i, 0) * 1.2s);
+}
+
+@keyframes lpPing {
+    0%   { opacity: 0.5; transform: scale(0.35); }
+    70%  { opacity: 0; transform: scale(1.15); }
+    100% { opacity: 0; transform: scale(1.15); }
+}
+
+.art-reopen { transition: opacity 0.3s ease; }
 
 /* Floating callout cards */
 .lp-float {
@@ -698,11 +942,15 @@ body.dark .lp-float-icon-ok { color: #4ec98a; }
     50%      { transform: translateY(-9px); }
 }
 
-/* ---------- Marquee ---------- */
+/* ---------- Marquee ----------
+   One row, drifting right to left on loop — the vocabulary list of the
+   product. The group is rendered twice back to back and the track
+   travels exactly -50%, so the seam between the second copy ending and
+   the first repeating is invisible. */
 
 .lp-marquee {
     overflow: hidden;
-    padding: 18px 0;
+    padding: 16px 0;
     border-block: 1px solid var(--lp-line);
     background: color-mix(in srgb, var(--lp-surface) 70%, transparent);
     mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
@@ -712,7 +960,7 @@ body.dark .lp-float-icon-ok { color: #4ec98a; }
 .lp-marquee-track {
     display: flex;
     width: max-content;
-    animation: lpMarquee 34s linear infinite;
+    animation: lpMarquee 46s linear infinite;
 }
 
 .lp-marquee:hover .lp-marquee-track { animation-play-state: paused; }
@@ -743,15 +991,15 @@ body.dark .lp-float-icon-ok { color: #4ec98a; }
 
 /* ---------- Why ---------- */
 
-.lp-why, .lp-drafts {
+.lp-why {
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: 64px;
 }
 
-.lp-why h2, .lp-drafts h2 { margin-bottom: 18px; }
-.lp-why p, .lp-drafts p { font-size: 16.5px; line-height: 1.7; }
+.lp-why h2 { margin-bottom: 18px; }
+.lp-why p { font-size: 16.5px; line-height: 1.7; }
 
 .lp-check { list-style: none; margin: 26px 0 0; padding: 0; display: grid; gap: 13px; }
 
@@ -775,25 +1023,33 @@ body.dark .lp-float-icon-ok { color: #4ec98a; }
 .lp-why-art { display: grid; place-items: center; }
 .lp-why-art .art-phone { max-width: 260px; }
 
+/* ---------- Spotlight cards ----------
+   The pointer hook (useSpotlight in landing/motion.js) writes
+   --mx/--my/--spot onto whichever card is under the cursor. Each grid
+   that wants the effect gives its own card class a `::after` in this
+   shape — see .lp-persona, .lp-privacy-card and .lp-draft-item below —
+   so the highlight sits under the card's own content and fades rather
+   than snaps when the pointer moves between two cards. */
+
 /* ---------- Personas ---------- */
 
-.lp-persona-grid, .lp-module-grid {
+.lp-persona-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 22px;
 }
 
-.lp-persona, .lp-module {
+.lp-persona {
     position: relative;
     overflow: hidden;
     padding: 30px 26px;
     border-radius: 20px;
     background: var(--lp-surface);
     border: 1px solid var(--lp-line);
-    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.4s ease, border-color 0.3s ease;
+    transition: transform 0.4s var(--lp-out), box-shadow 0.4s ease, border-color 0.3s ease;
 }
 
-.lp-persona::before, .lp-module::before {
+.lp-persona::before {
     content: '';
     position: absolute;
     inset: -1px -1px auto -1px;
@@ -801,18 +1057,32 @@ body.dark .lp-float-icon-ok { color: #4ec98a; }
     background: linear-gradient(90deg, var(--lp-brass), transparent);
     transform: scaleX(0);
     transform-origin: left;
-    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.5s var(--lp-out);
+    z-index: 2;
 }
 
-.lp-persona:hover, .lp-module:hover {
+.lp-persona::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--spot, 0);
+    transition: opacity 0.35s ease;
+    background: radial-gradient(320px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(184, 147, 94, 0.16), transparent 62%);
+}
+
+.lp-persona > * { position: relative; z-index: 1; }
+
+.lp-persona:hover {
     transform: translateY(-6px);
     border-color: color-mix(in srgb, var(--lp-brass) 45%, transparent);
     box-shadow: var(--shadow-lg);
 }
 
-.lp-persona:hover::before, .lp-module:hover::before { transform: scaleX(1); }
+.lp-persona:hover::before { transform: scaleX(1); }
 
-.lp-persona-icon, .lp-module-icon {
+.lp-persona-icon {
     display: grid;
     place-items: center;
     width: 46px; height: 46px;
@@ -820,38 +1090,62 @@ body.dark .lp-float-icon-ok { color: #4ec98a; }
     border-radius: 14px;
     background: rgba(184, 147, 94, 0.14);
     color: var(--lp-brass-deep);
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.4s var(--lp-spring);
 }
 
-body.dark .lp-persona-icon, body.dark .lp-module-icon { color: var(--lp-brass); }
-.lp-persona-icon .icon-svg, .lp-module-icon .icon-svg { width: 21px; height: 21px; }
-.lp-persona:hover .lp-persona-icon, .lp-module:hover .lp-module-icon { transform: scale(1.1) rotate(-7deg); }
+body.dark .lp-persona-icon { color: var(--lp-brass); }
+.lp-persona-icon .icon-svg { width: 21px; height: 21px; }
+.lp-persona:hover .lp-persona-icon { transform: scale(1.1) rotate(-7deg); }
 
-.lp-persona p, .lp-module p { margin: 10px 0 0; font-size: 15px; line-height: 1.6; }
+.lp-persona p { margin: 10px 0 0; font-size: 15px; line-height: 1.6; }
 
 .lp-persona ul { list-style: none; margin: 20px 0 0; padding: 18px 0 0; border-top: 1px dashed var(--lp-line); display: grid; gap: 10px; }
 .lp-persona ul li { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 600; color: var(--lp-ink); }
-.lp-persona ul .icon-svg { width: 15px; height: 15px; color: var(--lp-brass); }
+.lp-persona ul .icon-svg { width: 15px; height: 15px; color: var(--lp-brass); flex-shrink: 0; }
 
 /* ---------- Steps ---------- */
 
 .lp-steps {
+    position: relative;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
     gap: 20px;
-    counter-reset: step;
+}
+
+/* The rail threads the four cards together, drawing itself as the
+   section arrives so the sequence reads left to right. */
+.lp-steps-rail {
+    position: absolute;
+    top: 46px;
+    left: 6%;
+    right: 6%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--lp-brass), transparent);
+    opacity: 0.4;
+    transform: scaleX(0);
+    transform-origin: left center;
+    z-index: 0;
+}
+
+.lp-section.in-view .lp-steps-rail {
+    animation: lpGrowX 1.1s var(--lp-out) 0.25s both;
 }
 
 .lp-step {
     position: relative;
+    z-index: 1;
     padding: 28px 24px;
     border-radius: 18px;
     background: var(--lp-surface);
     border: 1px solid var(--lp-line);
-    transition: transform 0.35s ease, box-shadow 0.35s ease;
+    transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.3s ease;
 }
 
-.lp-step:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.lp-step:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: color-mix(in srgb, var(--lp-brass) 40%, transparent);
+}
 
 .lp-step-n {
     display: block;
@@ -863,11 +1157,166 @@ body.dark .lp-persona-icon, body.dark .lp-module-icon { color: var(--lp-brass); 
     color: transparent;
     -webkit-text-stroke: 1.4px var(--lp-brass);
     opacity: 0.85;
+    transition: color 0.4s ease;
 }
+
+.lp-step:hover .lp-step-n { color: rgba(184, 147, 94, 0.16); }
 
 .lp-step p { margin: 9px 0 0; font-size: 14.5px; line-height: 1.6; }
 
-/* ---------- Drafts ---------- */
+/* ============================================================
+   WORKSPACE EXPLORER
+   Eight tabs over one preview pane. The pane's height is driven by
+   its content, so the tab row is kept above it rather than beside
+   it — a side rail would make the panel jump every time a module
+   with fewer bullet points came up.
+   ============================================================ */
+
+.lp-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 26px;
+}
+
+.lp-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--lp-line);
+    background: var(--lp-surface);
+    color: var(--lp-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.25s var(--lp-out);
+}
+
+.lp-tab:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--lp-brass) 45%, transparent);
+    color: var(--lp-ink);
+}
+
+.lp-tab.is-active {
+    color: var(--lp-ink);
+    border-color: var(--lp-brass);
+    background: color-mix(in srgb, var(--lp-brass) 12%, var(--lp-surface));
+}
+
+.lp-tab:focus-visible {
+    outline: 2px solid var(--lp-brass);
+    outline-offset: 2px;
+}
+
+.lp-tab-icon {
+    display: grid;
+    place-items: center;
+    width: 30px; height: 30px;
+    flex-shrink: 0;
+    border-radius: 9px;
+    background: rgba(184, 147, 94, 0.14);
+    color: var(--lp-brass-deep);
+    transition: transform 0.35s var(--lp-spring), background 0.25s ease;
+}
+
+body.dark .lp-tab-icon { color: var(--lp-brass); }
+.lp-tab-icon .icon-svg { width: 16px; height: 16px; }
+.lp-tab.is-active .lp-tab-icon { background: rgba(184, 147, 94, 0.24); transform: scale(1.08) rotate(-6deg); }
+
+.lp-tab-label { line-height: 1.25; }
+
+/* How long is left before the explorer moves on by itself. It is only
+   rendered while the cycle is actually running, so it never implies a
+   timer that has been stopped. */
+.lp-tab-timer {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 2px;
+    width: 100%;
+    background: var(--lp-brass);
+    transform-origin: left center;
+    animation: lpGrowX 5.6s linear both;
+}
+
+.lp-explorer-panel {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    align-items: center;
+    gap: 40px;
+    padding: 32px;
+    border-radius: 24px;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    box-shadow: var(--shadow-md);
+}
+
+.lp-explorer-panel:focus { outline: none; }
+
+/* Copy and art are re-keyed per module, so these replay on every swap. */
+.lp-explorer-copy { animation: lpPanelIn 0.5s var(--lp-out) both; }
+.lp-explorer-art { animation: lpPanelIn 0.55s var(--lp-out) 0.06s both; }
+
+@keyframes lpPanelIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.lp-explorer-copy h3 { font-size: 23px; }
+.lp-explorer-copy p { margin: 14px 0 0; font-size: 15.5px; line-height: 1.65; }
+
+.lp-explorer-copy ul {
+    list-style: none;
+    margin: 22px 0 0;
+    padding: 20px 0 0;
+    border-top: 1px dashed var(--lp-line);
+    display: grid;
+    gap: 11px;
+}
+
+.lp-explorer-copy li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--lp-ink);
+}
+
+.lp-explorer-copy li .icon-svg {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    color: var(--lp-brass);
+}
+
+.lp-explorer-art .art-window {
+    filter: drop-shadow(0 20px 40px rgba(11, 21, 38, 0.16));
+}
+
+body.dark .lp-explorer-art .art-window {
+    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+}
+
+/* ============================================================
+   DRAFTS
+   ============================================================ */
+
+.lp-drafts-top {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    align-items: center;
+    gap: 64px;
+}
+
+.lp-drafts h2 { margin-bottom: 18px; }
+.lp-drafts > .lp-drafts-top p { font-size: 16.5px; line-height: 1.7; }
 
 .lp-drafts-art { position: relative; display: grid; place-items: center; }
 .lp-drafts-art .art-draft { max-width: 320px; }
@@ -887,43 +1336,439 @@ body.dark .lp-persona-icon, body.dark .lp-module-icon { color: var(--lp-brass); 
 .lp-badge-float strong { display: block; font-size: 13.5px; color: var(--lp-ink); }
 .lp-badge-float small { font-size: 11.5px; color: var(--gray-500); }
 
-.lp-chips { display: flex; flex-wrap: wrap; gap: 9px; margin: 26px 0 28px; }
+.lp-draft-features {
+    display: grid;
+    gap: 16px;
+    margin: 28px 0;
+}
 
-.lp-chips span {
-    padding: 7px 14px;
+.lp-draft-feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.lp-draft-feature > span {
+    display: grid;
+    place-items: center;
+    width: 38px; height: 38px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: rgba(184, 147, 94, 0.14);
+    color: var(--lp-brass-deep);
+    transition: transform 0.35s var(--lp-spring);
+}
+
+body.dark .lp-draft-feature > span { color: var(--lp-brass); }
+.lp-draft-feature > span .icon-svg { width: 18px; height: 18px; }
+.lp-draft-feature:hover > span { transform: scale(1.1) rotate(-6deg); }
+
+.lp-draft-feature strong { display: block; font-size: 15px; color: var(--lp-ink); }
+.lp-draft-feature p { margin: 4px 0 0 !important; font-size: 14px !important; line-height: 1.55 !important; }
+
+/* ---------- Draft library ----------
+   All thirteen, in their real groups. Laid out as a list of groups
+   rather than one flat grid so the count per group is visible — an
+   advocate scanning this wants to know whether their kind of work is
+   covered, not how many templates exist in total. */
+.lp-draft-library {
+    margin-top: 72px;
+    padding: 36px;
+    border-radius: 24px;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+}
+
+.lp-library-head { max-width: 620px; margin-bottom: 30px; }
+.lp-library-head h3 { font-size: 22px; }
+.lp-library-head p { margin: 12px 0 0; font-size: 15px; line-height: 1.65; }
+
+.lp-draft-group + .lp-draft-group { margin-top: 26px; }
+
+.lp-draft-group h4 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    color: var(--lp-brass-deep);
+}
+
+body.dark .lp-draft-group h4 { color: var(--lp-brass); }
+
+.lp-draft-group h4 span {
+    display: grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: var(--radius-full);
+    background: rgba(184, 147, 94, 0.16);
+    font-size: 11px;
+    letter-spacing: 0;
+}
+
+/* The rule that runs out from the group label to the edge. */
+.lp-draft-group h4::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--lp-line);
+}
+
+.lp-draft-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.lp-draft-item {
+    position: relative;
+    overflow: hidden;
+    padding: 14px 16px;
+    border-radius: 13px;
+    border: 1px solid var(--lp-line);
+    background: var(--bg-app);
+    transition: transform 0.28s var(--lp-out), border-color 0.28s ease;
+}
+
+.lp-draft-item::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--spot, 0);
+    transition: opacity 0.3s ease;
+    background: radial-gradient(200px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(184, 147, 94, 0.2), transparent 60%);
+}
+
+.lp-draft-item:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--lp-brass) 55%, transparent);
+}
+
+.lp-draft-item strong {
+    position: relative;
+    display: block;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--lp-ink);
+}
+
+.lp-draft-item small {
+    position: relative;
+    display: block;
+    margin-top: 4px;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--gray-500);
+}
+
+.lp-draft-foot {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 28px 0 0;
+    padding-top: 20px;
+    border-top: 1px dashed var(--lp-line);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.lp-draft-foot .icon-svg {
+    width: 17px; height: 17px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--lp-brass);
+}
+
+/* ============================================================
+   REMINDERS
+   The picker is a real control, not a picture of one: what a visitor
+   sets here is exactly the pair of fields they will meet in Settings,
+   so the section teaches the feature instead of describing it.
+   ============================================================ */
+
+.lp-reminders {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+    gap: 60px;
+}
+
+.lp-reminders h2 { margin-bottom: 18px; }
+.lp-reminders > .lp-reminders-copy > p { font-size: 16.5px; line-height: 1.7; }
+
+.lp-reminder-panel {
+    margin-top: 28px;
+    padding: 26px;
+    border-radius: 20px;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    box-shadow: var(--shadow-md);
+}
+
+.lp-field + .lp-field { margin-top: 22px; }
+
+.lp-field-label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--gray-500);
+}
+
+.lp-segment {
+    display: inline-flex;
+    padding: 4px;
+    border-radius: var(--radius-full);
+    background: var(--bg-app);
+    border: 1px solid var(--lp-line);
+}
+
+.lp-segment-btn {
+    padding: 9px 20px;
+    border: none;
+    border-radius: var(--radius-full);
+    background: transparent;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--lp-body);
+    cursor: pointer;
+    transition: color 0.25s ease, background 0.3s var(--lp-out), box-shadow 0.3s ease;
+}
+
+.lp-segment-btn:hover { color: var(--lp-ink); }
+
+.lp-segment-btn.is-active {
+    background: var(--lp-surface);
+    color: var(--lp-ink);
+    box-shadow: var(--shadow-sm);
+}
+
+body.dark .lp-segment-btn.is-active {
+    background: color-mix(in srgb, var(--lp-brass) 22%, var(--lp-surface));
+}
+
+.lp-field-help {
+    margin: 12px 0 0;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--gray-500);
+    animation: lpFadeUp 0.35s var(--lp-out) both;
+}
+
+.lp-days { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+.lp-day {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--lp-line);
+    background: var(--bg-app);
+    font-family: 'Lora', serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--lp-body);
+    cursor: pointer;
+    transition: transform 0.25s var(--lp-spring), color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.lp-day:hover { transform: translateY(-2px); border-color: var(--lp-brass); }
+
+.lp-day.is-active {
+    background: linear-gradient(135deg, var(--lp-brass), #9c7a48);
+    border-color: transparent;
+    color: var(--lp-navy);
+    box-shadow: 0 8px 18px -8px rgba(184, 147, 94, 0.8);
+}
+
+.lp-days-unit { margin-left: 4px; font-size: 14px; font-weight: 600; color: var(--gray-500); }
+
+.lp-reminder-preview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 24px;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: rgba(184, 147, 94, 0.1);
+    border: 1px dashed color-mix(in srgb, var(--lp-brass) 50%, transparent);
+}
+
+.lp-reminder-preview p { margin: 0; font-size: 14px; line-height: 1.55; }
+.lp-reminder-preview strong { color: var(--lp-ink); }
+
+.lp-reminder-icon {
+    display: grid;
+    place-items: center;
+    width: 38px; height: 38px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(184, 147, 94, 0.2);
+    color: var(--lp-brass-deep);
+    animation: lpRing 4s ease-in-out infinite;
+}
+
+body.dark .lp-reminder-icon { color: var(--lp-brass); }
+.lp-reminder-icon .icon-svg { width: 18px; height: 18px; }
+
+/* A bell that rocks, not one that spins. */
+@keyframes lpRing {
+    0%, 62%, 100% { transform: rotate(0); }
+    68%  { transform: rotate(11deg); }
+    74%  { transform: rotate(-9deg); }
+    80%  { transform: rotate(6deg); }
+    86%  { transform: rotate(-4deg); }
+}
+
+.lp-reminders-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 22px 0 0;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    color: var(--gray-500);
+}
+
+.lp-reminders-note .icon-svg {
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+    margin-top: 3px;
+    color: #2f9e63;
+}
+
+.lp-reminders-art { display: grid; place-items: center; }
+.lp-reminders-art .art-phone { max-width: 280px; }
+
+/* ============================================================
+   AI
+   ============================================================ */
+
+.lp-ai-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 52px;
+}
+
+.lp-ai-list { display: grid; gap: 16px; }
+
+.lp-ai-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 22px;
+    border-radius: 18px;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    transition: transform 0.35s var(--lp-out), border-color 0.3s ease, box-shadow 0.35s ease;
+}
+
+.lp-ai-card:hover {
+    transform: translateX(5px);
+    border-color: color-mix(in srgb, var(--lp-brass) 45%, transparent);
+    box-shadow: var(--shadow-md);
+}
+
+.lp-ai-icon {
+    display: grid;
+    place-items: center;
+    width: 42px; height: 42px;
+    flex-shrink: 0;
+    border-radius: 13px;
+    background: rgba(184, 147, 94, 0.14);
+    color: var(--lp-brass-deep);
+    transition: transform 0.4s var(--lp-spring);
+}
+
+body.dark .lp-ai-icon { color: var(--lp-brass); }
+.lp-ai-icon .icon-svg { width: 20px; height: 20px; }
+.lp-ai-card:hover .lp-ai-icon { transform: scale(1.1) rotate(-8deg); }
+
+.lp-ai-card h3 { font-size: 17px; }
+.lp-ai-card p { margin: 7px 0 0; font-size: 14.5px; line-height: 1.6; }
+
+.lp-ai-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+
+.lp-ai-chips span {
+    padding: 5px 11px;
     border-radius: var(--radius-full);
     border: 1px solid var(--lp-line);
-    background: var(--lp-surface);
-    font-size: 13px;
+    background: var(--bg-app);
+    font-size: 12px;
     font-weight: 600;
     color: var(--lp-body);
-    transition: transform 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+    transition: border-color 0.25s ease, transform 0.25s ease;
 }
 
-.lp-chips span:hover { transform: translateY(-2px); border-color: var(--lp-brass); color: var(--lp-ink); }
+.lp-ai-chips span:hover { transform: translateY(-2px); border-color: var(--lp-brass); }
 
-.lp-chip-more {
-    border-style: dashed !important;
-    color: var(--lp-brass-deep) !important;
+.lp-ai-caveat {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 4px 0 0;
+    padding: 16px 18px;
+    border-radius: 14px;
+    background: rgba(178, 91, 10, 0.08);
+    border: 1px dashed rgba(178, 91, 10, 0.35);
+    font-size: 13.5px;
+    line-height: 1.6;
 }
 
-body.dark .lp-chip-more { color: var(--lp-brass) !important; }
+.lp-ai-caveat .icon-svg {
+    width: 17px; height: 17px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--warning);
+}
+
+.lp-ai-art { position: relative; display: grid; place-items: center; }
+.lp-ai-art .art-window { max-width: 460px; }
+
+.lp-ai-formats {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.lp-ai-formats span {
+    padding: 6px 14px;
+    border-radius: var(--radius-full);
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    font-size: 11.5px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: var(--gray-500);
+}
 
 /* ---------- Stats ---------- */
 
 .lp-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     text-align: center;
 }
 
 .lp-stat {
-    padding: 30px 18px;
+    padding: 30px 20px;
     border-radius: 18px;
     background: var(--lp-surface);
     border: 1px solid var(--lp-line);
+    transition: transform 0.35s var(--lp-out), border-color 0.3s ease;
 }
+
+.lp-stat:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--lp-brass) 40%, transparent); }
 
 .lp-stat-num {
     font-family: 'Lora', serif;
@@ -938,7 +1783,16 @@ body.dark .lp-chip-more { color: var(--lp-brass) !important; }
 
 body.dark .lp-stat-num { background: linear-gradient(135deg, #e0c188, var(--lp-brass)); -webkit-background-clip: text; background-clip: text; }
 
-.lp-stat-label { margin-top: 10px; font-size: 13.5px; line-height: 1.5; color: var(--gray-500); }
+.lp-stat-label { margin-top: 10px; font-size: 14px; font-weight: 600; line-height: 1.5; color: var(--lp-ink); }
+
+.lp-stat-note {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--lp-line);
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--gray-500);
+}
 
 /* ---------- Outcomes ---------- */
 
@@ -976,11 +1830,67 @@ body.dark .lp-stat-num { background: linear-gradient(135deg, #e0c188, var(--lp-b
 body.dark .lp-outcome-before span { color: #f0736a; }
 body.dark .lp-outcome-after span { color: #4ec98a; }
 
-.lp-outcome-arrow { width: 22px; height: 22px; color: var(--lp-brass); flex-shrink: 0; }
+.lp-outcome-arrow { width: 22px; height: 22px; color: var(--lp-brass); flex-shrink: 0; transition: transform 0.3s var(--lp-out); }
+.lp-outcome:hover .lp-outcome-arrow { transform: translateX(4px); }
+
+/* ---------- Privacy ---------- */
+
+.lp-privacy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 18px;
+}
+
+.lp-privacy-card {
+    position: relative;
+    overflow: hidden;
+    padding: 26px 24px;
+    border-radius: 18px;
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+    transition: transform 0.35s var(--lp-out), border-color 0.3s ease, box-shadow 0.35s ease;
+}
+
+.lp-privacy-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: var(--spot, 0);
+    transition: opacity 0.35s ease;
+    background: radial-gradient(300px circle at var(--mx, 50%) var(--my, 50%),
+        rgba(184, 147, 94, 0.16), transparent 62%);
+}
+
+.lp-privacy-card > * { position: relative; z-index: 1; }
+
+.lp-privacy-card:hover {
+    transform: translateY(-5px);
+    border-color: color-mix(in srgb, var(--lp-brass) 45%, transparent);
+    box-shadow: var(--shadow-lg);
+}
+
+.lp-privacy-icon {
+    display: grid;
+    place-items: center;
+    width: 42px; height: 42px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    background: rgba(47, 158, 99, 0.14);
+    color: #2f9e63;
+    transition: transform 0.4s var(--lp-spring);
+}
+
+body.dark .lp-privacy-icon { color: #4ec98a; }
+.lp-privacy-icon .icon-svg { width: 19px; height: 19px; }
+.lp-privacy-card:hover .lp-privacy-icon { transform: scale(1.1) rotate(-7deg); }
+
+.lp-privacy-card h3 { font-size: 16.5px; }
+.lp-privacy-card p { margin: 9px 0 0; font-size: 14px; line-height: 1.6; }
 
 /* ---------- FAQ ---------- */
 
-.lp-faq-list { max-width: 780px; margin: 0 auto; display: grid; gap: 12px; }
+.lp-faq-list { max-width: 820px; margin: 0 auto; display: grid; gap: 12px; }
 
 .lp-faq {
     border-radius: 16px;
@@ -1009,6 +1919,8 @@ body.dark .lp-outcome-after span { color: #4ec98a; }
     cursor: pointer;
 }
 
+.lp-faq-q:focus-visible { outline: 2px solid var(--lp-brass); outline-offset: -2px; }
+
 .lp-faq-sign {
     position: relative;
     flex-shrink: 0;
@@ -1016,7 +1928,7 @@ body.dark .lp-outcome-after span { color: #4ec98a; }
     height: 22px;
     border-radius: 50%;
     background: rgba(184, 147, 94, 0.16);
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.35s var(--lp-out);
 }
 
 .lp-faq-sign::before, .lp-faq-sign::after {
@@ -1027,7 +1939,7 @@ body.dark .lp-outcome-after span { color: #4ec98a; }
     margin-top: -1px;
     border-radius: 2px;
     background: var(--lp-brass-deep);
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.35s var(--lp-out);
 }
 
 body.dark .lp-faq-sign::before, body.dark .lp-faq-sign::after { background: var(--lp-brass); }
@@ -1040,7 +1952,7 @@ body.dark .lp-faq-sign::before, body.dark .lp-faq-sign::after { background: var(
 .lp-faq-a {
     display: grid;
     grid-template-rows: 0fr;
-    transition: grid-template-rows 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: grid-template-rows 0.4s var(--lp-out);
 }
 
 .lp-faq.is-open .lp-faq-a { grid-template-rows: 1fr; }
@@ -1078,13 +1990,95 @@ body.dark .lp-faq-sign::before, body.dark .lp-faq-sign::after { background: var(
     animation: lpMesh1 20s ease-in-out infinite alternate;
 }
 
-.lp-cta-inner > * { position: relative; }
+/* A brass edge that travels round the panel — the one piece of pure
+   ornament on the page, and it is on the last thing before the footer,
+   where a little pull is the whole job. */
+.lp-cta-inner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 28px;
+    padding: 1px;
+    background: conic-gradient(from var(--angle, 0deg),
+        transparent 0deg, rgba(184, 147, 94, 0.9) 40deg, transparent 110deg, transparent 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    animation: lpBorderSpin 7s linear infinite;
+}
+
+@property --angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes lpBorderSpin {
+    to { --angle: 360deg; }
+}
+
+.lp-cta-inner > * { position: relative; z-index: 1; }
 .lp-cta-inner h2 { color: #ffffff; }
 .lp-cta-inner p { margin: 16px 0 30px; color: rgba(245, 247, 250, 0.75); font-size: 16.5px; }
 .lp-cta-inner .lp-hero-cta { justify-content: center; animation: none; }
 .lp-cta-inner .lp-btn-outline { background: rgba(255, 255, 255, 0.08); color: #ffffff; border-color: rgba(255, 255, 255, 0.28); }
 .lp-cta-inner .lp-btn-outline:hover { background: rgba(255, 255, 255, 0.16); }
 body.dark .lp-cta-inner .lp-btn-primary { background: linear-gradient(135deg, var(--lp-brass), #9c7a48); color: var(--lp-navy); }
+
+/* ---------- Back to top ----------
+   The ring reads the same --progress as the nav bar, so the button
+   doubles as a position indicator once it appears. */
+
+.lp-totop {
+    position: fixed;
+    right: 26px;
+    bottom: 26px;
+    z-index: 45;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1px solid var(--lp-line);
+    background: var(--lp-surface);
+    color: var(--lp-ink);
+    cursor: pointer;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(14px) scale(0.85);
+    transition: opacity 0.3s ease, transform 0.4s var(--lp-spring), visibility 0.3s, border-color 0.25s ease;
+}
+
+.lp-totop.is-shown { opacity: 1; visibility: visible; transform: none; }
+.lp-totop:hover { border-color: var(--lp-brass); color: var(--lp-brass-deep); }
+body.dark .lp-totop:hover { color: var(--lp-brass); }
+.lp-totop > svg:not(.lp-totop-ring) { width: 18px; height: 18px; }
+
+.lp-totop-ring {
+    position: absolute;
+    inset: -2px;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    transform: rotate(-90deg);
+    fill: none;
+}
+
+.lp-totop-ring circle {
+    stroke: var(--lp-line);
+    stroke-width: 2;
+}
+
+/* 2πr for r=20 is 125.66 — the dasharray below and the offset formula
+   must be changed together if the radius ever changes. */
+.lp-totop-arc {
+    stroke: var(--lp-brass) !important;
+    stroke-linecap: round;
+    stroke-dasharray: 125.66;
+    stroke-dashoffset: calc(125.66px * (1 - var(--progress, 0)));
+}
 
 /* ---------- Footer ---------- */
 
@@ -1140,15 +2134,29 @@ body.dark .lp-footer-col a:hover { color: var(--lp-brass); }
     color: var(--gray-500);
 }
 
-.lp-footer-note { font-style: italic; }
+.lp-footer-note { font-style: italic; max-width: 52ch; }
 
 /* ---------- Responsive ---------- */
 
+@media (max-width: 1080px) {
+    .lp-tabs { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 980px) {
-    .lp-hero, .lp-why, .lp-drafts { grid-template-columns: 1fr; gap: 44px; }
+    .lp-hero,
+    .lp-why,
+    .lp-drafts-top,
+    .lp-reminders,
+    .lp-ai-grid,
+    .lp-explorer-panel { grid-template-columns: 1fr; gap: 44px; }
+
     .lp-hero { padding-top: 32px; text-align: left; }
     .lp-why-art, .lp-drafts-art { order: -1; }
+    .lp-explorer-panel { gap: 32px; padding: 26px; }
+    .lp-reminders-art { order: -1; }
     .lp-footer-inner { grid-template-columns: 1fr 1fr; gap: 32px; }
+    .lp-steps-rail { display: none; }
+    .lp-draft-library { padding: 28px 22px; }
 }
 
 @media (max-width: 760px) {
@@ -1172,6 +2180,10 @@ body.dark .lp-footer-col a:hover { color: var(--lp-brass); }
 
     .lp-nav-links.is-open { opacity: 1; visibility: visible; transform: none; }
     .lp-nav-links a { padding: 11px 14px; }
+
+    /* Links cascade in behind the panel rather than all appearing at once. */
+    .lp-nav-links.is-open a { animation: lpFadeUp 0.35s var(--lp-out) both; animation-delay: calc(var(--i, 0) * 0.04s); }
+
     .lp-burger { display: flex; }
     .lp-nav-actions .lp-btn-ghost { display: none; }
     .lp-section { padding: 68px 20px; }
@@ -1181,6 +2193,20 @@ body.dark .lp-footer-col a:hover { color: var(--lp-brass); }
     .lp-outcome-arrow { transform: rotate(90deg); justify-self: start; }
     .lp-footer-inner { grid-template-columns: 1fr; }
     .lp-cta-inner { padding: 48px 22px; }
+    .lp-tabs { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .lp-tab { padding: 10px; font-size: 12.5px; }
+    .lp-tab-icon { width: 26px; height: 26px; }
+    .lp-proof { gap: 14px 22px; }
+    .lp-proof dt { font-size: 21px; }
+    .lp-segment { display: flex; width: 100%; }
+    .lp-segment-btn { flex: 1; padding: 9px 8px; }
+    .lp-reminder-panel { padding: 20px; }
+    .lp-totop { right: 16px; bottom: 16px; }
+}
+
+@media (max-width: 420px) {
+    .lp-tabs { grid-template-columns: 1fr; }
+    .lp-day { width: 38px; height: 38px; font-size: 15px; }
 }
 
 /* ============================================================
@@ -1201,7 +2227,6 @@ body:not(.dark) .lp {
 
 /* Cards need a real edge plus a little lift to separate from the page. */
 body:not(.dark) .lp-persona,
-body:not(.dark) .lp-module,
 body:not(.dark) .lp-step,
 body:not(.dark) .lp-stat,
 body:not(.dark) .lp-outcome,
@@ -1209,14 +2234,23 @@ body:not(.dark) .lp-faq,
 body:not(.dark) .lp-float,
 body:not(.dark) .lp-badge-float,
 body:not(.dark) .lp-pill,
-body:not(.dark) .lp-chips span {
+body:not(.dark) .lp-privacy-card,
+body:not(.dark) .lp-ai-card,
+body:not(.dark) .lp-tab,
+body:not(.dark) .lp-ai-chips span {
     box-shadow: 0 1px 2px rgba(11, 21, 38, 0.04), 0 6px 16px -10px rgba(11, 21, 38, 0.18);
 }
 
 body:not(.dark) .lp-persona:hover,
-body:not(.dark) .lp-module:hover,
-body:not(.dark) .lp-step:hover {
+body:not(.dark) .lp-step:hover,
+body:not(.dark) .lp-privacy-card:hover {
     box-shadow: 0 2px 4px rgba(11, 21, 38, 0.05), 0 18px 34px -14px rgba(11, 21, 38, 0.3);
+}
+
+body:not(.dark) .lp-explorer-panel,
+body:not(.dark) .lp-draft-library,
+body:not(.dark) .lp-reminder-panel {
+    box-shadow: 0 2px 6px rgba(11, 21, 38, 0.05), 0 22px 44px -20px rgba(11, 21, 38, 0.22);
 }
 
 /* Outlined step numerals: brass on white is only 2.85, against 6.40 on
@@ -1241,7 +2275,13 @@ body:not(.dark) .lp-footer {
 body:not(.dark) .lp-mesh { opacity: 0.4; }
 body:not(.dark) .lp-hero-glow { opacity: 0.7; }
 
-/* ---------- Motion opt-out ---------- */
+/* ---------- Motion opt-out ----------
+   Everything decorative stops. What remains is anything that carries
+   information: the progress bar and the back-to-top ring still track
+   position (they are transforms of a value, not animations), the FAQ
+   still opens, the explorer still swaps panels — it just does not
+   advance by itself, which the JS handles by never starting the cycle.
+   ---------- */
 
 @media (prefers-reduced-motion: reduce) {
     .lp-mesh span,
@@ -1249,20 +2289,59 @@ body:not(.dark) .lp-hero-glow { opacity: 0.7; }
     .lp-float,
     .lp-badge-float,
     .lp-pill-dot,
+    .lp-reminder-icon,
     .art-row,
+    .art-pop,
+    .art-tick,
+    .art-fill,
+    .art-line,
+    .art-beam,
+    .art-alert,
+    .art-tray,
+    .art-ping,
     .lp-cta-inner::before,
-    .lp-hero h1,
+    .lp-cta-inner::after,
+    .lp-hero h1 .lp-title-line,
+    .lp-hero h1 .lp-rotate,
     .lp-pill,
     .lp-hero-sub,
     .lp-hero-cta,
     .lp-hero-meta,
     .lp-hero-art,
-    .lp-rotate-word {
+    .lp-proof > div,
+    .lp-rotate-word,
+    .lp-tab-timer,
+    .lp-field-help,
+    .lp-explorer-copy,
+    .lp-explorer-art,
+    .lp-nav-links.is-open a,
+    .lp-section.in-view .lp-eyebrow span,
+    .lp-section.in-view .lp-steps-rail,
+    .lp-section.in-view .lp-persona,
+    .lp-section.in-view .lp-step,
+    .lp-section.in-view .lp-outcome,
+    .lp-section.in-view .lp-privacy-card,
+    .lp-section.in-view .lp-ai-card,
+    .lp-section.in-view .lp-draft-feature,
+    .lp-section.in-view .lp-draft-group,
+    .lp-section.in-view .lp-tab {
         animation: none !important;
     }
 
+    /* Anything whose animation supplied its final state needs that state
+       restoring explicitly, or switching the animation off leaves it at
+       scale 0 / opacity 0. */
+    .lp-eyebrow span,
+    .lp-steps-rail,
+    .art-fill,
+    .art-line { transform: none !important; opacity: 1; }
+
+    .art-tick, .art-beam { stroke-dashoffset: 0 !important; }
+    .art-ping { display: none; }
+
     .lp .reveal-up { opacity: 1; transform: none; transition: none; }
     .lp-hero-art { transform: none !important; }
+    .lp-hero-tilt { transform: none !important; }
 
     /* The jump highlight still needs to appear and clear, just without
        the scale/fade choreography. */

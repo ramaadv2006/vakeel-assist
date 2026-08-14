@@ -1,102 +1,34 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { useReveal } from '../hooks/useReveal';
 import { useCountUp } from '../hooks/useCountUp';
 import Icon from '../components/Icon';
-import { AppWindowMock, DraftPageMock, PhoneMock } from '../components/LandingArt';
+import {
+  AiPanelMock, AppWindowMock, DraftPageMock, ModuleMock, PhoneMock, ReminderPhoneMock,
+} from '../components/LandingArt';
+import {
+  prefersReducedMotion, useCycle, useInView, useParallax, useScrollProgress, useSpotlight, useTilt,
+} from './landing/motion';
+import {
+  AI_CAPABILITIES, DRAFT_FEATURES, DRAFT_GROUPS, FAQS, HERO_PROOF, MARQUEE_TERMS,
+  MODULES, NAV_SECTIONS, OUTCOMES, PERSONAS, PRIVACY_POINTS, REMINDER_CHANNELS,
+  REMINDER_WINDOWS, ROTATING, STEPS,
+} from './landing/content';
 import '../styles/Landing.css';
 
 /* ------------------------------------------------------------------
-   Content
-   Every number quoted below is a fact about this codebase (13 built-in
-   templates in templates.js, 8 workspace modules in Header.jsx), not a
-   marketing claim — keep them in sync if the app grows.
+   Every claim on this page lives in ./landing/content.js, where each
+   one is annotated with the code that makes it true. Keep it that way:
+   copy written inline here is copy nobody re-checks when a feature
+   changes.
    ------------------------------------------------------------------ */
-
-const NAV_SECTIONS = [
-  { id: 'why', label: 'Why' },
-  { id: 'how', label: 'How it works' },
-  { id: 'drafts', label: 'Drafts' },
-  { id: 'modules', label: 'Workspace' },
-  { id: 'faq', label: 'FAQ' },
-];
-
-const ROTATING = ['a hearing', 'a deadline', 'a filing', 'a limitation'];
-
-const PERSONAS = [
-  {
-    icon: 'user',
-    title: 'Solo advocates',
-    body: 'Run the whole practice from one screen — today’s board, tomorrow’s drafts, this month’s fees.',
-    points: ['Cause-list diary', 'Automatic reminders', 'One-tap drafts'],
-  },
-  {
-    icon: 'clients',
-    title: 'Chambers & juniors',
-    body: 'Briefs, checklists and hearing dates stay in one shared place instead of five WhatsApp groups.',
-    points: ['Shared case diary', 'Pre-hearing checklists', 'Client rolodex'],
-  },
-  {
-    icon: 'billing',
-    title: 'Litigation teams',
-    body: 'Track every matter across courts and benches, and see what is billed, pending and closed.',
-    points: ['Fee ledger', 'Case archive', 'Audit trail'],
-  },
-];
-
-const STEPS = [
-  { n: '01', title: 'Add the matter', body: 'Client, case number, court, stage and next date. Thirty seconds, once.' },
-  { n: '02', title: 'Get the board', body: 'Every morning your cause-list diary is grouped by court and ready to print.' },
-  { n: '03', title: 'Draft in minutes', body: 'Pick a template, fill the particulars, print with the backing sheet attached.' },
-  { n: '04', title: 'Never miss a date', body: 'Reminders go out before the hearing. Adjournments update the history automatically.' },
-];
-
-const MODULES = [
-  { icon: 'ai', title: 'AI assistant', body: 'Ask questions about a matter or have a document summarised before you walk in.' },
-  { icon: 'calendar', title: 'Court diary', body: 'A printable daily board grouped by court, hall and item number.' },
-  { icon: 'case', title: 'DraftMitra', body: 'Bail, vakalat, memo, process and petition templates with correct court alignment.' },
-  { icon: 'clients', title: 'Client rolodex', body: 'Every client with their active matters and contact details, one search away.' },
-  { icon: 'tasks', title: 'Pre-hearing tasks', body: 'Checklists per matter so nothing is discovered on the way to court.' },
-  { icon: 'billing', title: 'Fee ledger', body: 'What is billed, what is received, what is still outstanding per client.' },
-];
-
-const OUTCOMES = [
-  { before: 'Dates copied into three diaries', after: 'One diary, reminders sent automatically' },
-  { before: 'Drafts retyped from an old file', after: 'Templates filled and printed in minutes' },
-  { before: 'Backing sheets aligned by hand', after: 'Page two generated, folded and filing-ready' },
-  { before: 'Fees tracked on a notepad', after: 'A ledger that totals itself' },
-];
-
-const FAQS = [
-  {
-    q: 'Do I need to change how I already work?',
-    a: 'No. Add matters as they come in and use whichever modules help. The diary, drafts and billing sections work independently of each other.',
-  },
-  {
-    q: 'Are the drafts formatted for actual filing?',
-    a: 'Yes. Each template renders the petition on page one and its backing sheet as a genuine second page, folded so the docket faces outward — print it or download it as a Word file.',
-  },
-  {
-    q: 'Can I add my own draft formats?',
-    a: 'Yes. Paste an existing petition into the AI importer and it becomes a reusable fillable template alongside the built-in ones.',
-  },
-  {
-    q: 'Where is my case data stored?',
-    a: 'Against your own advocate account. Every case, client and draft is scoped to the logged-in advocate and is not shared with anyone else.',
-  },
-  {
-    q: 'Does it work on my phone?',
-    a: 'Yes — the whole workspace is responsive, so the diary and your checklists are readable from the corridor outside the courtroom.',
-  },
-];
 
 /* ------------------------------------------------------------------
    Small building blocks
    ------------------------------------------------------------------ */
 
 function Section({ id, className = '', band = false, flash = false, children }) {
-  const [ref, inView] = useReveal();
+  const [ref, inView] = useInView();
   const classes = [
     'lp-section', 'reveal-up',
     inView && 'in-view',
@@ -120,15 +52,9 @@ function Eyebrow({ children }) {
 }
 
 function RotatingWord() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) return;
-    const t = setInterval(() => setI((v) => (v + 1) % ROTATING.length), 2200);
-    return () => clearInterval(t);
-  }, []);
-  // No aria-live: the swap is decorative and announcing a new word every
-  // 2.2s would talk over the rest of the page.
+  const [i] = useCycle(ROTATING.length, 2400);
+  // No aria-live: the swap is decorative, and announcing a new word every
+  // 2.4s would talk over the rest of the page.
   return (
     <span className="lp-rotate">
       <span key={i} className="lp-rotate-word">{ROTATING[i]}</span>
@@ -136,25 +62,187 @@ function RotatingWord() {
   );
 }
 
-function Stat({ value, prefix = '', suffix = '', label }) {
-  const [ref, inView] = useReveal();
+function Stat({ value, prefix = '', suffix = '', label, note }) {
+  const [ref, inView] = useInView(0.4);
   const n = useCountUp(value, inView);
   return (
     <div ref={ref} className="lp-stat">
       <div className="lp-stat-num">{prefix}{n}{suffix}</div>
       <div className="lp-stat-label">{label}</div>
+      {note && <div className="lp-stat-note">{note}</div>}
     </div>
   );
 }
 
-function Faq({ q, a, open, onToggle }) {
+function Faq({ q, a, open, onToggle, id }) {
   return (
     <div className={`lp-faq${open ? ' is-open' : ''}`}>
-      <button type="button" className="lp-faq-q" onClick={onToggle} aria-expanded={open}>
+      <button
+        type="button"
+        className="lp-faq-q"
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-controls={`faq-a-${id}`}
+        id={`faq-q-${id}`}
+      >
         <span>{q}</span>
         <span className="lp-faq-sign" aria-hidden="true" />
       </button>
-      <div className="lp-faq-a"><p>{a}</p></div>
+      <div className="lp-faq-a" id={`faq-a-${id}`} role="region" aria-labelledby={`faq-q-${id}`}>
+        <p>{a}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------
+   Workspace explorer
+
+   Eight modules, one preview pane. It advances on its own so a visitor
+   who never touches it still sees more than one module — and stops for
+   good the moment they pick a tab themselves, because a panel that
+   keeps moving under a reader is worse than one that never moved.
+   ------------------------------------------------------------------ */
+
+function WorkspaceExplorer() {
+  const [ref, inView] = useInView(0.25);
+  const [locked, setLocked] = useState(false);
+  const [active, setActive] = useCycle(MODULES.length, 5600, inView && !locked);
+  const tabsRef = useRef(null);
+
+  const pick = (i) => {
+    setLocked(true);
+    setActive(i);
+  };
+
+  // Roving focus, as the tablist pattern expects: arrows move between
+  // tabs, Home/End jump to the ends.
+  const onKeyDown = (e) => {
+    const keys = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 1, ArrowUp: -1 };
+    let next = null;
+    if (keys[e.key]) next = (active + keys[e.key] + MODULES.length) % MODULES.length;
+    if (e.key === 'Home') next = 0;
+    if (e.key === 'End') next = MODULES.length - 1;
+    if (next === null) return;
+    e.preventDefault();
+    pick(next);
+    tabsRef.current?.querySelectorAll('[role="tab"]')[next]?.focus();
+  };
+
+  const current = MODULES[active];
+
+  return (
+    <div ref={ref} className={`lp-explorer${inView ? ' in-view' : ''}`}>
+      <div
+        className="lp-tabs"
+        role="tablist"
+        aria-label="Workspace modules"
+        ref={tabsRef}
+        onKeyDown={onKeyDown}
+      >
+        {MODULES.map((m, i) => (
+          <button
+            key={m.id}
+            type="button"
+            role="tab"
+            id={`tab-${m.id}`}
+            aria-selected={active === i}
+            aria-controls={`panel-${m.id}`}
+            tabIndex={active === i ? 0 : -1}
+            className={`lp-tab${active === i ? ' is-active' : ''}`}
+            style={{ '--i': i }}
+            onClick={() => pick(i)}
+          >
+            <span className="lp-tab-icon"><Icon name={m.icon} /></span>
+            <span className="lp-tab-label">{m.tab}</span>
+            {/* Progress hairline: only the live tab, and only while it
+                is still advancing on its own. */}
+            {active === i && !locked && inView && <span className="lp-tab-timer" aria-hidden="true" />}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className="lp-explorer-panel"
+        role="tabpanel"
+        id={`panel-${current.id}`}
+        aria-labelledby={`tab-${current.id}`}
+        tabIndex={-1}
+      >
+        {/* key on the module id so React swaps the subtree and the
+            entry animation replays for each module. */}
+        <div className="lp-explorer-copy" key={`c-${current.id}`}>
+          <h3>{current.title}</h3>
+          <p>{current.body}</p>
+          <ul>
+            {current.points.map((pt) => (
+              <li key={pt}><Icon name="check" />{pt}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="lp-explorer-art" key={`a-${current.id}`}>
+          <ModuleMock name={current.mock} label={`${current.tab} — ${current.title}`} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------
+   Reminders — the channel picker mirrors the real Settings screen, so
+   what a visitor plays with here is what they will configure later.
+   ------------------------------------------------------------------ */
+
+function ReminderPicker() {
+  const [channel, setChannel] = useState('whatsapp');
+  const [days, setDays] = useState(3);
+  const active = REMINDER_CHANNELS.find((c) => c.id === channel);
+
+  return (
+    <div className="lp-reminder-panel">
+      <div className="lp-field">
+        <span className="lp-field-label">Reminder channel</span>
+        <div className="lp-segment" role="group" aria-label="Reminder channel">
+          {REMINDER_CHANNELS.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`lp-segment-btn${channel === c.id ? ' is-active' : ''}`}
+              onClick={() => setChannel(c.id)}
+              aria-pressed={channel === c.id}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+        <p className="lp-field-help" key={channel}>{active.body}</p>
+      </div>
+
+      <div className="lp-field">
+        <span className="lp-field-label">How far ahead</span>
+        <div className="lp-days" role="group" aria-label="Days before the hearing">
+          {REMINDER_WINDOWS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              className={`lp-day${days === d ? ' is-active' : ''}`}
+              onClick={() => setDays(d)}
+              aria-pressed={days === d}
+            >
+              {d}
+            </button>
+          ))}
+          <span className="lp-days-unit">day{days > 1 ? 's' : ''} before</span>
+        </div>
+      </div>
+
+      <div className="lp-reminder-preview" aria-live="polite">
+        <span className="lp-reminder-icon"><Icon name="bell" /></span>
+        <p>
+          {active.label} alert, <strong>{days} day{days > 1 ? 's' : ''}</strong> before every hearing —
+          set once in your profile, sent by the daily dispatch.
+        </p>
+      </div>
     </div>
   );
 }
@@ -170,8 +258,14 @@ export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeId, setActiveId] = useState(null);
   const [flashId, setFlashId] = useState(null);
-  const heroRef = useRef(null);
   const flashTimer = useRef(null);
+
+  const [progressRef, scrolledFar] = useScrollProgress();
+  const heroRef = useParallax(0.06);
+  const tiltRef = useTilt(5);
+  const personaGrid = useSpotlight('.lp-persona');
+  const moduleGrid = useSpotlight('.lp-privacy-card');
+  const draftGrid = useSpotlight('.lp-draft-item');
 
   useEffect(() => {
     document.body.classList.add('landing-page');
@@ -196,14 +290,29 @@ export default function Landing() {
 
   useEffect(() => () => clearTimeout(flashTimer.current), []);
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Close the mobile menu on Escape, the way every other dismissible
+  // surface in the app behaves.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
   // Jump to a section and flag it so the container plays its highlight.
   const jumpTo = (e, id) => {
     const target = document.getElementById(id);
     if (!target) return;
     e.preventDefault();
     setMenuOpen(false);
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    target.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' });
     window.history.replaceState(null, '', `#${id}`);
     setActiveId(id);
     setFlashId(null);
@@ -213,35 +322,16 @@ export default function Landing() {
     flashTimer.current = setTimeout(() => setFlashId(null), 1500);
   };
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  // Parallax drift on the hero art. Written straight to a custom property
-  // so React never re-renders on scroll.
-  useEffect(() => {
-    const el = heroRef.current;
-    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let frame = null;
-    const onScroll = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        el.style.setProperty('--drift', `${Math.min(window.scrollY, 600) * 0.06}px`);
-        frame = null;
-      });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); if (frame) cancelAnimationFrame(frame); };
-  }, []);
+  const toTop = () => {
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  };
 
   return (
-    <div className="lp">
+    <div className="lp" ref={progressRef}>
       <div className="lp-mesh" aria-hidden="true">
         <span /><span /><span />
       </div>
+      <div className="lp-grain" aria-hidden="true" />
 
       <header className={`lp-nav${scrolled ? ' is-scrolled' : ''}`}>
         <div className="lp-nav-inner">
@@ -251,13 +341,14 @@ export default function Landing() {
           </Link>
 
           <nav className={`lp-nav-links${menuOpen ? ' is-open' : ''}`}>
-            {NAV_SECTIONS.map((s) => (
+            {NAV_SECTIONS.map((s, i) => (
               <a
                 key={s.id}
                 href={`#${s.id}`}
                 onClick={(e) => jumpTo(e, s.id)}
                 className={activeId === s.id ? 'is-active' : undefined}
                 aria-current={activeId === s.id ? 'location' : undefined}
+                style={{ '--i': i }}
               >
                 {s.label}
               </a>
@@ -289,6 +380,8 @@ export default function Landing() {
             </button>
           </div>
         </div>
+        {/* Reading progress, driven off --progress on .lp */}
+        <div className="lp-progress" aria-hidden="true"><i /></div>
       </header>
 
       {/* ---------------- Hero ---------------- */}
@@ -310,7 +403,7 @@ export default function Landing() {
           </h1>
 
           <p className="lp-hero-sub">
-            Advo Buddy keeps your case diary, cause list, court-ready drafts and fees in
+            Advo Buddy keeps your case board, cause-list diary, court-ready drafts and fees in
             one place — so the only thing you carry into court is your argument.
           </p>
 
@@ -319,23 +412,37 @@ export default function Landing() {
               Start free
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
             </Link>
-            <a href="#how" className="lp-btn lp-btn-outline lp-btn-lg">See how it works</a>
+            <a href="#workspace" className="lp-btn lp-btn-outline lp-btn-lg" onClick={(e) => jumpTo(e, 'workspace')}>
+              See the workspace
+            </a>
           </div>
 
           <div className="lp-hero-meta">
             <span><Icon name="check" /> No card required</span>
             <span><Icon name="check" /> Works on any device</span>
+            <span><Icon name="check" /> Export your data any time</span>
           </div>
+
+          <dl className="lp-proof">
+            {HERO_PROOF.map((p, i) => (
+              <div key={p.v} style={{ '--i': i }}>
+                <dt>{p.k}</dt>
+                <dd>{p.v}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
         <div className="lp-hero-art" ref={heroRef}>
           <div className="lp-hero-glow" />
-          <AppWindowMock />
+          <div className="lp-hero-tilt" ref={tiltRef}>
+            <AppWindowMock />
+          </div>
           <div className="lp-float lp-float-a">
             <span className="lp-float-icon lp-float-icon-warn"><Icon name="bell" /></span>
             <div>
               <strong>Hearing tomorrow</strong>
-              <small>O.S. 214/2024 · Item 6</small>
+              <small>S.T.C. 214/2025 · Item 6</small>
             </div>
           </div>
           <div className="lp-float lp-float-b">
@@ -353,10 +460,7 @@ export default function Landing() {
         <div className="lp-marquee-track">
           {[0, 1].map((dup) => (
             <div className="lp-marquee-group" key={dup}>
-              {['Bail applications', 'Vakalathnama', 'Memo of appearance', 'Cause-list diary', 'Process memo',
-                'Surrender petition', 'Copy application', 'Fee ledger', 'Solvency memo', 'Case archive'].map((t) => (
-                  <span key={t}>{t}<i /></span>
-                ))}
+              {MARQUEE_TERMS.map((t) => <span key={t}>{t}<i /></span>)}
             </div>
           ))}
         </div>
@@ -376,6 +480,7 @@ export default function Landing() {
             <li><Icon name="check" /> Every matter in a single searchable place</li>
             <li><Icon name="check" /> The next date is never more than one screen away</li>
             <li><Icon name="check" /> Drafts that come out formatted for the registry</li>
+            <li><Icon name="check" /> A record of every change, in case the date is disputed</li>
           </ul>
         </div>
         <div className="lp-why-art">
@@ -390,7 +495,7 @@ export default function Landing() {
           <h2>Built for the way advocates actually work</h2>
           <p>From a single-room chamber to a litigation team spread across benches.</p>
         </div>
-        <div className="lp-persona-grid">
+        <div className="lp-persona-grid" ref={personaGrid}>
           {PERSONAS.map((p, i) => (
             <article key={p.title} className="lp-persona" style={{ '--i': i }}>
               <span className="lp-persona-icon"><Icon name={p.icon} /></span>
@@ -403,12 +508,13 @@ export default function Landing() {
       </Section>
 
       {/* ---------------- How it works ---------------- */}
-      <Section id="how" className="lp-how" flash={flashId === 'how'}>
+      <Section className="lp-how">
         <div className="lp-head">
           <Eyebrow>How it works</Eyebrow>
           <h2>Four steps, then it runs itself</h2>
         </div>
         <div className="lp-steps">
+          <span className="lp-steps-rail" aria-hidden="true" />
           {STEPS.map((s, i) => (
             <div key={s.n} className="lp-step" style={{ '--i': i }}>
               <span className="lp-step-n">{s.n}</span>
@@ -419,57 +525,145 @@ export default function Landing() {
         </div>
       </Section>
 
+      {/* ---------------- Workspace explorer ---------------- */}
+      <Section id="workspace" className="lp-workspace" band flash={flashId === 'workspace'}>
+        <div className="lp-head">
+          <Eyebrow>The workspace</Eyebrow>
+          <h2>Eight modules, one login</h2>
+          <p>Everything the practice needs, and nothing it does not. Pick one to look inside.</p>
+        </div>
+        <WorkspaceExplorer />
+      </Section>
+
       {/* ---------------- Drafts ---------------- */}
-      <Section id="drafts" className="lp-drafts" band flash={flashId === 'drafts'}>
-        <div className="lp-drafts-art">
-          <DraftPageMock />
-          <div className="lp-badge-float">
-            <strong>Page 2</strong>
-            <small>Backing sheet, folded</small>
+      <Section id="drafts" className="lp-drafts" flash={flashId === 'drafts'}>
+        <div className="lp-drafts-top">
+          <div className="lp-drafts-art">
+            <DraftPageMock />
+            <div className="lp-badge-float">
+              <strong>Page 2</strong>
+              <small>Backing sheet, folded</small>
+            </div>
+          </div>
+          <div className="lp-drafts-copy">
+            <Eyebrow>DraftMitra</Eyebrow>
+            <h2>Court-ready drafts, down to the fold</h2>
+            <p>
+              Pick a template, fill in the particulars, and the draft comes out with the cause
+              title aligned, the petition on page one and the docket on page two — folded so it
+              faces outward exactly as it is filed.
+            </p>
+            <div className="lp-draft-features">
+              {DRAFT_FEATURES.map((f, i) => (
+                <div key={f.t} className="lp-draft-feature" style={{ '--i': i }}>
+                  <span><Icon name={f.icon} /></span>
+                  <div>
+                    <strong>{f.t}</strong>
+                    <p>{f.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Link to="/signup" className="lp-btn lp-btn-primary">Try the drafting suite</Link>
           </div>
         </div>
-        <div className="lp-drafts-copy">
-          <Eyebrow>DraftMitra</Eyebrow>
-          <h2>Court-ready drafts, down to the fold</h2>
-          <p>
-            Pick a template, fill in the particulars and the draft comes out with the cause
-            title aligned, the petition on page one and the docket on page two — folded so it
-            faces outward exactly as it is filed.
-          </p>
-          <div className="lp-chips">
-            {['Bail application', 'Vakalathnama', 'Memo of appearance', 'Surrender petition',
-              'Advance petition', 'Process memo', 'Copy application', 'Solvency memo'].map((c) => (
-                <span key={c}>{c}</span>
-              ))}
-            <span className="lp-chip-more">+ your own, imported by AI</span>
+
+        <div className="lp-draft-library" ref={draftGrid}>
+          <div className="lp-library-head">
+            <h3>The thirteen built in</h3>
+            <p>
+              Modelled on Tamil Nadu district-court and Madras High Court practice. Section
+              references follow the codes in force — Section 480 B.N.S.S. for bail, 72(2) for a
+              recall of warrant, 355 for exemption from appearance.
+            </p>
           </div>
-          <Link to="/signup" className="lp-btn lp-btn-primary">Try the drafting suite</Link>
+          {DRAFT_GROUPS.map((g, gi) => (
+            <div key={g.group} className="lp-draft-group" style={{ '--i': gi }}>
+              <h4>{g.group}<span>{g.items.length}</span></h4>
+              <div className="lp-draft-items">
+                {g.items.map((it, i) => (
+                  <article key={it.name} className="lp-draft-item" style={{ '--i': i }}>
+                    <strong>{it.name}</strong>
+                    <small>{it.sub}</small>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ))}
+          <p className="lp-draft-foot">
+            <Icon name="info" />
+            Anything not in the set, you can add: paste a petition you already file and the AI
+            importer turns it into a fillable template of your own.
+          </p>
+        </div>
+      </Section>
+
+      {/* ---------------- Reminders ---------------- */}
+      <Section id="reminders" className="lp-reminders" band flash={flashId === 'reminders'}>
+        <div className="lp-reminders-copy">
+          <Eyebrow>Reminders</Eyebrow>
+          <h2>The date reaches you before the court does</h2>
+          <p>
+            Choose how you want to be told and how much warning you want. A daily dispatch job
+            reads the board and sends the alerts, so a hearing cannot creep up while you are
+            three courts away.
+          </p>
+          <ReminderPicker />
+          <p className="lp-reminders-note">
+            <Icon name="phone" />
+            There is also a WhatsApp button on every case card, for telling a client the next
+            date the moment it changes.
+          </p>
+        </div>
+        <div className="lp-reminders-art">
+          <ReminderPhoneMock />
+        </div>
+      </Section>
+
+      {/* ---------------- AI ---------------- */}
+      <Section id="ai" className="lp-ai" flash={flashId === 'ai'}>
+        <div className="lp-head">
+          <Eyebrow>Assisted, not automated</Eyebrow>
+          <h2>An assistant that reads the file first</h2>
+          <p>Optional throughout — the diary, drafts, tasks and ledger all work with it left alone.</p>
+        </div>
+        <div className="lp-ai-grid">
+          <div className="lp-ai-list">
+            {AI_CAPABILITIES.map((c, i) => (
+              <article key={c.title} className="lp-ai-card" style={{ '--i': i }}>
+                <span className="lp-ai-icon"><Icon name={c.icon} /></span>
+                <div>
+                  <h3>{c.title}</h3>
+                  <p>{c.body}</p>
+                  {c.chips && (
+                    <div className="lp-ai-chips">
+                      {c.chips.map((ch) => <span key={ch}>{ch}</span>)}
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
+            <p className="lp-ai-caveat">
+              <Icon name="warning" />
+              Every draft and summary is an aid to your own review. Check the section references
+              and the facts before anything is signed or filed.
+            </p>
+          </div>
+          <div className="lp-ai-art">
+            <AiPanelMock />
+            <div className="lp-ai-formats">
+              {['PDF', 'DOCX', 'TXT'].map((f) => <span key={f}>{f}</span>)}
+            </div>
+          </div>
         </div>
       </Section>
 
       {/* ---------------- Stats ---------------- */}
-      <Section className="lp-stats">
-        <Stat value={13} label="Court-ready templates built in" />
-        <Stat value={8} label="Workspace modules, one login" />
-        <Stat value={2} suffix="-page" label="Drafts with the backing sheet attached" />
-        <Stat value={0} prefix="₹" label="To start — no card required" />
-      </Section>
-
-      {/* ---------------- Modules ---------------- */}
-      <Section id="modules" className="lp-modules" band flash={flashId === 'modules'}>
-        <div className="lp-head">
-          <Eyebrow>The workspace</Eyebrow>
-          <h2>Everything the practice needs, nothing it does not</h2>
-        </div>
-        <div className="lp-module-grid">
-          {MODULES.map((m, i) => (
-            <article key={m.title} className="lp-module" style={{ '--i': i }}>
-              <span className="lp-module-icon"><Icon name={m.icon} /></span>
-              <h3>{m.title}</h3>
-              <p>{m.body}</p>
-            </article>
-          ))}
-        </div>
+      <Section className="lp-stats" band>
+        <Stat value={13} label="Court-ready templates built in" note="Across petitions, bail and vakalat" />
+        <Stat value={8} label="Workspace modules, one login" note="Diary, board, clients, tasks, fees, archive, audit, profile" />
+        <Stat value={5} label="Reminder windows to choose from" note="1, 2, 3, 5 or 7 days before" />
+        <Stat value={0} prefix="₹" label="To start — no card required" note="Export your data whenever you want" />
       </Section>
 
       {/* ---------------- Outcomes ---------------- */}
@@ -489,15 +683,43 @@ export default function Landing() {
         </div>
       </Section>
 
+      {/* ---------------- Privacy ---------------- */}
+      <Section className="lp-privacy" band>
+        <div className="lp-head">
+          <Eyebrow>Private by design</Eyebrow>
+          <h2>Your file stays your file</h2>
+          <p>
+            A client’s papers are not marketing material, and an advocate’s practice is not a
+            listing. Advo Buddy is back-office software and stays on that side of the line.
+          </p>
+        </div>
+        <div className="lp-privacy-grid" ref={moduleGrid}>
+          {PRIVACY_POINTS.map((p, i) => (
+            <article key={p.t} className="lp-privacy-card" style={{ '--i': i }}>
+              <span className="lp-privacy-icon"><Icon name={p.icon} /></span>
+              <h3>{p.t}</h3>
+              <p>{p.d}</p>
+            </article>
+          ))}
+        </div>
+      </Section>
+
       {/* ---------------- FAQ ---------------- */}
-      <Section id="faq" className="lp-faqs" band flash={flashId === 'faq'}>
+      <Section id="faq" className="lp-faqs" flash={flashId === 'faq'}>
         <div className="lp-head">
           <Eyebrow>Questions</Eyebrow>
           <h2>Before you sign up</h2>
         </div>
         <div className="lp-faq-list">
           {FAQS.map((f, i) => (
-            <Faq key={f.q} q={f.q} a={f.a} open={openFaq === i} onToggle={() => setOpenFaq(openFaq === i ? -1 : i)} />
+            <Faq
+              key={f.q}
+              id={i}
+              q={f.q}
+              a={f.a}
+              open={openFaq === i}
+              onToggle={() => setOpenFaq(openFaq === i ? -1 : i)}
+            />
           ))}
         </div>
       </Section>
@@ -525,22 +747,24 @@ export default function Landing() {
               <BrandMark />
               Advo<em>Buddy</em>
             </Link>
-            <p>The case diary, drafting desk and fee book for the working advocate.</p>
+            <p>The case board, drafting desk and fee book for the working advocate.</p>
           </div>
 
           <div className="lp-footer-col">
             <h4>Workspace</h4>
-            <a href="#modules">Court diary</a>
-            <a href="#drafts">DraftMitra</a>
-            <a href="#modules">Fee ledger</a>
-            <a href="#modules">AI assistant</a>
+            <a href="#workspace" onClick={(e) => jumpTo(e, 'workspace')}>Court diary</a>
+            <a href="#workspace" onClick={(e) => jumpTo(e, 'workspace')}>Case board</a>
+            <a href="#workspace" onClick={(e) => jumpTo(e, 'workspace')}>Fee ledger</a>
+            <a href="#workspace" onClick={(e) => jumpTo(e, 'workspace')}>Audit trail</a>
           </div>
 
           <div className="lp-footer-col">
             <h4>Product</h4>
-            <a href="#why">Why Advo Buddy</a>
-            <a href="#how">How it works</a>
-            <a href="#faq">FAQ</a>
+            <a href="#why" onClick={(e) => jumpTo(e, 'why')}>Why Advo Buddy</a>
+            <a href="#drafts" onClick={(e) => jumpTo(e, 'drafts')}>DraftMitra</a>
+            <a href="#reminders" onClick={(e) => jumpTo(e, 'reminders')}>Reminders</a>
+            <a href="#ai" onClick={(e) => jumpTo(e, 'ai')}>AI assistant</a>
+            <a href="#faq" onClick={(e) => jumpTo(e, 'faq')}>FAQ</a>
           </div>
 
           <div className="lp-footer-col">
@@ -553,9 +777,28 @@ export default function Landing() {
 
         <div className="lp-footer-base">
           <span>© {new Date().getFullYear()} Advo Buddy. All rights reserved.</span>
-          <span className="lp-footer-note">A drafting and diary aid — not a substitute for an advocate’s own review.</span>
+          <span className="lp-footer-note">
+            A drafting and diary aid — not legal advice, and not a substitute for an advocate’s
+            own review.
+          </span>
         </div>
       </footer>
+
+      <button
+        type="button"
+        className={`lp-totop${scrolledFar ? ' is-shown' : ''}`}
+        onClick={toTop}
+        aria-label="Back to top"
+        tabIndex={scrolledFar ? 0 : -1}
+      >
+        <svg className="lp-totop-ring" viewBox="0 0 44 44" aria-hidden="true">
+          <circle cx="22" cy="22" r="20" />
+          <circle cx="22" cy="22" r="20" className="lp-totop-arc" />
+        </svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 19V5M6 11l6-6 6 6" />
+        </svg>
+      </button>
     </div>
   );
 }
