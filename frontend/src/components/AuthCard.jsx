@@ -4,12 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFlash } from '../context/FlashContext';
 import { supabase } from '../api/supabaseClient';
 import AuthShell, { PasswordToggle, StrengthMeter, SubmitButton } from './AuthShell';
-import Icon from './Icon';
 
-// Login, Signup and Forgot Password share this one component across all
-// three routes, so React Router re-renders rather than remounting it and
-// the typed-in state survives a mode switch. The inner .auth-swap div is
-// keyed on the mode, which replays its enter animation on each change.
 export default function AuthCard() {
   const { login, signup } = useAuth();
   const addFlash = useFlash();
@@ -20,7 +15,7 @@ export default function AuthCard() {
     : location.pathname === '/forgot-password' ? 'forgot'
       : 'login';
 
-  // --- Login ---
+  // --- Login State ---
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -31,17 +26,23 @@ export default function AuthCard() {
     setLoginLoading(true);
     try {
       const advocate = await login(loginEmail, loginPassword);
-      addFlash(`Welcome back, ${advocate.name}!`, 'success');
+      addFlash(`Welcome back, ${advocate.name || 'Advocate'}!`, 'success');
       const dest = location.state?.from?.pathname || '/';
       navigate(dest, { replace: true });
     } catch (err) {
-      addFlash(err.message, 'error');
+      addFlash(err.message || 'Login failed. Please verify your credentials.', 'error');
       setLoginLoading(false);
     }
   };
 
-  // --- Signup ---
-  const [signupForm, setSignupForm] = useState({ name: '', email: '', phone: '', bar_council_number: '', password: '' });
+  // --- Signup State ---
+  const [signupForm, setSignupForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    bar_council_number: '',
+    password: '',
+  });
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
   const updateSignup = (field) => (e) => setSignupForm((f) => ({ ...f, [field]: e.target.value }));
@@ -52,19 +53,19 @@ export default function AuthCard() {
     try {
       const result = await signup(signupForm);
       if (result.confirmationRequired) {
-        addFlash('Account created! Check your email for a confirmation link, then log in.', 'success');
+        addFlash('Account created! Please check your email for a confirmation link, then log in.', 'success');
         navigate('/login', { replace: true });
       } else {
-        addFlash(`Welcome to Advo Buddy, ${result.advocate.name}!`, 'success');
+        addFlash(`Welcome to AdvoBuddy, ${result.advocate?.name || 'Advocate'}!`, 'success');
         navigate('/', { replace: true });
       }
     } catch (err) {
-      addFlash(err.message, 'error');
+      addFlash(err.message || 'Registration failed. Please check your information.', 'error');
       setSignupLoading(false);
     }
   };
 
-  // --- Forgot password ---
+  // --- Forgot Password State ---
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
@@ -84,7 +85,7 @@ export default function AuthCard() {
       addFlash('If an account with that email exists, a password reset link has been sent.', 'success');
       setForgotSent(true);
     } catch (err) {
-      addFlash(err.message, 'error');
+      addFlash(err.message || 'Failed to send reset link.', 'error');
     } finally {
       setForgotLoading(false);
     }
@@ -92,141 +93,268 @@ export default function AuthCard() {
 
   return (
     <AuthShell>
-      {/* Real navigation, not a tablist — each side is its own route, so
-          aria-current is the correct signal rather than tab/aria-selected. */}
-      <nav className="auth-tabs" aria-label="Account access">
-        <Link
-          to="/login"
-          aria-current={mode !== 'signup' ? 'page' : undefined}
-          className={`auth-tab${mode !== 'signup' ? ' is-active' : ''}`}
-        >
-          Log in
-        </Link>
-        <Link
-          to="/signup"
-          aria-current={mode === 'signup' ? 'page' : undefined}
-          className={`auth-tab${mode === 'signup' ? ' is-active' : ''}`}
-        >
-          Sign up
-        </Link>
-        <span className={`auth-tab-thumb${mode === 'signup' ? ' is-right' : ''}`} aria-hidden="true" />
-      </nav>
+      {/* Top Gold Crest Shield Emblem */}
+      <div className="auth-card-emblem-wrap">
+        <div className="auth-card-emblem" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="M12 7v8M8 10h8M8 10l-2 3h4L8 10zm8 0l-2 3h4l-2-3z" />
+          </svg>
+        </div>
+      </div>
 
-      <div className="auth-swap" key={mode}>
+      {/* Header text */}
+      <div className="auth-card-header">
+        <h2 className="auth-card-title">
+          {mode === 'login' && 'Welcome back'}
+          {mode === 'signup' && 'Create your account'}
+          {mode === 'forgot' && 'Reset your password'}
+        </h2>
+        <p className="auth-card-desc">
+          {mode === 'login' && 'Log in to manage your case diary and smart reminders.'}
+          {mode === 'signup' && 'Join thousands of advocates streamlining their legal practice.'}
+          {mode === 'forgot' && "Enter your registered email address and we'll send you a reset link."}
+        </p>
+      </div>
+
+      {/* Switcher tabs (Log in / Sign up) */}
+      {mode !== 'forgot' && (
+        <div className="auth-tab-switch">
+          <Link
+            to="/login"
+            className={`auth-tab-btn${mode === 'login' ? ' is-active' : ''}`}
+          >
+            Log in
+          </Link>
+          <Link
+            to="/signup"
+            className={`auth-tab-btn${mode === 'signup' ? ' is-active' : ''}`}
+          >
+            Sign up
+          </Link>
+        </div>
+      )}
+
+      {/* Dynamic forms */}
+      <div className="auth-swap-container" key={mode}>
+        {/* LOGIN FORM */}
         {mode === 'login' && (
-          <>
-            <div className="auth-heading">
-              <h2>Welcome back</h2>
-              <p>Log in to manage your case diary and schedules.</p>
+          <form className="auth-form-body" onSubmit={handleLoginSubmit}>
+            <div className="auth-input-group">
+              <span className="auth-input-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                id="login-email"
+                className="auth-text-input"
+                required
+                autoComplete="email"
+                placeholder="Email address"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+              />
             </div>
 
-            <form className="auth-form" onSubmit={handleLoginSubmit}>
-              <div className="form-group floating-group has-icon">
-                <input type="email" id="email" required autoComplete="email" placeholder=" " value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
-                <Icon name="mail" className="field-icon" />
-                <label htmlFor="email">Email address</label>
-              </div>
-
-              <div className="form-group floating-group has-icon">
-                <input type={showLoginPassword ? 'text' : 'password'} id="password" required autoComplete="current-password" placeholder=" " value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
-                <Icon name="lock" className="field-icon" />
-                <label htmlFor="password">Password</label>
-                <PasswordToggle shown={showLoginPassword} onToggle={() => setShowLoginPassword((v) => !v)} />
-              </div>
-
-              <div className="auth-row-end">
-                <Link to="/forgot-password" className="auth-link-sm">Forgot password?</Link>
-              </div>
-
-              <SubmitButton loading={loginLoading}>Log in</SubmitButton>
-            </form>
-
-            <div className="auth-footer">
-              New here? <Link to="/signup">Create an account</Link>
+            <div className="auth-input-group">
+              <span className="auth-input-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <input
+                type={showLoginPassword ? 'text' : 'password'}
+                id="login-password"
+                className="auth-text-input"
+                required
+                autoComplete="current-password"
+                placeholder="Password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+              />
+              <PasswordToggle shown={showLoginPassword} onToggle={() => setShowLoginPassword((v) => !v)} />
             </div>
-          </>
+
+            <div className="auth-actions-row">
+              <Link to="/forgot-password" className="auth-gold-link">Forgot password?</Link>
+            </div>
+
+            <SubmitButton loading={loginLoading}>Log In</SubmitButton>
+
+            <div className="auth-alt-footer">
+              Don't have an account? <Link to="/signup" className="auth-gold-link">Sign up</Link>
+            </div>
+          </form>
         )}
 
+        {/* SIGNUP FORM */}
         {mode === 'signup' && (
-          <>
-            <div className="auth-heading">
-              <h2>Create your account</h2>
-              <p>Join fellow advocates already saving time with Advo Buddy.</p>
+          <form className="auth-form-body" onSubmit={handleSignupSubmit}>
+            <div className="auth-input-group">
+              <span className="auth-input-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="signup-name"
+                className="auth-text-input"
+                required
+                autoComplete="name"
+                placeholder="Full Name *"
+                value={signupForm.name}
+                onChange={updateSignup('name')}
+              />
             </div>
 
-            <form className="auth-form" onSubmit={handleSignupSubmit}>
-              <div className="form-group floating-group has-icon">
-                <input type="text" id="name" required autoComplete="name" placeholder=" " value={signupForm.name} onChange={updateSignup('name')} />
-                <Icon name="user" className="field-icon" />
-                <label htmlFor="name">Full name *</label>
-              </div>
-
-              <div className="form-group floating-group has-icon">
-                <input type="email" id="signup-email" required autoComplete="email" placeholder=" " value={signupForm.email} onChange={updateSignup('email')} />
-                <Icon name="mail" className="field-icon" />
-                <label htmlFor="signup-email">Email address *</label>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group floating-group has-icon">
-                  <input type="tel" id="phone" autoComplete="tel" placeholder=" " value={signupForm.phone} onChange={updateSignup('phone')} />
-                  <Icon name="phone" className="field-icon" />
-                  <label htmlFor="phone">Phone number</label>
-                </div>
-                <div className="form-group floating-group has-icon">
-                  <input type="text" id="bar_council_number" placeholder=" " value={signupForm.bar_council_number} onChange={updateSignup('bar_council_number')} />
-                  <Icon name="case" className="field-icon" />
-                  <label htmlFor="bar_council_number">Bar enrollment no.</label>
-                </div>
-              </div>
-
-              <div className="form-group floating-group has-icon">
-                <input type={showSignupPassword ? 'text' : 'password'} id="signup-password" required minLength={6} autoComplete="new-password" placeholder=" " value={signupForm.password} onChange={updateSignup('password')} />
-                <Icon name="lock" className="field-icon" />
-                <label htmlFor="signup-password">Password *</label>
-                <PasswordToggle shown={showSignupPassword} onToggle={() => setShowSignupPassword((v) => !v)} />
-              </div>
-
-              <StrengthMeter value={signupForm.password} />
-
-              <SubmitButton loading={signupLoading}>Create account</SubmitButton>
-            </form>
-
-            <div className="auth-footer">
-              Already have an account? <Link to="/login">Log in</Link>
+            <div className="auth-input-group">
+              <span className="auth-input-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                id="signup-email"
+                className="auth-text-input"
+                required
+                autoComplete="email"
+                placeholder="Email Address *"
+                value={signupForm.email}
+                onChange={updateSignup('email')}
+              />
             </div>
-          </>
+
+            <div className="auth-form-two-col">
+              <div className="auth-input-group">
+                <span className="auth-input-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                </span>
+                <input
+                  type="tel"
+                  id="signup-phone"
+                  className="auth-text-input"
+                  autoComplete="tel"
+                  placeholder="Phone number"
+                  value={signupForm.phone}
+                  onChange={updateSignup('phone')}
+                />
+              </div>
+
+              <div className="auth-input-group">
+                <span className="auth-input-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  id="signup-bar"
+                  className="auth-text-input"
+                  placeholder="Bar enrollment no."
+                  value={signupForm.bar_council_number}
+                  onChange={updateSignup('bar_council_number')}
+                />
+              </div>
+            </div>
+
+            <div className="auth-input-group">
+              <span className="auth-input-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              </span>
+              <input
+                type={showSignupPassword ? 'text' : 'password'}
+                id="signup-password"
+                className="auth-text-input"
+                required
+                minLength={6}
+                autoComplete="new-password"
+                placeholder="Password (min 6 characters) *"
+                value={signupForm.password}
+                onChange={updateSignup('password')}
+              />
+              <PasswordToggle shown={showSignupPassword} onToggle={() => setShowSignupPassword((v) => !v)} />
+            </div>
+
+            <StrengthMeter value={signupForm.password} />
+
+            <SubmitButton loading={signupLoading}>Create Account</SubmitButton>
+
+            <div className="auth-alt-footer">
+              Already have an account? <Link to="/login" className="auth-gold-link">Log in</Link>
+            </div>
+          </form>
         )}
 
+        {/* FORGOT PASSWORD FORM */}
         {mode === 'forgot' && (
-          <>
-            <div className="auth-heading">
-              <h2>Forgot password</h2>
-              <p>Enter your registered email and we'll send you a reset link.</p>
+          <form className="auth-form-body" onSubmit={handleForgotSubmit}>
+            <div className="auth-input-group">
+              <span className="auth-input-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                id="forgot-email"
+                className="auth-text-input"
+                required
+                autoComplete="email"
+                placeholder="Enter your registered email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+              />
             </div>
 
-            <form className="auth-form" onSubmit={handleForgotSubmit}>
-              <div className="form-group floating-group has-icon">
-                <input type="email" id="forgot-email" required autoComplete="email" placeholder=" " value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
-                <Icon name="mail" className="field-icon" />
-                <label htmlFor="forgot-email">Email address</label>
-              </div>
-
-              <SubmitButton loading={forgotLoading}>Send reset link</SubmitButton>
-            </form>
+            <SubmitButton loading={forgotLoading}>Send Reset Link</SubmitButton>
 
             {forgotSent && (
-              <div className="auth-note">
-                <Icon name="check" />
-                <span>Check your email for a password reset link.</span>
+              <div className="auth-feedback-box">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                <span>Password reset link sent! Please check your email inbox.</span>
               </div>
             )}
 
-            <div className="auth-footer">
-              Remembered your password? <Link to="/login">Back to login</Link>
+            <div className="auth-alt-footer">
+              Remember your password? <Link to="/login" className="auth-gold-link">Back to login</Link>
             </div>
-          </>
+          </form>
         )}
+      </div>
+
+      {/* Trust Badges Footer */}
+      <div className="auth-card-trust-footer">
+        <div className="auth-trust-item">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          <span>256-bit Encrypted</span>
+        </div>
+        <span className="auth-trust-divider">•</span>
+        <div className="auth-trust-item">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span>Bar Council Compliant</span>
+        </div>
       </div>
     </AuthShell>
   );

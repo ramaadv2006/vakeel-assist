@@ -72,12 +72,13 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
 
-              <Route element={<Layout />}>
-                <Route path="/login" element={<AuthCard />} />
-                <Route path="/signup" element={<AuthCard />} />
-                <Route path="/forgot-password" element={<AuthCard />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
+              {/* Full-screen Dedicated Auth Routes (no Header/Hero, 100% viewport coverage) */}
+              <Route path="/login" element={<AuthCard />} />
+              <Route path="/signup" element={<AuthCard />} />
+              <Route path="/forgot-password" element={<AuthCard />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
 
+              <Route element={<Layout />}>
                 <Route element={<ProtectedRoute />}>
                   <Route path="/ai-assistant" element={<AiAssistant />} />
                   <Route path="/clients" element={<Clients />} />
