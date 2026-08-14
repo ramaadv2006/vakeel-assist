@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import FlashMessages from './FlashMessages';
 
@@ -121,6 +121,8 @@ const FEATURES = [
 ];
 
 export default function AuthShell({ children }) {
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+
   useEffect(() => {
     document.body.classList.add('auth-fullscreen-active');
     return () => {
@@ -128,8 +130,14 @@ export default function AuthShell({ children }) {
     };
   }, []);
 
+  const handleMouseMove = (e) => {
+    const x = (e.clientX / window.innerWidth) * 100;
+    const y = (e.clientY / window.innerHeight) * 100;
+    setMousePos({ x, y });
+  };
+
   return (
-    <div className="auth-fullscreen-root">
+    <div className="auth-fullscreen-root" onMouseMove={handleMouseMove}>
       {/* Background artwork layer */}
       <div className="auth-bg-layer" aria-hidden="true">
         <img
@@ -140,6 +148,18 @@ export default function AuthShell({ children }) {
         />
         <div className="auth-bg-vignette" />
         <div className="auth-bg-glow" />
+        <div
+          className="auth-cursor-glow"
+          style={{
+            left: `${mousePos.x}%`,
+            top: `${mousePos.y}%`,
+          }}
+        />
+        <div className="auth-bg-motes">
+          {[...Array(6)].map((_, i) => (
+            <span key={i} className={`mote mote-${i + 1}`} />
+          ))}
+        </div>
       </div>
 
       {/* Main Full-Screen Layout Wrapper */}
@@ -164,7 +184,7 @@ export default function AuthShell({ children }) {
 
             <div className="auth-hero-separator" aria-hidden="true">
               <span className="auth-sep-line" />
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <svg className="auth-hero-scales" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M12 4v14M7 8h10M7 8l-2 4h4L7 8zm10 0l-2 4h4l-2-4z" />
               </svg>
               <span className="auth-sep-line" />
@@ -193,10 +213,7 @@ export default function AuthShell({ children }) {
 
         {/* Right Floating Glass Card Area */}
         <section className="auth-right-panel">
-          <div className="auth-floating-card">
-            <FlashMessages />
-            {children}
-          </div>
+          {children}
         </section>
       </div>
     </div>

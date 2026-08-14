@@ -11,7 +11,7 @@ import {
 } from './landing/motion';
 import {
   AI_CAPABILITIES, DRAFT_FEATURES, DRAFT_GROUPS, FAQS, HERO_PROOF, MARQUEE_TERMS,
-  MODULES, NAV_SECTIONS, OUTCOMES, PERSONAS, PRIVACY_POINTS, REMINDER_CHANNELS,
+  MODULES, NAV_SECTIONS, PERSONAS, PRIVACY_POINTS, REMINDER_CHANNELS,
   REMINDER_WINDOWS, ROTATING, STEPS,
 } from './landing/content';
 import '../styles/Landing.css';
@@ -664,23 +664,6 @@ export default function Landing() {
         <Stat value={8} label="Workspace modules, one login" note="Diary, board, clients, tasks, fees, archive, audit, profile" />
         <Stat value={5} label="Reminder windows to choose from" note="1, 2, 3, 5 or 7 days before" />
         <Stat value={0} prefix="₹" label="To start — no card required" note="Export your data whenever you want" />
-      </Section>
-
-      {/* ---------------- Outcomes ---------------- */}
-      <Section className="lp-outcomes">
-        <div className="lp-head">
-          <Eyebrow>Before & after</Eyebrow>
-          <h2>What changes in the first week</h2>
-        </div>
-        <div className="lp-outcome-list">
-          {OUTCOMES.map((o, i) => (
-            <div key={o.after} className="lp-outcome" style={{ '--i': i }}>
-              <div className="lp-outcome-before"><span>Before</span>{o.before}</div>
-              <svg className="lp-outcome-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
-              <div className="lp-outcome-after"><span>After</span>{o.after}</div>
-            </div>
-          ))}
-        </div>
       </Section>
 
       {/* ---------------- Privacy ---------------- */}
