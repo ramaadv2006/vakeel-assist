@@ -724,6 +724,32 @@ export default function Landing() {
         </div>
       </Section>
 
+      {/* ---------------- Team ---------------- */}
+      <Section className="lp-team" band>
+        <div className="lp-team-art">
+          <picture>
+            <source srcSet="/hero-team.webp" type="image/webp" />
+            <img
+              src="/hero-team.png"
+              alt="A group of advocates in court dress"
+              width="1200"
+              height="772"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+        </div>
+        <div className="lp-team-copy">
+          <Eyebrow>The people behind it</Eyebrow>
+          <h2>Shaped by advocates, not guessed at from outside</h2>
+          <p>
+            Every screen in Advo Buddy went past the practising advocates who agreed to test it
+            first — the cause-list format, the drafting templates, the reminder windows. If a
+            workflow felt wrong to them, it changed before anyone else saw it.
+          </p>
+        </div>
+      </Section>
+
       {/* ---------------- Final CTA ---------------- */}
       <Section className="lp-cta">
         <div className="lp-cta-inner">

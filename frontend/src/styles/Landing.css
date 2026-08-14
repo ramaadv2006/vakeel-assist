@@ -1023,6 +1023,33 @@ body.dark .lp-float-icon-ok { color: #4ec98a; }
 .lp-why-art { display: grid; place-items: center; }
 .lp-why-art .art-phone { max-width: 260px; }
 
+/* ---------- Team ---------- */
+
+.lp-team {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    align-items: center;
+    gap: 64px;
+}
+
+.lp-team-art {
+    display: grid;
+    place-items: center;
+}
+
+.lp-team-art img {
+    width: 100%;
+    max-width: 460px;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 24px 44px rgba(11, 21, 38, 0.22));
+}
+
+body.dark .lp-team-art img { filter: drop-shadow(0 24px 44px rgba(0, 0, 0, 0.55)); }
+
+.lp-team-copy h2 { margin-bottom: 18px; }
+.lp-team-copy p { font-size: 16.5px; line-height: 1.7; }
+
 /* ---------- Spotlight cards ----------
    The pointer hook (useSpotlight in landing/motion.js) writes
    --mx/--my/--spot onto whichever card is under the cursor. Each grid
@@ -2145,6 +2172,7 @@ body.dark .lp-footer-col a:hover { color: var(--lp-brass); }
 @media (max-width: 980px) {
     .lp-hero,
     .lp-why,
+    .lp-team,
     .lp-drafts-top,
     .lp-reminders,
     .lp-ai-grid,
