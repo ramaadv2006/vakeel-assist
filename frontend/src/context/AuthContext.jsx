@@ -44,6 +44,11 @@ export function AuthProvider({ children }) {
             id: u.id,
             email: u.email,
             name: u.user_metadata?.name || u.email?.split('@')[0] || 'Advocate',
+            role: u.user_metadata?.role || 'advocate',
+            college_name: u.user_metadata?.college_name || '',
+            course_year: u.user_metadata?.course_year || '',
+            student_id_number: u.user_metadata?.student_id_number || '',
+            areas_of_interest: u.user_metadata?.areas_of_interest || '',
             phone: u.user_metadata?.phone || '',
             bar_council_number: u.user_metadata?.bar_council_number || '',
             avatar_url: u.user_metadata?.avatar_url || '',
@@ -93,6 +98,11 @@ export function AuthProvider({ children }) {
         id: u.id,
         email: u.email,
         name: u.user_metadata?.name || u.email?.split('@')[0] || 'Advocate',
+        role: u.user_metadata?.role || 'advocate',
+        college_name: u.user_metadata?.college_name || '',
+        course_year: u.user_metadata?.course_year || '',
+        student_id_number: u.user_metadata?.student_id_number || '',
+        areas_of_interest: u.user_metadata?.areas_of_interest || '',
         phone: u.user_metadata?.phone || '',
         bar_council_number: u.user_metadata?.bar_council_number || '',
         avatar_url: u.user_metadata?.avatar_url || '',
@@ -107,11 +117,22 @@ export function AuthProvider({ children }) {
   // Returns { confirmationRequired: true } when Supabase has "Confirm email"
   // turned on and doesn't issue a session until the user clicks the emailed
   // link; otherwise { confirmationRequired: false, advocate }.
-  const signup = async ({ name, email, phone, bar_council_number, password }) => {
+  const signup = async ({ name, email, phone, bar_council_number, password, role = 'advocate', college_name, course_year, student_id_number, areas_of_interest }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name, phone, bar_council_number } },
+      options: {
+        data: {
+          name,
+          phone,
+          bar_council_number,
+          role,
+          college_name,
+          course_year,
+          student_id_number,
+          areas_of_interest,
+        },
+      },
     });
     if (error) throw error;
     if (!data.session) {
@@ -123,13 +144,24 @@ export function AuthProvider({ children }) {
     return { confirmationRequired: false, advocate };
   };
 
+  const switchRole = async (targetRole) => {
+    const res = await api.post('/role/switch', { role: targetRole });
+    if (res?.advocate) {
+      setAdvocate(res.advocate);
+      lastLoadedRef.current = { time: Date.now(), advocate: res.advocate };
+    }
+    return res;
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setAdvocate(null);
   };
 
+  const isStudent = String(advocate?.role || '').toLowerCase() === 'student';
+
   return (
-    <AuthContext.Provider value={{ advocate, loading, login, signup, logout, refresh: loadProfile, setAdvocate }}>
+    <AuthContext.Provider value={{ advocate, isStudent, loading, login, signup, switchRole, logout, refresh: loadProfile, setAdvocate }}>
       {children}
     </AuthContext.Provider>
   );

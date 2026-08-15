@@ -23,6 +23,15 @@ import Settings from './pages/Settings';
 import Templates from './pages/Templates';
 import AiAssistant from './pages/AiAssistant';
 
+// Student Portal Pages
+import StudentDashboard from './pages/student/StudentDashboard';
+import MootTracker from './pages/student/MootTracker';
+import CaseBriefs from './pages/student/CaseBriefs';
+import InternshipDiary from './pages/student/InternshipDiary';
+import StudyDeck from './pages/student/StudyDeck';
+import AiStudentTutor from './pages/student/AiStudentTutor';
+import StudentTasks from './pages/student/StudentTasks';
+
 // Supabase persists its session under `sb-<project-ref>-auth-token`. Checking
 // for it is a synchronous hint about which way "/" is about to resolve — it
 // decides only what to paint for the few hundred ms before /auth/me answers,
@@ -41,10 +50,9 @@ function hasStoredSession() {
 
 // "/" is the one route that differs by who is asking: visitors get the
 // marketing page (its own full-page chrome, no app header), logged-in
-// advocates get the dashboard inside the app shell. Keeping the dashboard
-// on "/" means every existing `Link to="/"` in the app still works.
+// advocates/students get their respective dashboard inside the app shell.
 function Home() {
-  const { advocate, loading } = useAuth();
+  const { advocate, isStudent, loading } = useAuth();
 
   if (loading) {
     // Never a blank page: returning advocates get the dashboard's shimmer,
@@ -58,7 +66,7 @@ function Home() {
 
   return (
     <Layout>
-      <Dashboard />
+      {isStudent ? <StudentDashboard /> : <Dashboard />}
     </Layout>
   );
 }
@@ -80,6 +88,7 @@ export default function App() {
 
               <Route element={<Layout />}>
                 <Route element={<ProtectedRoute />}>
+                  {/* Advocate Routes */}
                   <Route path="/ai-assistant" element={<AiAssistant />} />
                   <Route path="/clients" element={<Clients />} />
                   <Route path="/add" element={<AddCase />} />
@@ -92,6 +101,15 @@ export default function App() {
                   <Route path="/billing" element={<Billing />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/templates" element={<Templates />} />
+
+                  {/* Student Portal Routes */}
+                  <Route path="/student/moots" element={<MootTracker />} />
+                  <Route path="/student/briefs" element={<CaseBriefs />} />
+                  <Route path="/student/briefs/:briefId" element={<CaseBriefs />} />
+                  <Route path="/student/internships" element={<InternshipDiary />} />
+                  <Route path="/student/study-deck" element={<StudyDeck />} />
+                  <Route path="/student/tutor" element={<AiStudentTutor />} />
+                  <Route path="/student/tasks" element={<StudentTasks />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

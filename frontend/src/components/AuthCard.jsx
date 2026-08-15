@@ -70,12 +70,16 @@ export default function AuthCard() {
     name: '',
     email: '',
     phone: '',
+    role: 'advocate',
     bar_council_number: '',
+    college_name: '',
+    course_year: '',
     password: '',
   });
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [signupLoading, setSignupLoading] = useState(false);
   const updateSignup = (field) => (e) => setSignupForm((f) => ({ ...f, [field]: e.target.value }));
+  const setSignupRole = (r) => setSignupForm((f) => ({ ...f, role: r }));
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
@@ -86,7 +90,7 @@ export default function AuthCard() {
         addFlash('Account created! Please check your email for a confirmation link, then log in.', 'success');
         navigate('/login', { replace: true });
       } else {
-        addFlash(`Welcome to AdvoBuddy, ${result.advocate?.name || 'Advocate'}!`, 'success');
+        addFlash(`Welcome to AdvoBuddy, ${result.advocate?.name || (signupForm.role === 'student' ? 'Student' : 'Advocate')}!`, 'success');
         navigate('/', { replace: true });
       }
     } catch (err) {
@@ -231,6 +235,46 @@ export default function AuthCard() {
                 </form>
               ) : (
                 <form className="auth-form-body" onSubmit={handleSignupSubmit}>
+                  {/* Role Selector Tabs */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16, background: 'var(--bg-app)', padding: 4, borderRadius: 10, border: '1px solid var(--border-color)' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSignupRole('advocate')}
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        borderRadius: 7,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        background: signupForm.role === 'advocate' ? 'var(--accent)' : 'transparent',
+                        color: signupForm.role === 'advocate' ? '#111827' : 'var(--text-muted)',
+                      }}
+                    >
+                      ⚖️ Practicing Advocate
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSignupRole('student')}
+                      style={{
+                        flex: 1,
+                        padding: '8px 10px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        borderRadius: 7,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        background: signupForm.role === 'student' ? 'var(--accent)' : 'transparent',
+                        color: signupForm.role === 'student' ? '#111827' : 'var(--text-muted)',
+                      }}
+                    >
+                      🎓 Law Student / Aspirant
+                    </button>
+                  </div>
+
                   <div className="auth-input-group">
                     <span className="auth-input-icon">
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -269,41 +313,80 @@ export default function AuthCard() {
                     />
                   </div>
 
-                  <div className="auth-form-two-col">
-                    <div className="auth-input-group">
-                      <span className="auth-input-icon">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                        </svg>
-                      </span>
-                      <input
-                        type="tel"
-                        id="signup-phone"
-                        className="auth-text-input"
-                        autoComplete="tel"
-                        placeholder="Phone number"
-                        value={signupForm.phone}
-                        onChange={updateSignup('phone')}
-                      />
-                    </div>
+                  {signupForm.role === 'advocate' ? (
+                    <div className="auth-form-two-col">
+                      <div className="auth-input-group">
+                        <span className="auth-input-icon">
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                          </svg>
+                        </span>
+                        <input
+                          type="tel"
+                          id="signup-phone"
+                          className="auth-text-input"
+                          autoComplete="tel"
+                          placeholder="Phone number"
+                          value={signupForm.phone}
+                          onChange={updateSignup('phone')}
+                        />
+                      </div>
 
-                    <div className="auth-input-group">
-                      <span className="auth-input-icon">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-                          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-                        </svg>
-                      </span>
-                      <input
-                        type="text"
-                        id="signup-bar"
-                        className="auth-text-input"
-                        placeholder="Bar enrollment no."
-                        value={signupForm.bar_council_number}
-                        onChange={updateSignup('bar_council_number')}
-                      />
+                      <div className="auth-input-group">
+                        <span className="auth-input-icon">
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                          </svg>
+                        </span>
+                        <input
+                          type="text"
+                          id="signup-bar"
+                          className="auth-text-input"
+                          placeholder="Bar enrollment no."
+                          value={signupForm.bar_council_number}
+                          onChange={updateSignup('bar_council_number')}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="auth-form-two-col">
+                      <div className="auth-input-group">
+                        <span className="auth-input-icon">
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                            <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                          </svg>
+                        </span>
+                        <input
+                          type="text"
+                          id="signup-college"
+                          className="auth-text-input"
+                          placeholder="Law School / College *"
+                          required
+                          value={signupForm.college_name}
+                          onChange={updateSignup('college_name')}
+                        />
+                      </div>
+
+                      <div className="auth-input-group">
+                        <span className="auth-input-icon">
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                          </svg>
+                        </span>
+                        <input
+                          type="text"
+                          id="signup-year"
+                          className="auth-text-input"
+                          placeholder="Course & Year (e.g. 3rd Yr B.A. LL.B)"
+                          value={signupForm.course_year}
+                          onChange={updateSignup('course_year')}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="auth-input-group">
                     <span className="auth-input-icon">

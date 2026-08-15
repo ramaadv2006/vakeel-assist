@@ -285,6 +285,11 @@ def init_db():
         ("office_address", "TEXT"),
         ("specialization", "TEXT"),
         ("auth_user_id", "UUID UNIQUE"),
+        ("role", "TEXT DEFAULT 'advocate'"),
+        ("college_name", "TEXT"),
+        ("course_year", "TEXT"),
+        ("student_id_number", "TEXT"),
+        ("areas_of_interest", "TEXT"),
     ]
     for col, col_type in advocate_cols_to_add:
         cur.execute("""
@@ -295,6 +300,97 @@ def init_db():
 
         if not has_col:
             cur.execute(f"ALTER TABLE advocates ADD COLUMN {col} {col_type}")
+
+    # Student-Specific Tables
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS moot_courts (
+            id SERIAL PRIMARY KEY,
+            student_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            organizer TEXT,
+            side TEXT,
+            team_members TEXT,
+            memorial_deadline TEXT,
+            competition_date TEXT,
+            proposition_summary TEXT,
+            memorial_notes TEXT,
+            bench_questions TEXT,
+            status TEXT DEFAULT 'Active',
+            result TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES advocates (id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS internship_diaries (
+            id SERIAL PRIMARY KEY,
+            student_id INTEGER NOT NULL,
+            organization TEXT NOT NULL,
+            mentor_name TEXT,
+            internship_type TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            stipend TEXT,
+            summary TEXT,
+            status TEXT DEFAULT 'Active',
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES advocates (id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS internship_logs (
+            id SERIAL PRIMARY KEY,
+            diary_id INTEGER NOT NULL,
+            student_id INTEGER NOT NULL,
+            log_date TEXT NOT NULL,
+            court_hall TEXT,
+            case_observed TEXT,
+            advocate_arguing TEXT,
+            proceedings_summary TEXT,
+            key_learnings TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (diary_id) REFERENCES internship_diaries (id) ON DELETE CASCADE,
+            FOREIGN KEY (student_id) REFERENCES advocates (id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS case_briefs (
+            id SERIAL PRIMARY KEY,
+            student_id INTEGER NOT NULL,
+            case_title TEXT NOT NULL,
+            citation TEXT,
+            court TEXT,
+            subject TEXT,
+            facts TEXT,
+            issues TEXT,
+            rule_of_law TEXT,
+            analysis_arguments TEXT,
+            conclusion_judgment TEXT,
+            ratio_decidendi TEXT,
+            obiter_dicta TEXT,
+            tags TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES advocates (id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS student_study_tasks (
+            id SERIAL PRIMARY KEY,
+            student_id INTEGER NOT NULL,
+            subject TEXT NOT NULL,
+            topic TEXT NOT NULL,
+            due_date TEXT,
+            priority TEXT DEFAULT 'Medium',
+            task_type TEXT DEFAULT 'Assignment',
+            is_completed INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES advocates (id)
+        )
+    """)
 
     # Supabase Auth now owns credentials; local password_hash is unused for
     # new rows (kept, not dropped, to avoid a destructive column removal).
@@ -345,6 +441,11 @@ def advocate_public(row):
         "id": row["id"],
         "name": row["name"],
         "email": row["email"],
+        "role": row.get("role") or "advocate",
+        "college_name": row.get("college_name") or "",
+        "course_year": row.get("course_year") or "",
+        "student_id_number": row.get("student_id_number") or "",
+        "areas_of_interest": row.get("areas_of_interest") or "",
         "phone": row.get("phone"),
         "bar_council_number": row.get("bar_council_number"),
         "office_address": row.get("office_address"),
@@ -367,36 +468,62 @@ def resolve_advocate_id(supa_user):
     metadata = supa_user.user_metadata or {}
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT id, email FROM advocates WHERE auth_user_id=%s", (supa_user.id,))
+    cur.execute("SELECT id, email, role FROM advocates WHERE auth_user_id=%s", (supa_user.id,))
     row = cur.fetchone()
 
     if row is None:
-        # No row linked to this Supabase identity yet - but the same email
-        # may already have a row from an earlier Supabase user (e.g. their
-        # old Supabase Auth account got deleted/recreated, so their email
-        # is now attached to a new UUID). Re-claim that row instead of
-        # inserting a duplicate, which would violate the UNIQUE constraint
-        # on advocates.email and 500 the request.
+        # No row linked to this Supabase identity yet - check if email already exists
         cur.execute("SELECT id FROM advocates WHERE email=%s", (supa_user.email,))
         existing = cur.fetchone()
         if existing:
             advocate_id = existing["id"]
-            cur.execute("UPDATE advocates SET auth_user_id=%s WHERE id=%s", (supa_user.id, advocate_id))
+            cur.execute(
+                """UPDATE advocates SET auth_user_id=%s,
+                   role=COALESCE(NULLIF(%s, ''), role),
+                   college_name=COALESCE(NULLIF(%s, ''), college_name),
+                   course_year=COALESCE(NULLIF(%s, ''), course_year),
+                   student_id_number=COALESCE(NULLIF(%s, ''), student_id_number),
+                   areas_of_interest=COALESCE(NULLIF(%s, ''), areas_of_interest)
+                   WHERE id=%s""",
+                (supa_user.id, metadata.get("role"), metadata.get("college_name"),
+                 metadata.get("course_year"), metadata.get("student_id_number"),
+                 metadata.get("areas_of_interest"), advocate_id),
+            )
         else:
             cur.execute(
-                """INSERT INTO advocates (name, email, phone, bar_council_number, auth_user_id)
-                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                """INSERT INTO advocates (name, email, phone, bar_council_number, auth_user_id,
+                   role, college_name, course_year, student_id_number, areas_of_interest)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
                 (
                     metadata.get("name") or supa_user.email,
                     supa_user.email,
                     metadata.get("phone") or "",
                     metadata.get("bar_council_number") or "",
                     supa_user.id,
+                    metadata.get("role") or "advocate",
+                    metadata.get("college_name") or "",
+                    metadata.get("course_year") or "",
+                    metadata.get("student_id_number") or "",
+                    metadata.get("areas_of_interest") or "",
                 ),
             )
             advocate_id = cur.fetchone()["id"]
     else:
         advocate_id = row["id"]
+        # Sync role and student profile metadata if updated
+        if metadata.get("role"):
+            cur.execute(
+                """UPDATE advocates SET 
+                   role=COALESCE(NULLIF(%s, ''), role),
+                   college_name=COALESCE(NULLIF(%s, ''), college_name),
+                   course_year=COALESCE(NULLIF(%s, ''), course_year),
+                   student_id_number=COALESCE(NULLIF(%s, ''), student_id_number),
+                   areas_of_interest=COALESCE(NULLIF(%s, ''), areas_of_interest)
+                   WHERE id=%s""",
+                (metadata.get("role"), metadata.get("college_name"),
+                 metadata.get("course_year"), metadata.get("student_id_number"),
+                 metadata.get("areas_of_interest"), advocate_id),
+            )
         if row["email"] != supa_user.email:
             cur.execute("UPDATE advocates SET email=%s WHERE id=%s", (supa_user.email, advocate_id))
 
@@ -409,6 +536,9 @@ def resolve_advocate_id(supa_user):
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
+        if getattr(g, "advocate_id", None):
+            return f(*args, **kwargs)
+
         auth_header = request.headers.get("Authorization", "")
         token = auth_header[7:] if auth_header.startswith("Bearer ") else None
         if not token:
@@ -492,19 +622,38 @@ def update_settings():
     reminder_method = data.get("reminder_method", "none")
     reminder_days_before = data.get("reminder_days_before", 1)
 
+    role = (data.get("role") or "").strip().lower()
+    college_name = (data.get("college_name") or "").strip()
+    course_year = (data.get("course_year") or "").strip()
+    student_id_number = (data.get("student_id_number") or "").strip()
+    areas_of_interest = (data.get("areas_of_interest") or "").strip()
+
     if not name:
         return jsonify({"error": "Name is required."}), 400
 
     conn = get_db()
     cur = conn.cursor()
 
-    cur.execute(
-        """UPDATE advocates SET name=%s, phone=%s, bar_council_number=%s,
-           office_address=%s, specialization=%s, reminder_method=%s, reminder_days_before=%s
-           WHERE id=%s""",
-        (name, phone, bar_number, office_address, specialization,
-         reminder_method, reminder_days_before, g.advocate_id),
-    )
+    if role in ["advocate", "student"]:
+        cur.execute(
+            """UPDATE advocates SET name=%s, phone=%s, bar_council_number=%s,
+               office_address=%s, specialization=%s, reminder_method=%s, reminder_days_before=%s,
+               role=%s, college_name=%s, course_year=%s, student_id_number=%s, areas_of_interest=%s
+               WHERE id=%s""",
+            (name, phone, bar_number, office_address, specialization,
+             reminder_method, reminder_days_before, role, college_name, course_year,
+             student_id_number, areas_of_interest, g.advocate_id),
+        )
+    else:
+        cur.execute(
+            """UPDATE advocates SET name=%s, phone=%s, bar_council_number=%s,
+               office_address=%s, specialization=%s, reminder_method=%s, reminder_days_before=%s,
+               college_name=%s, course_year=%s, student_id_number=%s, areas_of_interest=%s
+               WHERE id=%s""",
+            (name, phone, bar_number, office_address, specialization,
+             reminder_method, reminder_days_before, college_name, course_year,
+             student_id_number, areas_of_interest, g.advocate_id),
+        )
     conn.commit()
 
     cur.execute("SELECT * FROM advocates WHERE id=%s", (g.advocate_id,))
@@ -513,6 +662,36 @@ def update_settings():
     conn.close()
 
     return jsonify({"advocate": advocate_public(advocate), "message": "Profile and settings updated successfully!"})
+
+
+@app.route("/api/role/switch", methods=["POST"])
+@login_required
+def switch_role():
+    data = request.get_json(silent=True) or {}
+    new_role = (data.get("role") or "").strip().lower()
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    if new_role not in ["advocate", "student"]:
+        cur.execute("SELECT role FROM advocates WHERE id=%s", (g.advocate_id,))
+        row = cur.fetchone()
+        cur_role = row.get("role") if row and row.get("role") else "advocate"
+        new_role = "student" if cur_role == "advocate" else "advocate"
+
+    cur.execute("UPDATE advocates SET role=%s WHERE id=%s", (new_role, g.advocate_id))
+    conn.commit()
+
+    cur.execute("SELECT * FROM advocates WHERE id=%s", (g.advocate_id,))
+    advocate = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({
+        "advocate": advocate_public(advocate),
+        "role": new_role,
+        "message": f"Successfully switched to {'Law Student' if new_role == 'student' else 'Advocate'} portal!",
+    })
 
 
 @app.route("/api/settings/avatar", methods=["POST"])
@@ -1556,6 +1735,770 @@ def draftmitra_import():
         return jsonify({"error": f"Failed to import draft: {err_str}"}), 500
 
 
+# ============================================
+# LAW STUDENT PORTAL API ENDPOINTS
+# ============================================
+
+LEGAL_MAXIMS = [
+    {
+        "maxim": "Audi Alteram Partem",
+        "meaning": "Listen to the other side / No person shall be condemned unheard",
+        "branch": "Natural Justice & Administrative Law",
+        "landmark_case": "Maneka Gandhi v. Union of India (1978)",
+        "explanation": "Fundamental principle of natural justice mandating a fair opportunity to present defense before an adverse decision is rendered."
+    },
+    {
+        "maxim": "Nemo Judex In Causa Sua",
+        "meaning": "No one should be a judge in their own cause (Rule against bias)",
+        "branch": "Natural Justice & Constitutional Law",
+        "landmark_case": "A.K. Kraipak v. Union of India (1969)",
+        "explanation": "Ensures impartiality in judicial and quasi-judicial determinations; any pecuniary or personal bias disqualifies the adjudicator."
+    },
+    {
+        "maxim": "Damnum Sine Injuria",
+        "meaning": "Damage without legal injury / violation of a legal right",
+        "branch": "Law of Torts",
+        "landmark_case": "Gloucester Grammar School Case (1410)",
+        "explanation": "No cause of action arises for monetary or commercial losses unless an enforceable legal right has been violated."
+    },
+    {
+        "maxim": "Injuria Sine Damno",
+        "meaning": "Violation of a legal right without actual physical/monetary damage",
+        "branch": "Law of Torts & Constitutional Writs",
+        "landmark_case": "Ashby v. White (1703) / Bhim Singh v. State of J&K (1985)",
+        "explanation": "Actionable per se; infringement of an absolute private legal right gives rise to remedy even without monetary harm."
+    },
+    {
+        "maxim": "Actus Non Facit Reum Nisi Mens Sit Rea",
+        "meaning": "An act does not make a person guilty unless the mind is also guilty",
+        "branch": "Criminal Law & BNS",
+        "landmark_case": "State of Maharashtra v. Mayer Hans George (1965)",
+        "explanation": "Both wrongful overt action (actus reus) and culpable mental state (mens rea) are required for criminal conviction."
+    },
+    {
+        "maxim": "Res Ipsa Loquitur",
+        "meaning": "The thing speaks for itself",
+        "branch": "Law of Torts & Evidence",
+        "landmark_case": "Municipal Corporation of Delhi v. Subhagwanti (1966)",
+        "explanation": "Rule of evidence shifting the burden of proof to defendant when accident causes are exclusively under their management and wouldn't happen without negligence."
+    },
+    {
+        "maxim": "Ubi Jus Ibi Remedium",
+        "meaning": "Where there is a right, there is a remedy",
+        "branch": "Jurisprudence & Constitutional Writs",
+        "landmark_case": "Sardar Amarjit Singh Kalra v. Pramod Gupta (2003)",
+        "explanation": "Courts must fashion effective remedies whenever substantive legal rights are breached."
+    },
+    {
+        "maxim": "Volenti Non Fit Injuria",
+        "meaning": "To a willing person, injury is not done (Consent as defense)",
+        "branch": "Law of Torts",
+        "landmark_case": "Hall v. Brooklands Auto Racing Club (1933)",
+        "explanation": "One who voluntarily engages in known risks cannot maintain an action in tort for resulting harm."
+    }
+]
+
+STUDY_DECK_DATA = {
+    "constitution": [
+        {"title": "Article 14", "subtitle": "Equality Before Law & Equal Protection", "details": "Prohibits arbitrary state action; guarantees reasonable classification with rational nexus to object sought (EP Royappa test of non-arbitrariness).", "tag": "Fundamental Rights"},
+        {"title": "Article 19(1)(a)", "subtitle": "Freedom of Speech and Expression", "details": "Includes right to information, press freedom, right to remain silent; subject to reasonable restrictions under Art. 19(2).", "tag": "Fundamental Rights"},
+        {"title": "Article 21", "subtitle": "Protection of Life & Personal Liberty", "details": "Interpreted broadly to include privacy (Puttaswamy), clean environment, speedy trial, livelihood (Olga Tellis), dignity and healthcare.", "tag": "Fundamental Rights"},
+        {"title": "Article 32 & 226", "subtitle": "Constitutional Remedies & Writs", "details": "Habeas Corpus (unlawful detention), Mandamus (public duty), Quo Warranto (office title), Prohibition, Certiorari (quash jurisdiction excess).", "tag": "Writs"},
+        {"title": "Basic Structure Doctrine", "subtitle": "Kesavananda Bharati (1973)", "details": "Parliament cannot alter fundamental pillars: Rule of Law, Judicial Review, Secularism, Democracy, Separation of Powers.", "tag": "Doctrine"},
+        {"title": "Article 300A", "subtitle": "Right to Property as Constitutional Right", "details": "Moved from Fundamental Right (44th Amendment) to Constitutional/Human right; State cannot deprive property save by authority of law.", "tag": "Property"}
+    ],
+    "criminal_new_laws": [
+        {"title": "BNS Section 103 vs IPC 302", "subtitle": "Punishment for Murder", "details": "BNS Sec 103 prescribes death or life imprisonment and fine. Adds specific provision for mob lynching (5+ persons on grounds of race, caste, community).", "tag": "BNS - Offence Against Life"},
+        {"title": "BNS Section 64 vs IPC 376", "subtitle": "Punishment for Rape", "details": "BNS Sec 64 mandates rigorous imprisonment not less than 10 years extending to life; structured chapters with priority to crimes against women & children.", "tag": "BNS - Women"},
+        {"title": "BNS Section 111", "subtitle": "Organized Crime (New Offence)", "details": "Statutory codification of organized crime syndicate activities, kidnapping, extortion, contract killing, cyber-crimes.", "tag": "BNS - Organized Crime"},
+        {"title": "BNSS Section 480 vs CrPC 437", "subtitle": "Bail in Non-Bailable Offence", "details": "BNSS modernizes bail provisions, introduces timelines for trial and investigation, mandatory video-recording during search/seizure.", "tag": "BNSS - Bail"},
+        {"title": "BSA Section 61 vs IEA 65B", "subtitle": "Electronic Records Admissibility", "details": "Bharatiya Sakshya Adhiniyam makes electronic/digital evidence primary evidence with certificate requirements aligned to modern computing.", "tag": "BSA - Evidence"}
+    ],
+    "maxims": LEGAL_MAXIMS
+}
+
+
+@app.route("/api/student/dashboard")
+@login_required
+def student_dashboard():
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+
+    # Active Moots
+    cur.execute("SELECT * FROM moot_courts WHERE student_id=%s ORDER BY created_at DESC", (student_id,))
+    moots = cur.fetchall()
+    active_moots = [m for m in moots if m.get("status") == "Active"]
+
+    # Active Internships & Observation Logs
+    cur.execute("SELECT * FROM internship_diaries WHERE student_id=%s ORDER BY created_at DESC", (student_id,))
+    internships = cur.fetchall()
+    active_internship = next((i for i in internships if i.get("status") == "Active"), None)
+
+    cur.execute("SELECT count(*) AS log_count FROM internship_logs WHERE student_id=%s", (student_id,))
+    total_observation_logs = cur.fetchone()["log_count"]
+
+    # Case Briefs
+    cur.execute("SELECT id, case_title, citation, court, subject, created_at FROM case_briefs WHERE student_id=%s ORDER BY created_at DESC", (student_id,))
+    case_briefs = cur.fetchall()
+
+    # Study Tasks
+    cur.execute("SELECT * FROM student_study_tasks WHERE student_id=%s ORDER BY is_completed ASC, due_date ASC", (student_id,))
+    tasks = cur.fetchall()
+    pending_tasks = [t for t in tasks if not t.get("is_completed")]
+
+    cur.close()
+    conn.close()
+
+    # Rotate Maxim based on day of year
+    day_of_year = datetime.now().timetuple().tm_yday
+    maxim_of_the_day = LEGAL_MAXIMS[day_of_year % len(LEGAL_MAXIMS)]
+
+    # Upcoming Deadlines (Moots + Tasks)
+    deadlines = []
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    for m in active_moots:
+        if m.get("memorial_deadline"):
+            deadlines.append({
+                "type": "Moot Memorial",
+                "title": f"{m['title']} - Memorial Submission",
+                "date": m["memorial_deadline"],
+                "side": m.get("side"),
+                "badge": "Memorial Due"
+            })
+        if m.get("competition_date"):
+            deadlines.append({
+                "type": "Moot Oral Rounds",
+                "title": f"{m['title']} - Oral Competition",
+                "date": m["competition_date"],
+                "side": m.get("side"),
+                "badge": "Oral Rounds"
+            })
+
+    for t in pending_tasks:
+        if t.get("due_date"):
+            deadlines.append({
+                "type": t.get("task_type") or "Study Task",
+                "title": f"{t['subject']}: {t['topic']}",
+                "date": t["due_date"],
+                "priority": t.get("priority"),
+                "badge": t.get("task_type") or "Assignment"
+            })
+
+    deadlines.sort(key=lambda d: d["date"] or "9999-99-99")
+
+    return jsonify({
+        "active_moots_count": len(active_moots),
+        "total_moots_count": len(moots),
+        "active_internship": active_internship,
+        "total_observation_logs": total_observation_logs,
+        "case_briefs_count": len(case_briefs),
+        "recent_briefs": case_briefs[:5],
+        "pending_tasks_count": len(pending_tasks),
+        "recent_tasks": tasks[:6],
+        "upcoming_deadlines": deadlines[:8],
+        "maxim_of_the_day": maxim_of_the_day,
+    })
+
+
+# --- Moot Courts ---
+
+@app.route("/api/student/moots", methods=["GET"])
+@login_required
+def get_student_moots():
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM moot_courts WHERE student_id=%s ORDER BY created_at DESC", (student_id,))
+    moots = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify({"moots": moots})
+
+
+@app.route("/api/student/moots", methods=["POST"])
+@login_required
+def create_student_moot():
+    student_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    if not title:
+        return jsonify({"error": "Moot title is required."}), 400
+
+    organizer = (data.get("organizer") or "").strip()
+    side = (data.get("side") or "").strip()
+    team_members = (data.get("team_members") or "").strip()
+    memorial_deadline = data.get("memorial_deadline") or ""
+    competition_date = data.get("competition_date") or ""
+    proposition_summary = (data.get("proposition_summary") or "").strip()
+    memorial_notes = (data.get("memorial_notes") or "").strip()
+    bench_questions = (data.get("bench_questions") or "").strip()
+    status = data.get("status") or "Active"
+    result = (data.get("result") or "").strip()
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """INSERT INTO moot_courts
+           (student_id, title, organizer, side, team_members, memorial_deadline,
+            competition_date, proposition_summary, memorial_notes, bench_questions, status, result)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (student_id, title, organizer, side, team_members, memorial_deadline,
+         competition_date, proposition_summary, memorial_notes, bench_questions, status, result),
+    )
+    new_id = cur.fetchone()["id"]
+    conn.commit()
+
+    cur.execute("SELECT * FROM moot_courts WHERE id=%s", (new_id,))
+    moot = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({"moot": moot, "message": "Moot competition tracked successfully!"}), 201
+
+
+@app.route("/api/student/moots/<int:moot_id>", methods=["GET"])
+@login_required
+def get_student_moot_detail(moot_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM moot_courts WHERE id=%s AND student_id=%s", (moot_id, student_id))
+    moot = cur.fetchone()
+    cur.close()
+    conn.close()
+    if not moot:
+        return jsonify({"error": "Moot not found."}), 404
+    return jsonify({"moot": moot})
+
+
+@app.route("/api/student/moots/<int:moot_id>", methods=["PUT"])
+@login_required
+def update_student_moot(moot_id):
+    student_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    if not title:
+        return jsonify({"error": "Moot title is required."}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM moot_courts WHERE id=%s AND student_id=%s", (moot_id, student_id))
+    if not cur.fetchone():
+        cur.close()
+        conn.close()
+        return jsonify({"error": "Moot not found."}), 404
+
+    cur.execute(
+        """UPDATE moot_courts SET title=%s, organizer=%s, side=%s, team_members=%s,
+           memorial_deadline=%s, competition_date=%s, proposition_summary=%s,
+           memorial_notes=%s, bench_questions=%s, status=%s, result=%s
+           WHERE id=%s AND student_id=%s""",
+        (title, data.get("organizer", "").strip(), data.get("side", "").strip(),
+         data.get("team_members", "").strip(), data.get("memorial_deadline", ""),
+         data.get("competition_date", ""), data.get("proposition_summary", "").strip(),
+         data.get("memorial_notes", "").strip(), data.get("bench_questions", "").strip(),
+         data.get("status", "Active"), data.get("result", "").strip(), moot_id, student_id),
+    )
+    conn.commit()
+
+    cur.execute("SELECT * FROM moot_courts WHERE id=%s", (moot_id,))
+    moot = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({"moot": moot, "message": "Moot competition updated!"})
+
+
+@app.route("/api/student/moots/<int:moot_id>", methods=["DELETE"])
+@login_required
+def delete_student_moot(moot_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM moot_courts WHERE id=%s AND student_id=%s", (moot_id, student_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"success": True, "message": "Moot record removed."})
+
+
+# --- Internship & Court Observation Diaries ---
+
+@app.route("/api/student/internships", methods=["GET"])
+@login_required
+def get_student_internships():
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT i.*, count(l.id) AS log_count
+        FROM internship_diaries i
+        LEFT JOIN internship_logs l ON i.id = l.diary_id
+        WHERE i.student_id=%s
+        GROUP BY i.id
+        ORDER BY i.created_at DESC
+    """, (student_id,))
+    internships = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify({"internships": internships})
+
+
+@app.route("/api/student/internships", methods=["POST"])
+@login_required
+def create_student_internship():
+    student_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    org = (data.get("organization") or "").strip()
+    if not org:
+        return jsonify({"error": "Organization / Chamber name is required."}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """INSERT INTO internship_diaries
+           (student_id, organization, mentor_name, internship_type, start_date, end_date, stipend, summary, status)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (student_id, org, (data.get("mentor_name") or "").strip(),
+         (data.get("internship_type") or "Advocate Chamber").strip(),
+         data.get("start_date") or "", data.get("end_date") or "",
+         (data.get("stipend") or "").strip(), (data.get("summary") or "").strip(),
+         data.get("status") or "Active"),
+    )
+    new_id = cur.fetchone()["id"]
+    conn.commit()
+
+    cur.execute("SELECT * FROM internship_diaries WHERE id=%s", (new_id,))
+    diary = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({"internship": diary, "message": "Internship diary created!"}), 201
+
+
+@app.route("/api/student/internships/<int:diary_id>", methods=["GET"])
+@login_required
+def get_student_internship_detail(diary_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM internship_diaries WHERE id=%s AND student_id=%s", (diary_id, student_id))
+    diary = cur.fetchone()
+    if not diary:
+        cur.close()
+        conn.close()
+        return jsonify({"error": "Internship not found."}), 404
+
+    cur.execute("SELECT * FROM internship_logs WHERE diary_id=%s AND student_id=%s ORDER BY log_date DESC, id DESC", (diary_id, student_id))
+    logs = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return jsonify({"internship": diary, "logs": logs})
+
+
+@app.route("/api/student/internships/<int:diary_id>", methods=["PUT"])
+@login_required
+def update_student_internship(diary_id):
+    student_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    org = (data.get("organization") or "").strip()
+    if not org:
+        return jsonify({"error": "Organization name is required."}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """UPDATE internship_diaries SET organization=%s, mentor_name=%s, internship_type=%s,
+           start_date=%s, end_date=%s, stipend=%s, summary=%s, status=%s
+           WHERE id=%s AND student_id=%s""",
+        (org, (data.get("mentor_name") or "").strip(),
+         (data.get("internship_type") or "Advocate Chamber").strip(),
+         data.get("start_date") or "", data.get("end_date") or "",
+         (data.get("stipend") or "").strip(), (data.get("summary") or "").strip(),
+         data.get("status") or "Active", diary_id, student_id),
+    )
+    conn.commit()
+    cur.execute("SELECT * FROM internship_diaries WHERE id=%s", (diary_id,))
+    diary = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({"internship": diary, "message": "Internship details updated!"})
+
+
+@app.route("/api/student/internships/<int:diary_id>", methods=["DELETE"])
+@login_required
+def delete_student_internship(diary_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM internship_logs WHERE diary_id=%s AND student_id=%s", (diary_id, student_id))
+    cur.execute("DELETE FROM internship_diaries WHERE id=%s AND student_id=%s", (diary_id, student_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"success": True, "message": "Internship diary deleted."})
+
+
+@app.route("/api/student/internships/<int:diary_id>/logs", methods=["POST"])
+@login_required
+def add_internship_observation_log(diary_id):
+    student_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    log_date = data.get("log_date") or datetime.now().strftime("%Y-%m-%d")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM internship_diaries WHERE id=%s AND student_id=%s", (diary_id, student_id))
+    if not cur.fetchone():
+        cur.close()
+        conn.close()
+        return jsonify({"error": "Internship diary not found."}), 404
+
+    cur.execute(
+        """INSERT INTO internship_logs
+           (diary_id, student_id, log_date, court_hall, case_observed, advocate_arguing, proceedings_summary, key_learnings)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (diary_id, student_id, log_date, (data.get("court_hall") or "").strip(),
+         (data.get("case_observed") or "").strip(), (data.get("advocate_arguing") or "").strip(),
+         (data.get("proceedings_summary") or "").strip(), (data.get("key_learnings") or "").strip()),
+    )
+    log_id = cur.fetchone()["id"]
+    conn.commit()
+
+    cur.execute("SELECT * FROM internship_logs WHERE id=%s", (log_id,))
+    new_log = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({"log": new_log, "message": "Daily court observation logged!"}), 201
+
+
+@app.route("/api/student/internship-logs/<int:log_id>", methods=["DELETE"])
+@login_required
+def delete_internship_log(log_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM internship_logs WHERE id=%s AND student_id=%s", (log_id, student_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"success": True, "message": "Log entry deleted."})
+
+
+# --- FIRAC Case Briefs ---
+
+@app.route("/api/student/case-briefs", methods=["GET"])
+@login_required
+def get_student_case_briefs():
+    student_id = g.advocate_id
+    subject_filter = (request.args.get("subject") or "").strip()
+    search = (request.args.get("search") or "").strip().lower()
+
+    conn = get_db()
+    cur = conn.cursor()
+    if subject_filter:
+        cur.execute("SELECT * FROM case_briefs WHERE student_id=%s AND subject=%s ORDER BY created_at DESC", (student_id, subject_filter))
+    else:
+        cur.execute("SELECT * FROM case_briefs WHERE student_id=%s ORDER BY created_at DESC", (student_id,))
+    briefs = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    if search:
+        briefs = [
+            b for b in briefs
+            if search in (b.get("case_title") or "").lower() or
+               search in (b.get("citation") or "").lower() or
+               search in (b.get("subject") or "").lower() or
+               search in (b.get("tags") or "").lower()
+        ]
+
+    return jsonify({"case_briefs": briefs})
+
+
+@app.route("/api/student/case-briefs", methods=["POST"])
+@login_required
+def create_student_case_brief():
+    student_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    title = (data.get("case_title") or "").strip()
+    if not title:
+        return jsonify({"error": "Case title is required."}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """INSERT INTO case_briefs
+           (student_id, case_title, citation, court, subject, facts, issues,
+            rule_of_law, analysis_arguments, conclusion_judgment, ratio_decidendi, obiter_dicta, tags)
+           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+        (student_id, title, (data.get("citation") or "").strip(),
+         (data.get("court") or "").strip(), (data.get("subject") or "Constitutional Law").strip(),
+         (data.get("facts") or "").strip(), (data.get("issues") or "").strip(),
+         (data.get("rule_of_law") or "").strip(), (data.get("analysis_arguments") or "").strip(),
+         (data.get("conclusion_judgment") or "").strip(), (data.get("ratio_decidendi") or "").strip(),
+         (data.get("obiter_dicta") or "").strip(), (data.get("tags") or "").strip()),
+    )
+    new_id = cur.fetchone()["id"]
+    conn.commit()
+
+    cur.execute("SELECT * FROM case_briefs WHERE id=%s", (new_id,))
+    brief = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({"case_brief": brief, "message": "Case brief saved!"}), 201
+
+
+@app.route("/api/student/case-briefs/<int:brief_id>", methods=["GET"])
+@login_required
+def get_student_case_brief_detail(brief_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM case_briefs WHERE id=%s AND student_id=%s", (brief_id, student_id))
+    brief = cur.fetchone()
+    cur.close()
+    conn.close()
+    if not brief:
+        return jsonify({"error": "Case brief not found."}), 404
+    return jsonify({"case_brief": brief})
+
+
+@app.route("/api/student/case-briefs/<int:brief_id>", methods=["PUT"])
+@login_required
+def update_student_case_brief(brief_id):
+    student_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    title = (data.get("case_title") or "").strip()
+    if not title:
+        return jsonify({"error": "Case title is required."}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """UPDATE case_briefs SET case_title=%s, citation=%s, court=%s, subject=%s,
+           facts=%s, issues=%s, rule_of_law=%s, analysis_arguments=%s, conclusion_judgment=%s,
+           ratio_decidendi=%s, obiter_dicta=%s, tags=%s
+           WHERE id=%s AND student_id=%s""",
+        (title, (data.get("citation") or "").strip(),
+         (data.get("court") or "").strip(), (data.get("subject") or "Constitutional Law").strip(),
+         (data.get("facts") or "").strip(), (data.get("issues") or "").strip(),
+         (data.get("rule_of_law") or "").strip(), (data.get("analysis_arguments") or "").strip(),
+         (data.get("conclusion_judgment") or "").strip(), (data.get("ratio_decidendi") or "").strip(),
+         (data.get("obiter_dicta") or "").strip(), (data.get("tags") or "").strip(),
+         brief_id, student_id),
+    )
+    conn.commit()
+
+    cur.execute("SELECT * FROM case_briefs WHERE id=%s", (brief_id,))
+    brief = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({"case_brief": brief, "message": "Case brief updated!"})
+
+
+@app.route("/api/student/case-briefs/<int:brief_id>", methods=["DELETE"])
+@login_required
+def delete_student_case_brief(brief_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM case_briefs WHERE id=%s AND student_id=%s", (brief_id, student_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"success": True, "message": "Case brief deleted."})
+
+
+@app.route("/api/student/case-briefs/ai-generate", methods=["POST"])
+@login_required
+def ai_generate_case_brief():
+    try:
+        data = request.get_json(silent=True) or {}
+        case_input = (data.get("case_input") or data.get("query") or data.get("text") or "").strip()
+        if not case_input:
+            return jsonify({"error": "Please provide a case name, citation, or judgment excerpt."}), 400
+
+        system_instruction = (
+            "You are an expert Indian Legal Scholar and Law School Professor. "
+            "Your task is to generate a comprehensive, highly accurate FIRAC (Facts, Issues, Rules, Analysis, Conclusion) "
+            "Case Brief for law students based on the provided case name, citation, or raw judgment text.\n\n"
+            "Return ONLY valid JSON (no markdown formatting fences, no extra text) in this exact structure:\n"
+            "{\n"
+            '  "case_title": "Case Title (e.g. Kesavananda Bharati v. State of Kerala)",\n'
+            '  "citation": "Official Citation (e.g. (1973) 4 SCC 225)",\n'
+            '  "court": "Court and Bench (e.g. Supreme Court of India - 13 Judge Bench)",\n'
+            '  "subject": "Law Subject (e.g. Constitutional Law / Criminal Law / Law of Torts / Contracts / Family Law)",\n'
+            '  "facts": "Concise chronological summary of material facts...",\n'
+            '  "issues": "Numbered legal questions framed before the court...",\n'
+            '  "rule_of_law": "Key constitutional provisions, statutory sections, or doctrines applied...",\n'
+            '  "analysis_arguments": "Detailed judicial reasoning, petitioner/respondent arguments...",\n'
+            '  "conclusion_judgment": "Final outcome, order passed by majority...",\n'
+            '  "ratio_decidendi": "The binding core legal principle established...",\n'
+            '  "obiter_dicta": "Significant passing remarks or observations...",\n'
+            '  "tags": "Comma-separated keywords (e.g. Basic Structure, Article 368, Judicial Review)"\n'
+            "}"
+        )
+
+        prompt = f"Generate an exhaustive law student FIRAC Case Brief for:\n\n{case_input[:12000]}"
+        raw_text = _call_gemini_generate(prompt, system_instruction)
+        cleaned = (raw_text or "").strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[-1]
+            if cleaned.endswith("```"):
+                cleaned = cleaned.rsplit("```", 1)[0]
+            cleaned = cleaned.strip()
+
+        parsed = json.loads(cleaned)
+        return jsonify({"case_brief": parsed})
+
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        err_str = str(e)
+        if "429" in err_str or "resourceexhausted" in err_str.lower() or "quota" in err_str.lower():
+            user_msg = "AI rate limit reached. Please try again in 30 seconds."
+            return jsonify({"error": user_msg}), 429
+        return jsonify({"error": f"Failed to generate case brief: {err_str}"}), 500
+
+
+# --- Student Study Tasks ---
+
+@app.route("/api/student/study-tasks", methods=["GET"])
+@login_required
+def get_student_study_tasks():
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM student_study_tasks WHERE student_id=%s ORDER BY is_completed ASC, due_date ASC", (student_id,))
+    tasks = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify({"tasks": tasks})
+
+
+@app.route("/api/student/study-tasks", methods=["POST"])
+@login_required
+def create_student_study_task():
+    student_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    subject = (data.get("subject") or "").strip()
+    topic = (data.get("topic") or "").strip()
+    if not subject or not topic:
+        return jsonify({"error": "Subject and topic are required."}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """INSERT INTO student_study_tasks (student_id, subject, topic, due_date, priority, task_type)
+           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+        (student_id, subject, topic, data.get("due_date") or "",
+         data.get("priority") or "Medium", data.get("task_type") or "Assignment"),
+    )
+    new_id = cur.fetchone()["id"]
+    conn.commit()
+
+    cur.execute("SELECT * FROM student_study_tasks WHERE id=%s", (new_id,))
+    task = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return jsonify({"task": task, "message": "Study task added!"}), 201
+
+
+@app.route("/api/student/study-tasks/<int:task_id>/toggle", methods=["POST"])
+@login_required
+def toggle_student_study_task(task_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT is_completed FROM student_study_tasks WHERE id=%s AND student_id=%s", (task_id, student_id))
+    task = cur.fetchone()
+    if not task:
+        cur.close()
+        conn.close()
+        return jsonify({"error": "Task not found."}), 404
+
+    new_state = 1 if not task["is_completed"] else 0
+    cur.execute("UPDATE student_study_tasks SET is_completed=%s WHERE id=%s", (new_state, task_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return jsonify({"success": True, "is_completed": new_state})
+
+
+@app.route("/api/student/study-tasks/<int:task_id>", methods=["DELETE"])
+@login_required
+def delete_student_study_task(task_id):
+    student_id = g.advocate_id
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM student_study_tasks WHERE id=%s AND student_id=%s", (task_id, student_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"success": True, "message": "Task removed."})
+
+
+# --- Study Deck ---
+
+@app.route("/api/student/study-deck")
+@login_required
+def get_student_study_deck():
+    return jsonify(STUDY_DECK_DATA)
+
+
+# --- AI Student Legal Tutor ---
+
+@app.route("/api/student/ai-tutor", methods=["POST"])
+@login_required
+def student_ai_tutor():
+    try:
+        data = request.get_json(silent=True) or {}
+        message = (data.get("message") or "").strip()
+        history = data.get("history") or []
+
+        if not message:
+            return jsonify({"error": "Question or prompt is required."}), 400
+
+        system_instruction = (
+            "You are 'Professor Advo', an inspiring, patient, and brilliant Law Professor and Legal Mentor "
+            "at top National Law Universities (NLUs) in India. You guide law students with:\n"
+            "1. Deep Socratic clarity on Indian Jurisprudence, Constitution, new Bharatiya Nyaya Sanhita (BNS), BNSS, BSA, Contracts, Torts, and CPC.\n"
+            "2. Landmark Supreme Court & High Court case law citations with clear ratio decidendi and bench size.\n"
+            "3. Moot Court Memorial structuring, framing issues, rebuttal formulation, and bench questions.\n"
+            "4. Practical exam answer structuring using the FIRAC / IRAC technique.\n"
+            "5. Comparing old colonial statutes (IPC, CrPC, IEA) with the newly enacted criminal laws.\n\n"
+            "Keep explanations engaging, structured with markdown headings, bullet points, and real-world analogies. "
+            "Always motivate the student and encourage sharp analytical thinking!"
+        )
+
+        formatted_history = []
+        for item in history[:-1]:
+            role = "model" if item.get("role") in ["assistant", "model"] else "user"
+            text = item.get("text") or item.get("content") or ""
+            if text:
+                formatted_history.append({"role": role, "parts": [text]})
+
+        reply = _call_gemini_chat(message, formatted_history, system_instruction)
+        return jsonify({"reply": reply})
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        err_str = str(e)
+        if "429" in err_str or "resourceexhausted" in err_str.lower() or "quota" in err_str.lower():
+            user_msg = "AI Tutor is experiencing high traffic. Please wait 30 seconds."
+            return jsonify({"error": user_msg}), 429
+        return jsonify({"error": f"Failed to get response: {err_str}"}), 500
+
+
 if DATABASE_URL:
     init_db()
 else:
@@ -1563,3 +2506,4 @@ else:
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
+

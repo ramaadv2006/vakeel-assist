@@ -139,6 +139,85 @@ const PATHS = {
       <circle cx="12" cy="12" r="4"></circle>
     </>
   ),
+  trophy: (
+    <>
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+      <path d="M4 22h16"></path>
+      <path d="M10 14.66V17c0 .55-.45 1-1 1H7v4h10v-4h-2c-.55 0-1-.45-1-1v-2.34"></path>
+      <path d="M6 4h12v7a6 6 0 0 1-12 0V4z"></path>
+    </>
+  ),
+  briefs: (
+    <>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      <line x1="8" y1="7" x2="16" y2="7"></line>
+      <line x1="8" y1="11" x2="14" y2="11"></line>
+    </>
+  ),
+  internship: (
+    <>
+      <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+    </>
+  ),
+  deck: (
+    <>
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+    </>
+  ),
+  tutor: (
+    <>
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+      <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+    </>
+  ),
+  sparkles: (
+    <>
+      <path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"></path>
+    </>
+  ),
+  switch: (
+    <>
+      <polyline points="16 3 21 3 21 8"></polyline>
+      <line x1="4" y1="20" x2="21" y2="3"></line>
+      <polyline points="21 16 21 21 16 21"></polyline>
+      <line x1="15" y1="15" x2="21" y2="21"></line>
+      <line x1="4" y1="4" x2="9" y2="9"></line>
+    </>
+  ),
+  plus: (
+    <>
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </>
+  ),
+  trash: (
+    <>
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    </>
+  ),
+  award: (
+    <>
+      <circle cx="12" cy="8" r="7"></circle>
+      <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
+    </>
+  ),
+  school: (
+    <>
+      <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+      <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+      <line x1="7" y1="7" x2="7.01" y2="7"></line>
+    </>
+  ),
 };
 
 export default function Icon({ name, className = 'icon-svg', style, ...props }) {

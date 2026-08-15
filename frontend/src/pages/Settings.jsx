@@ -16,9 +16,14 @@ export default function Settings() {
     name: advocate.name || '',
     email: advocate.email || '',
     phone: advocate.phone || '',
+    role: advocate.role || 'advocate',
     bar_council_number: advocate.bar_council_number || '',
     office_address: advocate.office_address || '',
     specialization: advocate.specialization || '',
+    college_name: advocate.college_name || '',
+    course_year: advocate.course_year || '',
+    student_id_number: advocate.student_id_number || '',
+    areas_of_interest: advocate.areas_of_interest || '',
     reminder_method: advocate.reminder_method || 'none',
     reminder_days_before: advocate.reminder_days_before || 1,
   });
@@ -73,6 +78,7 @@ export default function Settings() {
   };
 
   const avatarUrl = preview || advocate.avatar_url;
+  const isStudentRole = form.role === 'student';
 
   return (
     <div className="form-container" style={{ maxWidth: 780 }}>
@@ -82,8 +88,8 @@ export default function Settings() {
       </Link>
 
       <div className="form-header staggered-entry">
-        <h2>Advocate Profile & Settings</h2>
-        <p>Manage your professional credentials, chamber details, profile photo, and hearing alert preferences</p>
+        <h2>{isStudentRole ? 'Student Profile & Academic Settings' : 'Advocate Profile & Settings'}</h2>
+        <p>{isStudentRole ? 'Manage your university credentials, legal interests, and academic portal preferences' : 'Manage your professional credentials, chamber details, profile photo, and hearing alert preferences'}</p>
       </div>
 
       <div className="card-form staggered-entry" style={{ textAlign: 'center', marginBottom: 24, padding: 24 }}>
@@ -95,10 +101,10 @@ export default function Settings() {
           }}
         >
           {avatarUrl ? (
-            <img src={avatarUrl} alt="Advocate Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={avatarUrl} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             <span style={{ fontSize: 40, fontWeight: 700, color: 'var(--accent-hover)', textTransform: 'uppercase', fontFamily: "'Lora', serif" }}>
-              {advocate.name ? advocate.name[0] : 'A'}
+              {advocate.name ? advocate.name[0] : (isStudentRole ? 'S' : 'A')}
             </span>
           )}
         </div>
@@ -107,10 +113,14 @@ export default function Settings() {
           {advocate.name}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-main)', marginTop: 2 }}>
-          {advocate.bar_council_number ? <>Enrollment No: <strong>{advocate.bar_council_number}</strong></> : 'Advocate & Legal Counsel'}
+          {isStudentRole ? (
+            <span>{advocate.college_name ? `${advocate.college_name} • ${advocate.course_year || 'Law Student'}` : 'Law Student / Scholar'}</span>
+          ) : (
+            <span>{advocate.bar_council_number ? <>Enrollment No: <strong>{advocate.bar_council_number}</strong></> : 'Advocate & Legal Counsel'}</span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 14 }}>
           <label
             style={{ background: 'var(--accent-bg)', color: 'var(--accent-hover)', border: '1px solid var(--accent)', padding: '8px 16px', borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
@@ -127,19 +137,75 @@ export default function Settings() {
       </div>
 
       <form className={`card-form staggered-entry${shake ? ' shake-error' : ''}`} onSubmit={handleSubmit} noValidate>
+        {/* Role Mode Selection */}
+        <div style={{ background: 'var(--bg-app)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)', marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: 'var(--text-dark)' }}>Portal Experience Mode</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '12px 14px',
+                borderRadius: 8,
+                border: `1.5px solid ${!isStudentRole ? 'var(--accent)' : 'var(--border-color)'}`,
+                background: !isStudentRole ? 'rgba(212, 160, 23, 0.08)' : 'transparent',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="radio"
+                name="role"
+                value="advocate"
+                checked={form.role === 'advocate'}
+                onChange={update('role')}
+              />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>⚖️ Practicing Advocate</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Case hearings, diary, clients, billing</div>
+              </div>
+            </label>
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '12px 14px',
+                borderRadius: 8,
+                border: `1.5px solid ${isStudentRole ? 'var(--accent)' : 'var(--border-color)'}`,
+                background: isStudentRole ? 'rgba(59, 130, 246, 0.08)' : 'transparent',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="radio"
+                name="role"
+                value="student"
+                checked={form.role === 'student'}
+                onChange={update('role')}
+              />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>🎓 Law Student / Aspirant</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Moot courts, court diaries, FIRAC briefs, tutor</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="user" style={{ color: 'var(--accent)' }} />
-          Personal & Professional Info
+          {isStudentRole ? 'Academic & Personal Info' : 'Personal & Professional Info'}
         </div>
 
         <div className="form-row" style={{ marginTop: 16 }}>
           <div className="form-group">
-            <label htmlFor="name">Full Name (with Advocate Prefix) *</label>
-            <input type="text" id="name" required value={form.name} onChange={update('name')} placeholder="e.g. Adv. M. Subramanian" />
+            <label htmlFor="name">Full Name *</label>
+            <input type="text" id="name" required value={form.name} onChange={update('name')} placeholder={isStudentRole ? "e.g. Rahul Sharma" : "e.g. Adv. M. Subramanian"} />
           </div>
           <div className="form-group">
             <label htmlFor="email">Email Address (Login ID) *</label>
-            <input type="email" id="email" required value={form.email} onChange={update('email')} placeholder="e.g. advocate@example.com" />
+            <input type="email" id="email" required value={form.email} onChange={update('email')} placeholder="e.g. student@law.ac.in" />
           </div>
         </div>
 
@@ -148,27 +214,54 @@ export default function Settings() {
             <label htmlFor="phone">Phone Number (10 digits)</label>
             <input type="tel" id="phone" value={form.phone} onChange={update('phone')} placeholder="e.g. 9876543210" style={phoneError ? { borderColor: 'var(--danger)' } : undefined} />
           </div>
-          <div className="form-group">
-            <label htmlFor="bar_council_number">Bar Council Enrollment Number</label>
-            <input type="text" id="bar_council_number" value={form.bar_council_number} onChange={update('bar_council_number')} placeholder="e.g. MS/1234/2018" />
-          </div>
+          {isStudentRole ? (
+            <div className="form-group">
+              <label htmlFor="student_id_number">Student ID / Roll Number</label>
+              <input type="text" id="student_id_number" value={form.student_id_number} onChange={update('student_id_number')} placeholder="e.g. NLU-2024-LLB-084" />
+            </div>
+          ) : (
+            <div className="form-group">
+              <label htmlFor="bar_council_number">Bar Council Enrollment Number</label>
+              <input type="text" id="bar_council_number" value={form.bar_council_number} onChange={update('bar_council_number')} placeholder="e.g. MS/1234/2018" />
+            </div>
+          )}
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="office_address">Office / Chamber Address</label>
-            <input type="text" id="office_address" value={form.office_address} onChange={update('office_address')} placeholder="e.g. Chamber 204, High Court Buildings, Chennai" />
+        {isStudentRole ? (
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="college_name">Law School / University Name</label>
+              <input type="text" id="college_name" value={form.college_name} onChange={update('college_name')} placeholder="e.g. National Law School of India University (NLSIU)" />
+            </div>
+            <div className="form-group">
+              <label htmlFor="course_year">Course & Year of Study</label>
+              <input type="text" id="course_year" value={form.course_year} onChange={update('course_year')} placeholder="e.g. 3rd Year B.A. LL.B (Hons)" />
+            </div>
           </div>
-          <div className="form-group">
-            <label htmlFor="specialization">Practice Area / Specialization</label>
-            <input type="text" id="specialization" value={form.specialization} onChange={update('specialization')} placeholder="e.g. Civil Litigation, Constitutional, Criminal" />
+        ) : (
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="office_address">Office / Chamber Address</label>
+              <input type="text" id="office_address" value={form.office_address} onChange={update('office_address')} placeholder="e.g. Chamber 204, High Court Buildings, Chennai" />
+            </div>
+            <div className="form-group">
+              <label htmlFor="specialization">Practice Area / Specialization</label>
+              <input type="text" id="specialization" value={form.specialization} onChange={update('specialization')} placeholder="e.g. Civil Litigation, Constitutional, Criminal" />
+            </div>
           </div>
-        </div>
+        )}
+
+        {isStudentRole && (
+          <div className="form-group">
+            <label htmlFor="areas_of_interest">Areas of Legal Interest & Research</label>
+            <input type="text" id="areas_of_interest" value={form.areas_of_interest} onChange={update('areas_of_interest')} placeholder="e.g. Constitutional Law, IPR, Criminal Procedure, Corporate Law, Human Rights" />
+          </div>
+        )}
 
         <div style={{ margin: '24px 0 16px 0', borderBottom: '1px dashed var(--border-card)', paddingBottom: 8 }}>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="bell" style={{ color: 'var(--accent)' }} />
-            Hearing Notification Alerts
+            Notification & Alert Preferences
           </div>
         </div>
 
@@ -187,18 +280,14 @@ export default function Settings() {
             <label htmlFor="reminder_days_before">Alert Schedule</label>
             <select id="reminder_days_before" value={form.reminder_days_before} onChange={update('reminder_days_before')}>
               {REMINDER_DAYS.map((d) => (
-                <option key={d} value={d}>{d} day{d > 1 ? 's' : ''} before hearing</option>
+                <option key={d} value={d}>{d} day{d > 1 ? 's' : ''} before deadline</option>
               ))}
             </select>
           </div>
         </div>
 
-        <button type="submit" className="btn-submit" style={{ marginTop: 16 }}>Save Profile & Settings</button>
+        <button type="submit" className="btn-submit" style={{ marginTop: 16 }}>Save Profile & Preferences</button>
       </form>
-
-      <div className="card-info staggered-entry" style={{ marginTop: 24 }}>
-        <strong>Daily Dispatch Note:</strong> WhatsApp/SMS reminders are processed daily via <code>send_reminders.py</code>. You can also use the instant <strong>WhatsApp Share</strong> button directly on any case card on your Dashboard.
-      </div>
     </div>
   );
 }
