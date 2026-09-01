@@ -106,28 +106,24 @@ def _cleanup_expired_sessions():
 
 
 def _generate_captcha_text(length=5):
-    """Generates an unambiguous 5-character alphanumeric captcha code with clearly distinguishable upper/lowercase characters."""
-    # Exclude ambiguous characters that look identical in upper/lowercase or with numbers (0, O, o, 1, I, l, c, C, s, S, v, V, w, W, x, X, z, Z)
-    uppercase = "ABDEFGHJKLMNPQRTY"
-    lowercase = "abdefghjkmnpqrty"
-    digits = "23456789"
-    charset = uppercase + lowercase + digits
+    """Generates an unambiguous 5-character alphanumeric captcha code matching eCourts standard (Uppercase letters & digits)."""
+    # Exclude confusing glyphs (0, O, 1, I)
+    charset = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
     return "".join(random.choices(charset, k=length))
 
 
 def _generate_captcha_image(text):
     """
-    Renders a captcha image using Pillow with noise, colored lines,
-    character rotation, and returns a base64 data URI.
-    Falls back to an inline SVG if Pillow is not available.
+    Renders a crisp, high-contrast captcha image matching judicial portal standards.
+    Returns a base64 data URI.
     """
     width, height = 180, 56
     text_colors = [
-        "#182b49",  # Deep navy
-        "#8b2635",  # Crimson
-        "#226644",  # Forest green
-        "#732c7a",  # Purple
-        "#a04000",  # Amber brown
+        "#1e3a8a",  # Deep royal blue
+        "#991b1b",  # Crimson red
+        "#166534",  # Forest emerald
+        "#6b21a8",  # Judicial purple
+        "#9a3412",  # Amber rust
     ]
 
     if not PIL_AVAILABLE:
@@ -135,12 +131,12 @@ def _generate_captcha_image(text):
         svg_chars = []
         char_width = width / (len(text) + 1)
         for i, char in enumerate(text):
-            x = (i + 0.6) * char_width + random.randint(-2, 2)
-            y = 38 + random.randint(-4, 4)
-            rot = random.randint(-15, 15)
+            x = (i + 0.65) * char_width + random.randint(-2, 2)
+            y = 38 + random.randint(-3, 3)
+            rot = random.randint(-12, 12)
             col = text_colors[i % len(text_colors)]
             svg_chars.append(
-                f'<text x="{x:.1f}" y="{y:.1f}" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="{col}" transform="rotate({rot} {x:.1f} {y:.1f})">{char}</text>'
+                f'<text x="{x:.1f}" y="{y:.1f}" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="bold" fill="{col}" transform="rotate({rot} {x:.1f} {y:.1f})">{char}</text>'
             )
 
         # Background noise lines
@@ -148,45 +144,45 @@ def _generate_captcha_image(text):
         for _ in range(4):
             x1, y1 = random.randint(0, width // 2), random.randint(0, height)
             x2, y2 = random.randint(width // 2, width), random.randint(0, height)
-            svg_lines.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#94a3b8" stroke-width="1.5" opacity="0.6"/>')
+            svg_lines.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#cbd5e1" stroke-width="1.5" opacity="0.6"/>')
 
         svg_content = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
-            <rect width="100%" height="100%" fill="#f8fafc"/>
+            <rect width="100%" height="100%" fill="#ffffff" rx="6"/>
             {''.join(svg_lines)}
             {''.join(svg_chars)}
-            <path d="M 0 28 Q 45 10, 90 28 T 180 28" fill="none" stroke="#64748b" stroke-width="1.5" opacity="0.5"/>
+            <path d="M 0 28 Q 45 12, 90 28 T 180 28" fill="none" stroke="#94a3b8" stroke-width="1.5" opacity="0.45"/>
         </svg>'''
         b64_svg = base64.b64encode(svg_content.encode("utf-8")).decode("utf-8")
         return f"data:image/svg+xml;base64,{b64_svg}"
 
     # Pillow PNG generation
-    bg_color = (random.randint(240, 252), random.randint(240, 252), random.randint(240, 252))
+    bg_color = (255, 255, 255)
     image = Image.new("RGB", (width, height), bg_color)
     draw = ImageDraw.Draw(image)
 
-    # Add background noise dots
-    for _ in range(120):
+    # Add background subtle noise dots
+    for _ in range(100):
         xy = (random.randint(0, width - 1), random.randint(0, height - 1))
-        dot_color = (random.randint(180, 220), random.randint(180, 220), random.randint(180, 220))
+        dot_color = (random.randint(200, 230), random.randint(200, 230), random.randint(200, 230))
         draw.point(xy, fill=dot_color)
 
     # Add background interference lines
-    for _ in range(4):
+    for _ in range(3):
         start = (random.randint(0, width // 2), random.randint(0, height))
         end = (random.randint(width // 2, width), random.randint(0, height))
-        line_color = (random.randint(120, 180), random.randint(100, 160), random.randint(100, 160))
-        draw.line([start, end], fill=line_color, width=random.randint(1, 2))
+        line_color = (random.randint(180, 210), random.randint(180, 210), random.randint(180, 210))
+        draw.line([start, end], fill=line_color, width=1)
 
-    # Try loading a system truetype font, fallback to default bitmap font
+    # Load bold system font with fallback
     font = None
     possible_fonts = [
-        "arial.ttf", "calibri.ttf", "times.ttf", "cour.ttf", "segoeui.ttf",
+        "arialbd.ttf", "arial.ttf", "calibrib.ttf", "calibri.ttf", "segoeuib.ttf", "times.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
     ]
     for font_name in possible_fonts:
         try:
-            font = ImageFont.truetype(font_name, 30)
+            font = ImageFont.truetype(font_name, 32)
             break
         except Exception:
             continue
@@ -194,37 +190,35 @@ def _generate_captcha_image(text):
     if font is None:
         font = ImageFont.load_default()
 
-    # Draw each character with slight offset and distinct color
+    # Draw each uppercase character with crisp alignment and distinct color
     char_width = width // (len(text) + 1)
     rgb_colors = [
-        (24, 43, 73),    # Deep navy
-        (139, 38, 53),   # Crimson
-        (34, 102, 68),   # Forest green
-        (115, 44, 122),  # Purple
-        (160, 64, 0),    # Amber brown
+        (30, 58, 138),   # Navy
+        (153, 27, 27),   # Crimson
+        (22, 101, 52),   # Forest emerald
+        (107, 33, 168),  # Purple
+        (154, 52, 18),   # Amber
     ]
 
     for i, char in enumerate(text):
-        char_x = int((i + 0.5) * char_width) + random.randint(-4, 4)
-        char_y = random.randint(8, 16)
+        char_x = int((i + 0.6) * char_width) + random.randint(-3, 3)
+        char_y = random.randint(10, 14)
         color = rgb_colors[i % len(rgb_colors)]
 
-        # Create single character image for rotation/jitter
-        char_img = Image.new("RGBA", (40, 45), (255, 255, 255, 0))
+        # Render single character with slight rotation
+        char_img = Image.new("RGBA", (44, 48), (255, 255, 255, 0))
         char_draw = ImageDraw.Draw(char_img)
-        char_draw.text((8, 4), char, font=font, fill=color)
+        char_draw.text((8, 2), char, font=font, fill=color)
 
-        # Rotate slightly
-        angle = random.randint(-18, 18)
+        angle = random.randint(-10, 10)
         rotated_char = char_img.rotate(angle, resample=Image.BICUBIC, expand=1)
 
         image.paste(rotated_char, (char_x, char_y), rotated_char)
 
-    # Add a top wavy strike line
-    for x in range(0, width, 4):
-        y = int(height / 2 + math.sin(x / 14.0) * 8)
-        draw.point((x, y), fill=(80, 80, 80))
-        draw.point((x + 1, y), fill=(80, 80, 80))
+    # Subtle sine wave security line
+    for x in range(0, width, 3):
+        y = int(height / 2 + math.sin(x / 16.0) * 6)
+        draw.point((x, y), fill=(148, 163, 184))
 
     # Export to base64 PNG
     buf = io.BytesIO()
@@ -392,8 +386,8 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
         expected = sess["captcha_text"]
         provided = (user_captcha_text or "").strip()
 
-        # Strict case-sensitive comparison (must match exact uppercase & lowercase letters)
-        if provided != expected:
+        # Alphanumeric verification matching eCourts standard
+        if provided.upper() != expected.upper():
             # Generate fresh captcha on failure
             new_captcha_text = _generate_captcha_text(5)
             new_captcha_image = _generate_captcha_image(new_captcha_text)
@@ -401,7 +395,7 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
             sess["created_at"] = time.time()
             return {
                 "status": "retry",
-                "message": "Captcha code mismatch. Please enter the exact uppercase and lowercase characters as shown in the security image.",
+                "message": "Security code did not match. A fresh code has been generated.",
                 "captchaImage": new_captcha_image,
             }
 
