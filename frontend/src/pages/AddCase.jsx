@@ -33,6 +33,20 @@ export default function AddCase() {
         <p>Record a new case file and set the hearing date schedule</p>
       </div>
 
+      <div className="staggered-entry" style={{ marginBottom: 24, padding: '14px 18px', background: 'var(--card-bg)', borderRadius: 8, border: '1px dashed var(--accent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontWeight: 600, color: 'var(--text-dark)', fontSize: 14 }}>
+            🏛️ Already have cases listed on eCourts?
+          </div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+            Search by your Bar Registration Number to import all active court matters with 1-click.
+          </div>
+        </div>
+        <Link to="/case-search" className="btn-edit" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', fontSize: 13, background: 'var(--bg-main)' }}>
+          <Icon name="court" /> Import from eCourts &rarr;
+        </Link>
+      </div>
+
       <CaseForm onSubmit={handleSubmit} submitLabel="Save Case File" />
     </div>
   );

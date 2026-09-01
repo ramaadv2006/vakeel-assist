@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useFlash } from '../context/FlashContext';
 import CaseCard from '../components/CaseCard';
@@ -116,6 +117,9 @@ export default function Dashboard() {
           <input type="text" placeholder="Search cases by client, case no, court, notes..." value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Link to="/case-search" className="btn-export" title="Search and import cases from eCourts" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Icon name="court" /> eCourts Import
+          </Link>
           <button className={`btn-export${view === 'list' ? ' active-view' : ''}`} onClick={() => setView('list')} title="Show list of hearings" type="button">List View</button>
           <button className={`btn-export${view === 'calendar' ? ' active-view' : ''}`} onClick={() => setView('calendar')} title="Show calendar monthly view" type="button">Calendar View</button>
           {data.total_cases > 0 && (

@@ -22,6 +22,7 @@ import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import Templates from './pages/Templates';
 import AiAssistant from './pages/AiAssistant';
+import AdvoCaseSearch from './pages/AdvoCaseSearch';
 
 // Student Portal Pages
 import StudentDashboard from './pages/student/StudentDashboard';
@@ -101,6 +102,8 @@ export default function App() {
                   <Route path="/billing" element={<Billing />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/templates" element={<Templates />} />
+                  <Route path="/case-search" element={<AdvoCaseSearch />} />
+                  <Route path="/ecourts-search" element={<AdvoCaseSearch />} />
 
                   {/* Student Portal Routes */}
                   <Route path="/student/moots" element={<MootTracker />} />

@@ -6,6 +6,7 @@ import { useFlash } from '../context/FlashContext';
 import Icon from './Icon';
 
 const ADVOCATE_LINKS = [
+  { to: '/case-search', icon: 'court', label: 'eCourts' },
   { to: '/ai-assistant', icon: 'ai', label: 'AI Assistant' },
   { to: '/clients', icon: 'clients', label: 'Clients' },
   { to: '/templates', icon: 'case', label: 'Drafts' },

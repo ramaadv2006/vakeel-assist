@@ -30,6 +30,11 @@ import psycopg2.extras
 from psycopg2 import pool as pg_pool
 from flask_cors import CORS
 from supabase import create_client
+from advobuddy.ecourts import (
+    start_ecourts_search,
+    refresh_ecourts_captcha,
+    submit_ecourts_captcha,
+)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "advo-buddy-secret-key-change-this-in-production")
@@ -2497,6 +2502,194 @@ def student_ai_tutor():
             user_msg = "AI Tutor is experiencing high traffic. Please wait 30 seconds."
             return jsonify({"error": user_msg}), 429
         return jsonify({"error": f"Failed to get response: {err_str}"}), 500
+
+
+# ==========================================
+# eCourts Search & Import APIs
+# ==========================================
+
+@app.route("/api/ecourts/start-search", methods=["POST"])
+def ecourts_start_search():
+    """
+    Initiates an eCourts search session for an advocate bar number.
+    Returns session ID and a visual CAPTCHA image.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        bar_number = data.get("barNumber") or data.get("bar_number") or ""
+        state = data.get("state") or ""
+        district = data.get("district") or ""
+        court_complex = data.get("courtComplex") or data.get("court_complex") or ""
+
+        if not bar_number.strip():
+            return jsonify({"error": "Please enter an Advocate Bar Registration Number (e.g. MS/4321/2018)."}), 400
+
+        result = start_ecourts_search(
+            bar_number=bar_number,
+            state=state,
+            district=district,
+            court_complex=court_complex,
+        )
+        return jsonify(result)
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception as e:
+        return jsonify({"error": f"Could not initiate eCourts search: {str(e)}"}), 500
+
+
+@app.route("/api/ecourts/refresh-captcha", methods=["POST"])
+def ecourts_refresh_captcha():
+    """
+    Refreshes the CAPTCHA image for an active search session.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        session_id = data.get("sessionId") or data.get("session_id") or ""
+        if not session_id:
+            return jsonify({"error": "Session ID is required."}), 400
+
+        result = refresh_ecourts_captcha(session_id)
+        return jsonify(result)
+    except KeyError as ke:
+        return jsonify({"error": str(ke)}), 404
+    except Exception as e:
+        return jsonify({"error": f"Failed to refresh captcha: {str(e)}"}), 500
+
+
+@app.route("/api/ecourts/submit-captcha", methods=["POST"])
+def ecourts_submit_captcha():
+    """
+    Submits user-entered CAPTCHA text. Returns either retry status with new captcha
+    or success status with the list of retrieved court cases.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        session_id = data.get("sessionId") or data.get("session_id") or ""
+        captcha_text = data.get("captchaText") or data.get("captcha_text") or ""
+        advocate_name = data.get("advocateName") or data.get("advocate_name") or ""
+
+        if not session_id:
+            return jsonify({"error": "Session ID is required."}), 400
+        if not captcha_text.strip():
+            return jsonify({"error": "Please type the letters shown in the CAPTCHA image."}), 400
+
+        result = submit_ecourts_captcha(
+            session_id=session_id,
+            user_captcha_text=captcha_text,
+            advocate_name=advocate_name,
+        )
+        return jsonify(result)
+    except KeyError as ke:
+        return jsonify({"error": str(ke)}), 404
+    except Exception as e:
+        return jsonify({"error": f"eCourts verification failed: {str(e)}"}), 500
+
+
+@app.route("/api/ecourts/import", methods=["POST"])
+@login_required
+def ecourts_import_cases():
+    """
+    Imports a list of verified eCourts cases into the advocate's Advo Buddy diary.
+    Avoids duplicate entries and registers initial hearing history.
+    """
+    advocate_id = g.advocate_id
+    data = request.get_json(silent=True) or {}
+    raw_cases = data.get("cases") or []
+
+    if not raw_cases:
+        return jsonify({"error": "No cases provided for import."}), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    imported_count = 0
+    updated_count = 0
+    all_conflicts = set()
+
+    for c in raw_cases:
+        case_number = (c.get("case_number") or "").strip()
+        if not case_number:
+            continue
+
+        client_name = (c.get("client_name") or c.get("parties") or "Client").strip()
+        client_phone = (c.get("client_phone") or "").strip()
+        client_email = (c.get("client_email") or "").strip()
+        court_name = (c.get("court_name") or "District Court").strip()
+        case_type = (c.get("case_type") or "Civil").strip()
+        next_hearing_date = (c.get("next_hearing_date") or datetime.now().strftime("%Y-%m-%d")).strip()
+        notes = (c.get("notes") or "").strip()
+        opposing_counsel = (c.get("opposing_counsel") or "").strip()
+        opposing_counsel_phone = (c.get("opposing_counsel_phone") or "").strip()
+        judge_name = (c.get("judge_name") or "").strip()
+        court_hall = (c.get("court_hall") or "").strip()
+        item_number = (c.get("item_number") or "").strip()
+        case_stage = (c.get("case_stage") or "").strip()
+        total_fee = int(c.get("total_fee") or 0)
+        fee_paid = int(c.get("fee_paid") or 0)
+        expenses = int(c.get("expenses") or 0)
+
+        # Check for hearing date conflict
+        conflicts = check_hearing_conflict(conn, advocate_id, court_name, next_hearing_date)
+        if conflicts:
+            for conf_num in conflicts:
+                all_conflicts.add(f"'{case_number}' clashes on {next_hearing_date} with '{conf_num}' at {court_name}")
+
+        # Check if already in database for this advocate
+        cur.execute(
+            "SELECT id FROM cases WHERE advocate_id=%s AND case_number=%s",
+            (advocate_id, case_number),
+        )
+        existing = cur.fetchone()
+
+        if existing:
+            # Update existing case details with latest eCourts data
+            case_id = existing["id"]
+            cur.execute(
+                """UPDATE cases SET client_name=%s, court_name=%s, case_type=%s,
+                                   next_hearing_date=%s, opposing_counsel=%s,
+                                   opposing_counsel_phone=%s, judge_name=%s,
+                                   court_hall=%s, item_number=%s, case_stage=%s, notes=%s
+                   WHERE id=%s AND advocate_id=%s""",
+                (client_name, court_name, case_type, next_hearing_date,
+                 opposing_counsel, opposing_counsel_phone, judge_name,
+                 court_hall, item_number, case_stage, notes, case_id, advocate_id),
+            )
+            updated_count += 1
+        else:
+            # Insert new case
+            cur.execute(
+                """INSERT INTO cases (advocate_id, client_name, client_phone, client_email,
+                                     case_number, court_name, case_type, next_hearing_date,
+                                     notes, notify_client, opposing_counsel, opposing_counsel_phone,
+                                     judge_name, court_hall, item_number, case_stage,
+                                     total_fee, fee_paid, expenses)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   RETURNING id""",
+                (advocate_id, client_name, client_phone, client_email, case_number,
+                 court_name, case_type, next_hearing_date, notes, 0,
+                 opposing_counsel, opposing_counsel_phone, judge_name, court_hall,
+                 item_number, case_stage, total_fee, fee_paid, expenses),
+            )
+            new_case_id = cur.fetchone()["id"]
+            add_history_entry(conn, new_case_id, next_hearing_date, note="Imported from eCourts Services")
+            imported_count += 1
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    msg = f"Successfully imported {imported_count} new case(s)"
+    if updated_count > 0:
+        msg += f" and updated {updated_count} existing case(s)"
+    msg += " into your Advo Buddy diary."
+
+    return jsonify({
+        "imported_count": imported_count,
+        "updated_count": updated_count,
+        "total_processed": imported_count + updated_count,
+        "conflicts": list(all_conflicts),
+        "message": msg,
+    })
 
 
 if DATABASE_URL:

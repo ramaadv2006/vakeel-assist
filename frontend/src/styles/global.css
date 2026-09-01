@@ -3919,3 +3919,12 @@ body.dark .searchable-select-option.selected {
         padding: 16px !important;
     }
 }
+
+.spinning {
+    animation: spinRotate 0.8s linear infinite;
+}
+
+@keyframes spinRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
