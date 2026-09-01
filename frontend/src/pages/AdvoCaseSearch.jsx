@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFlash } from '../context/FlashContext';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
+import '../styles/AdvoCaseSearch.css';
 
 const INDIAN_STATES = [
   { code: 'ALL', label: 'All High Courts & District Courts' },
@@ -19,12 +20,24 @@ const INDIAN_STATES = [
   { code: 'KL', label: 'Kerala (Kerala HC & District Courts)' },
 ];
 
+const POPULAR_PREFIXES = [
+  { label: 'Karnataka', prefix: 'KAR/' },
+  { label: 'Maharashtra', prefix: 'MS/' },
+  { label: 'Delhi', prefix: 'D/' },
+  { label: 'Tamil Nadu', prefix: 'MS/' },
+  { label: 'Uttar Pradesh', prefix: 'UP/' },
+  { label: 'West Bengal', prefix: 'WB/' },
+  { label: 'Telangana', prefix: 'TS/' },
+  { label: 'Gujarat', prefix: 'GJ/' },
+];
+
 export default function AdvoCaseSearch() {
   const { advocate } = useAuth();
   const addFlash = useFlash();
   const navigate = useNavigate();
 
-  const [barNumber, setBarNumber] = useState('');
+  // Search & Session State
+  const [barNumber, setBarNumber] = useState('MS/4321/2018');
   const [selectedState, setSelectedState] = useState('ALL');
   const [sessionId, setSessionId] = useState(null);
   const [captchaImage, setCaptchaImage] = useState(null);
@@ -33,8 +46,14 @@ export default function AdvoCaseSearch() {
   const [existingCaseNumbers, setExistingCaseNumbers] = useState(new Set());
   const [selectedCaseNumbers, setSelectedCaseNumbers] = useState(new Set());
   const [expandedCase, setExpandedCase] = useState(null);
+  const [copiedCnr, setCopiedCnr] = useState(null);
+
+  // Filters & Views
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const [filterType, setFilterType] = useState('all'); // 'all' | 'new' | 'civil' | 'criminal'
   const [filterQuery, setFilterQuery] = useState('');
 
+  // Loading & Progress States
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingCaptcha, setLoadingCaptcha] = useState(false);
   const [loadingRefresh, setLoadingRefresh] = useState(false);
@@ -43,17 +62,22 @@ export default function AdvoCaseSearch() {
 
   // Initialize bar number from advocate profile if available
   useEffect(() => {
-    if (advocate?.bar_council_number && !barNumber) {
+    if (advocate?.bar_council_number) {
       setBarNumber(advocate.bar_council_number);
     }
   }, [advocate]);
 
-  // Load existing cases to mark duplicates
+  // Load existing cases to identify duplicates
   useEffect(() => {
     api.get('/dashboard')
       .then((data) => {
         const existing = new Set();
-        const list = [...(data.overdue || []), ...(data.today || []), ...(data.this_week || []), ...(data.upcoming || [])];
+        const list = [
+          ...(data.overdue || []),
+          ...(data.today || []),
+          ...(data.this_week || []),
+          ...(data.upcoming || []),
+        ];
         list.forEach((c) => {
           if (c.case_number) existing.add(c.case_number.trim().toUpperCase());
         });
@@ -62,12 +86,19 @@ export default function AdvoCaseSearch() {
       .catch(() => {});
   }, []);
 
+  // Compute Current Active Step
+  const currentStep = useMemo(() => {
+    if (cases.length > 0) return 3;
+    if (captchaImage) return 2;
+    return 1;
+  }, [captchaImage, cases]);
+
   // Step 1: Start Search
   const handleStartSearch = async (e) => {
     if (e) e.preventDefault();
     const cleanBar = barNumber.trim();
     if (!cleanBar) {
-      addFlash('Please enter your Advocate Bar Council Registration Number.', 'warning');
+      addFlash('Please enter your Advocate Bar Registration Number (e.g. MS/4321/2018).', 'warning');
       return;
     }
 
@@ -84,7 +115,7 @@ export default function AdvoCaseSearch() {
 
       setSessionId(res.sessionId);
       setCaptchaImage(res.captchaImage);
-      addFlash('eCourts session initiated. Please solve the security captcha below.', 'info');
+      addFlash('eCourts session established! Solve the security verification captcha below.', 'info');
     } catch (err) {
       addFlash(err.message || 'Could not connect to eCourts service.', 'error');
     } finally {
@@ -100,7 +131,7 @@ export default function AdvoCaseSearch() {
       const res = await api.post('/ecourts/refresh-captcha', { sessionId });
       setCaptchaImage(res.captchaImage);
       setCaptchaText('');
-      addFlash('Captcha reloaded with a new code.', 'info');
+      addFlash('New captcha challenge loaded.', 'info');
     } catch (err) {
       addFlash(err.message || 'Failed to refresh captcha.', 'error');
     } finally {
@@ -108,14 +139,14 @@ export default function AdvoCaseSearch() {
     }
   };
 
-  // Text-to-speech for captcha accessibility
+  // Audio Help for Captcha
   const handleSpeakCaptcha = () => {
     if (!('speechSynthesis' in window)) {
       addFlash('Speech synthesis not supported in this browser.', 'warning');
       return;
     }
-    const msg = new SpeechSynthesisUtterance('Please enter the verification letters displayed on screen.');
-    msg.rate = 0.9;
+    const msg = new SpeechSynthesisUtterance('Please enter the security verification letters shown on your screen.');
+    msg.rate = 0.95;
     window.speechSynthesis.speak(msg);
   };
 
@@ -138,7 +169,7 @@ export default function AdvoCaseSearch() {
       if (res.status === 'retry') {
         setCaptchaImage(res.captchaImage);
         setCaptchaText('');
-        addFlash(res.message || 'Captcha did not match. Please try the new captcha code.', 'warning');
+        addFlash(res.message || 'Captcha code did not match. A fresh code has been generated.', 'warning');
         return;
       }
 
@@ -146,7 +177,7 @@ export default function AdvoCaseSearch() {
         const fetchedCases = res.cases || [];
         setCases(fetchedCases);
 
-        // Select non-existing cases by default
+        // Pre-select all un-imported cases by default
         const toSelect = new Set();
         fetchedCases.forEach((c) => {
           if (!existingCaseNumbers.has(c.case_number.trim().toUpperCase())) {
@@ -155,13 +186,22 @@ export default function AdvoCaseSearch() {
         });
         setSelectedCaseNumbers(toSelect);
 
-        addFlash(`Found ${fetchedCases.length} case(s) for Bar No: ${res.barNumber}`, 'success');
+        addFlash(`Successfully verified! Found ${fetchedCases.length} case(s) on eCourts.`, 'success');
       }
     } catch (err) {
       addFlash(err.message || 'Verification failed. Please retry.', 'error');
     } finally {
       setLoadingCaptcha(false);
     }
+  };
+
+  // Copy CNR Number to clipboard
+  const handleCopyCnr = (cnr, e) => {
+    if (e) e.stopPropagation();
+    navigator.clipboard.writeText(cnr);
+    setCopiedCnr(cnr);
+    addFlash(`Copied CNR: ${cnr}`, 'info');
+    setTimeout(() => setCopiedCnr(null), 2000);
   };
 
   // Toggle selection
@@ -175,7 +215,7 @@ export default function AdvoCaseSearch() {
     setSelectedCaseNumbers(next);
   };
 
-  // Toggle Select All
+  // Toggle Select All / Unselect All
   const handleToggleSelectAll = () => {
     if (selectedCaseNumbers.size === filteredCases.length) {
       setSelectedCaseNumbers(new Set());
@@ -190,7 +230,7 @@ export default function AdvoCaseSearch() {
   const handleImportCases = async () => {
     const casesToImport = cases.filter((c) => selectedCaseNumbers.has(c.case_number));
     if (casesToImport.length === 0) {
-      addFlash('Please select at least one case to import.', 'warning');
+      addFlash('Please select at least one case to import into your diary.', 'warning');
       return;
     }
 
@@ -199,13 +239,13 @@ export default function AdvoCaseSearch() {
       const res = await api.post('/ecourts/import', { cases: casesToImport });
       setImportedStatus(res);
 
-      // Update existing case numbers
+      // Update existing case numbers cache
       const updatedExisting = new Set(existingCaseNumbers);
       casesToImport.forEach((c) => updatedExisting.add(c.case_number.trim().toUpperCase()));
       setExistingCaseNumbers(updatedExisting);
 
       if (res.conflicts && res.conflicts.length > 0) {
-        addFlash(`Warning: ${res.conflicts.length} hearing date conflict(s) detected with your active schedule!`, 'warning');
+        addFlash(`Notice: ${res.conflicts.length} hearing date conflict(s) detected with your active schedule!`, 'warning');
       }
       addFlash(res.message, 'success');
     } catch (err) {
@@ -215,11 +255,21 @@ export default function AdvoCaseSearch() {
     }
   };
 
-  // Filtered cases
+  // Filtered cases based on search & category
   const filteredCases = useMemo(() => {
-    if (!filterQuery) return cases;
-    const q = filterQuery.toLowerCase();
     return cases.filter((c) => {
+      // Type Filter
+      if (filterType === 'new') {
+        if (existingCaseNumbers.has(c.case_number.trim().toUpperCase())) return false;
+      } else if (filterType === 'civil') {
+        if (!c.case_type?.toLowerCase().includes('civil') && !c.case_type?.toLowerCase().includes('suit')) return false;
+      } else if (filterType === 'criminal') {
+        if (!c.case_type?.toLowerCase().includes('criminal') && !c.case_type?.toLowerCase().includes('cc') && !c.case_type?.toLowerCase().includes('bail')) return false;
+      }
+
+      // Query Search
+      if (!filterQuery) return true;
+      const q = filterQuery.toLowerCase();
       const haystack = [
         c.case_number,
         c.client_name,
@@ -228,43 +278,117 @@ export default function AdvoCaseSearch() {
         c.case_type,
         c.case_stage,
         c.cnr_number,
+        c.judge_name,
         c.opposing_counsel,
       ].filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(q);
     });
-  }, [cases, filterQuery]);
+  }, [cases, filterType, filterQuery, existingCaseNumbers]);
+
+  // Statistics
+  const stats = useMemo(() => {
+    const total = cases.length;
+    const newCount = cases.filter((c) => !existingCaseNumbers.has(c.case_number.trim().toUpperCase())).length;
+    const existingCount = total - newCount;
+    const nextDates = cases.map((c) => c.next_hearing_date).filter(Boolean).sort();
+    return {
+      total,
+      newCount,
+      existingCount,
+      earliestHearing: nextDates[0] || 'None',
+    };
+  }, [cases, existingCaseNumbers]);
 
   return (
-    <div className="form-container" style={{ maxWidth: 1040, margin: '0 auto', paddingBottom: 60 }}>
-      {/* Top Breadcrumb / Back Link */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+    <div className="ecourts-page-wrap">
+      <div className="ecourts-ambient-glow" />
+
+      {/* Top Back Nav & Quick Badge */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative', zIndex: 1 }}>
         <Link to="/" className="back-link" style={{ marginBottom: 0 }}>
           <Icon name="back" />
           Back to Dashboard
         </Link>
-        <span className="badge-pill" style={{ background: 'var(--accent-glow)', color: 'var(--accent)', fontWeight: 600, padding: '4px 12px' }}>
-          🏛️ eCourts Services Live Portal
-        </span>
+        <div className="ecourts-live-status-badge">
+          <span className="ecourts-ping-dot" />
+          NJDG & High Court Gateway Live
+        </div>
       </div>
 
-      {/* Header */}
-      <div className="form-header staggered-entry">
-        <h2>eCourts Advocate Case Search</h2>
-        <p>Look up all active court matters registered under your Bar Council Number and seamlessly import them into your Advo Buddy diary.</p>
+      {/* Hero Card */}
+      <div className="ecourts-hero-card">
+        <div className="ecourts-hero-header">
+          <div className="ecourts-hero-title-group">
+            <div className="ecourts-hero-icon-badge">⚖️</div>
+            <div>
+              <h1 className="ecourts-hero-title">eCourts Advocate Case Search & Import</h1>
+              <p className="ecourts-hero-subtitle">
+                Directly interface with the National Judicial Data Grid to query all registered causes, track CNR numbers, and sync live hearing schedules to your diary.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="ecourts-hero-chips">
+          <span className="ecourts-chip">🏛️ 3,000+ Court Complexes</span>
+          <span className="ecourts-chip">🔒 Encrypted Government Session</span>
+          <span className="ecourts-chip">⚡ 1-Click Multi-Case Import</span>
+          <span className="ecourts-chip">📅 Automatic Hearing Schedule Sync</span>
+          <span className="ecourts-chip">🔍 Conflict Detection Guard</span>
+        </div>
       </div>
 
-      {/* Step 1: Bar Number Search Panel */}
-      <div className="card-form staggered-entry" style={{ padding: '24px 28px', marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <span style={{ fontSize: 18, background: 'var(--accent)', color: '#fff', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>1</span>
-          <h3 style={{ margin: 0, fontSize: 17, color: 'var(--text-dark)' }}>Enter Advocate Bar Registration Number</h3>
+      {/* Interactive Step Progress Stepper */}
+      <div className="ecourts-stepper-wrap">
+        <div className={`ecourts-step-tab ${currentStep === 1 ? 'is-active' : ''} ${currentStep > 1 ? 'is-completed' : ''}`}>
+          <div className="ecourts-step-num">{currentStep > 1 ? '✓' : '1'}</div>
+          <div>
+            <div className="ecourts-step-title">Bar Council Number</div>
+            <div className="ecourts-step-desc">Enter Advocate Credentials</div>
+          </div>
+        </div>
+
+        <div className={`ecourts-step-tab ${currentStep === 2 ? 'is-active' : ''} ${currentStep > 2 ? 'is-completed' : ''}`}>
+          <div className="ecourts-step-num">{currentStep > 2 ? '✓' : '2'}</div>
+          <div>
+            <div className="ecourts-step-title">Security Captcha</div>
+            <div className="ecourts-step-desc">Verify Human Operator</div>
+          </div>
+        </div>
+
+        <div className={`ecourts-step-tab ${currentStep === 3 ? 'is-active' : ''}`}>
+          <div className="ecourts-step-num">3</div>
+          <div>
+            <div className="ecourts-step-title">Review & Import</div>
+            <div className="ecourts-step-desc">Sync to Advo Buddy Diary</div>
+          </div>
+        </div>
+      </div>
+
+      {/* STEP 1: Search Form Panel */}
+      <div className="ecourts-panel-card">
+        <div className="ecourts-panel-header">
+          <h3 className="ecourts-panel-title">
+            <Icon name="court" style={{ color: 'var(--accent)' }} />
+            Step 1: Advocate Bar Registration Details
+          </h3>
+          {advocate?.bar_council_number && (
+            <button
+              type="button"
+              className="btn-edit"
+              onClick={() => setBarNumber(advocate.bar_council_number)}
+              style={{ fontSize: 12, padding: '5px 12px' }}
+            >
+              Autofill from Profile ({advocate.bar_council_number})
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleStartSearch}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 16 }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label htmlFor="bar-number-input">
-                Bar Council Number <span style={{ color: 'var(--danger)' }}>*</span>
+                Advocate Bar Council Number <span style={{ color: 'var(--danger)' }}>*</span>
               </label>
               <input
                 id="bar-number-input"
@@ -275,12 +399,25 @@ export default function AdvoCaseSearch() {
                 onChange={(e) => setBarNumber(e.target.value.toUpperCase())}
                 disabled={loadingSearch || loadingCaptcha}
                 required
+                style={{ fontWeight: 600, letterSpacing: 0.5 }}
               />
-              <span className="field-hint">Standard format: State/Roll Number/Year</span>
+              <div className="ecourts-quick-prefixes">
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Quick Format:</span>
+                {POPULAR_PREFIXES.map((item) => (
+                  <button
+                    key={item.prefix}
+                    type="button"
+                    className="ecourts-prefix-btn"
+                    onClick={() => setBarNumber(`${item.prefix}4321/${new Date().getFullYear() - 2}`)}
+                  >
+                    {item.label} ({item.prefix})
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="state-select">Court Jurisdiction (Optional)</label>
+              <label htmlFor="state-select">Court Jurisdiction Filter</label>
               <select
                 id="state-select"
                 className="form-control"
@@ -292,7 +429,9 @@ export default function AdvoCaseSearch() {
                   <option key={s.code} value={s.code}>{s.label}</option>
                 ))}
               </select>
-              <span className="field-hint">Select a specific state court complex or search all</span>
+              <span className="field-hint" style={{ marginTop: 6, display: 'block' }}>
+                Select a specific state court complex or leave as All Courts for full scan.
+              </span>
             </div>
           </div>
 
@@ -300,14 +439,14 @@ export default function AdvoCaseSearch() {
             <button
               type="submit"
               className="btn-submit"
-              style={{ width: 'auto', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8 }}
+              style={{ width: 'auto', padding: '12px 28px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}
               disabled={loadingSearch || loadingCaptcha}
             >
               {loadingSearch ? (
-                <>Searching eCourts…</>
+                <>Connecting to eCourts…</>
               ) : (
                 <>
-                  <Icon name="search" /> Fetch eCourts Record
+                  <Icon name="search" /> Query eCourts Registry &rarr;
                 </>
               )}
             </button>
@@ -315,27 +454,27 @@ export default function AdvoCaseSearch() {
         </form>
       </div>
 
-      {/* Step 2: Captcha Verification Modal/Card */}
+      {/* STEP 2: Captcha Verification Card */}
       {captchaImage && cases.length === 0 && (
-        <div className="card-form staggered-entry" style={{ padding: '24px 28px', marginBottom: 24, border: '2px solid var(--accent)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 18, background: 'var(--warning)', color: '#fff', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>2</span>
-              <h3 style={{ margin: 0, fontSize: 17, color: 'var(--text-dark)' }}>Security Verification (CAPTCHA)</h3>
-            </div>
-            <span className="badge-pill" style={{ background: 'rgba(234, 179, 8, 0.15)', color: 'var(--warning)', fontWeight: 600 }}>
-              Official eCourts Protocol
+        <div className="ecourts-panel-card" style={{ border: '2px solid var(--accent)', animation: 'fadeIn 0.3s ease' }}>
+          <div className="ecourts-panel-header">
+            <h3 className="ecourts-panel-title">
+              <span style={{ color: 'var(--warning)', fontSize: 20 }}>🛡️</span>
+              Step 2: Security Verification (CAPTCHA)
+            </h3>
+            <span className="badge-pill" style={{ background: 'rgba(234, 179, 8, 0.15)', color: 'var(--warning)', fontWeight: 700 }}>
+              Security Protocol
             </span>
           </div>
 
-          <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 16 }}>
-            Government court servers require manual verification to confirm a human advocate is querying court records.
+          <p style={{ fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 18 }}>
+            eCourts security protocol requires solving this CAPTCHA to verify that queries are initiated by authorized advocates.
           </p>
 
           <form onSubmit={handleSubmitCaptcha}>
-            <div style={{ background: 'var(--bg-main)', padding: 18, borderRadius: 8, border: '1px solid var(--border-color)', marginBottom: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 14 }}>
-                <div style={{ background: '#ffffff', padding: '6px 12px', borderRadius: 6, border: '1px solid #cbd5e1', boxShadow: '0 2px 6px rgba(0,0,0,0.06)' }}>
+            <div className="ecourts-captcha-box">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                <div className="ecourts-captcha-img-holder">
                   <img
                     src={captchaImage}
                     alt="eCourts Security Captcha"
@@ -349,40 +488,39 @@ export default function AdvoCaseSearch() {
                     className="btn-edit"
                     onClick={handleRefreshCaptcha}
                     disabled={loadingRefresh || loadingCaptcha}
-                    title="Get a new captcha code"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px' }}
+                    title="Generate a new captcha image"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px' }}
                   >
                     <Icon name="refresh" className={loadingRefresh ? 'spinning' : ''} />
-                    {loadingRefresh ? 'Refreshing…' : 'Reload Code'}
+                    {loadingRefresh ? 'Reloading…' : 'Reload'}
                   </button>
 
                   <button
                     type="button"
                     className="btn-edit"
                     onClick={handleSpeakCaptcha}
-                    title="Audio accessibility help"
-                    style={{ padding: '8px 12px' }}
+                    title="Listen to audio assistance"
+                    style={{ padding: '9px 14px' }}
                   >
                     🔊 Help
                   </button>
                 </div>
               </div>
 
-              <div className="form-group" style={{ margin: 0, maxWidth: 320 }}>
-                <label htmlFor="captcha-input">
-                  Enter the characters shown above <span style={{ color: 'var(--danger)' }}>*</span>
+              <div className="ecourts-captcha-input-group">
+                <label htmlFor="captcha-input" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+                  Enter the 5 characters shown
                 </label>
                 <input
                   id="captcha-input"
                   type="text"
-                  className="form-control"
-                  placeholder="Type 5-letter code"
+                  className="form-control ecourts-captcha-input"
+                  placeholder="CODE"
                   value={captchaText}
                   onChange={(e) => setCaptchaText(e.target.value)}
                   disabled={loadingCaptcha}
                   autoFocus
                   required
-                  style={{ letterSpacing: 2, fontSize: 16, fontWeight: 600 }}
                 />
               </div>
             </div>
@@ -391,14 +529,14 @@ export default function AdvoCaseSearch() {
               <button
                 type="submit"
                 className="btn-submit"
-                style={{ width: 'auto', padding: '10px 28px', display: 'flex', alignItems: 'center', gap: 8 }}
+                style={{ width: 'auto', padding: '12px 32px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}
                 disabled={loadingCaptcha}
               >
                 {loadingCaptcha ? (
-                  <>Verifying with eCourts…</>
+                  <>Validating Session…</>
                 ) : (
                   <>
-                    <Icon name="check" /> Verify & View Cases
+                    <Icon name="check" /> Confirm & Retrieve Cases
                   </>
                 )}
               </button>
@@ -407,20 +545,19 @@ export default function AdvoCaseSearch() {
         </div>
       )}
 
-      {/* Step 3: Retrieved Cases Table & Import Panel */}
+      {/* STEP 3: Results, Filter Bar & Case Grid */}
       {cases.length > 0 && (
-        <div className="card-form staggered-entry" style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18, borderBottom: '1px solid var(--border-color)', paddingBottom: 14 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 18, background: 'var(--success)', color: '#fff', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>3</span>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 17, color: 'var(--text-dark)' }}>
-                  Court Cases Retrieved ({cases.length})
-                </h3>
-                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                  Advocate Bar No: <strong>{barNumber}</strong> • {selectedCaseNumbers.size} of {filteredCases.length} selected for import
-                </span>
-              </div>
+        <div className="ecourts-panel-card" style={{ animation: 'fadeIn 0.3s ease' }}>
+          {/* Header & Stats Ribbon */}
+          <div className="ecourts-panel-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 16, marginBottom: 18 }}>
+            <div>
+              <h3 className="ecourts-panel-title">
+                <span style={{ color: 'var(--success)' }}>📋</span>
+                Step 3: Cases Found for Bar No. {barNumber}
+              </h3>
+              <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                {selectedCaseNumbers.size} of {filteredCases.length} case(s) selected for import
+              </span>
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -428,19 +565,20 @@ export default function AdvoCaseSearch() {
                 type="button"
                 className="btn-edit"
                 onClick={handleToggleSelectAll}
-                style={{ padding: '7px 14px', fontSize: 13 }}
+                style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600 }}
               >
                 {selectedCaseNumbers.size === filteredCases.length ? 'Deselect All' : 'Select All'}
               </button>
+
               <button
                 type="button"
                 className="btn-submit"
                 onClick={handleImportCases}
                 disabled={loadingImport || selectedCaseNumbers.size === 0}
-                style={{ width: 'auto', padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5 }}
+                style={{ width: 'auto', padding: '8px 22px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5 }}
               >
                 {loadingImport ? (
-                  <>Saving to Diary…</>
+                  <>Saving…</>
                 ) : (
                   <>
                     <Icon name="download" /> Import Selected ({selectedCaseNumbers.size})
@@ -450,197 +588,370 @@ export default function AdvoCaseSearch() {
             </div>
           </div>
 
-          {/* Quick Filter Box */}
-          <div className="search-box" style={{ marginBottom: 16, width: '100%', maxWidth: 420 }}>
-            <Icon name="search" />
-            <input
-              type="text"
-              placeholder="Filter by case no, client name, stage, or court..."
-              value={filterQuery}
-              onChange={(e) => setFilterQuery(e.target.value)}
-            />
+          {/* Quick Stats Ribbon */}
+          <div className="ecourts-stats-ribbon">
+            <div className="ecourts-stat-cell">
+              <div className="ecourts-stat-val" style={{ color: 'var(--accent)' }}>{stats.total}</div>
+              <div className="ecourts-stat-lbl">Total Scraped Matters</div>
+            </div>
+            <div className="ecourts-stat-cell">
+              <div className="ecourts-stat-val" style={{ color: 'var(--info)' }}>{stats.newCount}</div>
+              <div className="ecourts-stat-lbl">New (Ready to Import)</div>
+            </div>
+            <div className="ecourts-stat-cell">
+              <div className="ecourts-stat-val" style={{ color: 'var(--success)' }}>{stats.existingCount}</div>
+              <div className="ecourts-stat-lbl">Already in Diary</div>
+            </div>
+            <div className="ecourts-stat-cell">
+              <div className="ecourts-stat-val" style={{ color: '#8b5cf6', fontSize: 16 }}>{stats.earliestHearing}</div>
+              <div className="ecourts-stat-lbl">Earliest Next Date</div>
+            </div>
           </div>
 
-          {/* Table of Cases */}
-          <div style={{ overflowX: 'auto', borderRadius: 8, border: '1px solid var(--border-color)', marginBottom: 20 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13.5 }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border-color)' }}>
-                  <th style={{ padding: '12px 14px', width: 44, textAlign: 'center' }}>
-                    <input
-                      type="checkbox"
-                      checked={filteredCases.length > 0 && selectedCaseNumbers.size === filteredCases.length}
-                      onChange={handleToggleSelectAll}
-                      style={{ cursor: 'pointer' }}
-                    />
-                  </th>
-                  <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)' }}>Case Details</th>
-                  <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)' }}>Parties / Litigants</th>
-                  <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)' }}>Court & Stage</th>
-                  <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)' }}>Next Hearing</th>
-                  <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)', textAlign: 'right' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCases.map((c) => {
-                  const isExisting = existingCaseNumbers.has(c.case_number.trim().toUpperCase());
-                  const isSelected = selectedCaseNumbers.has(c.case_number);
-                  const isExpanded = expandedCase === c.case_number;
+          {/* Search, Filter Tabs & View Toggle */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
+            {/* Search Input */}
+            <div className="search-box" style={{ maxWidth: 360, width: '100%', margin: 0 }}>
+              <Icon name="search" />
+              <input
+                type="text"
+                placeholder="Search case no, client, court, or stage..."
+                value={filterQuery}
+                onChange={(e) => setFilterQuery(e.target.value)}
+              />
+            </div>
 
-                  return (
-                    <tr
-                      key={c.case_number}
-                      style={{
-                        borderBottom: '1px solid var(--border-color)',
-                        background: isSelected ? 'rgba(59, 130, 246, 0.04)' : 'transparent',
-                        transition: 'background 0.15s ease',
-                      }}
-                    >
-                      <td style={{ padding: '14px', textAlign: 'center', verticalAlign: 'top' }}>
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleCaseSelect(c.case_number)}
-                          style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
-                        />
-                      </td>
+            {/* Filter Tabs */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`btn-export ${filterType === 'all' ? 'active-view' : ''}`}
+                onClick={() => setFilterType('all')}
+                style={{ padding: '6px 14px', fontSize: 12.5 }}
+              >
+                All ({cases.length})
+              </button>
+              <button
+                type="button"
+                className={`btn-export ${filterType === 'new' ? 'active-view' : ''}`}
+                onClick={() => setFilterType('new')}
+                style={{ padding: '6px 14px', fontSize: 12.5 }}
+              >
+                New Only ({stats.newCount})
+              </button>
+              <button
+                type="button"
+                className={`btn-export ${filterType === 'civil' ? 'active-view' : ''}`}
+                onClick={() => setFilterType('civil')}
+                style={{ padding: '6px 14px', fontSize: 12.5 }}
+              >
+                Civil Suits
+              </button>
+              <button
+                type="button"
+                className={`btn-export ${filterType === 'criminal' ? 'active-view' : ''}`}
+                onClick={() => setFilterType('criminal')}
+                style={{ padding: '6px 14px', fontSize: 12.5 }}
+              >
+                Criminal Matters
+              </button>
+            </div>
 
-                      <td style={{ padding: '14px', verticalAlign: 'top' }}>
-                        <div style={{ fontWeight: 700, color: 'var(--text-dark)', fontSize: 14 }}>
-                          {c.case_number}
+            {/* View Switcher */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                type="button"
+                className={`btn-export ${viewMode === 'grid' ? 'active-view' : ''}`}
+                onClick={() => setViewMode('grid')}
+                title="Grid Card View"
+                style={{ padding: '6px 12px' }}
+              >
+                Grid View
+              </button>
+              <button
+                type="button"
+                className={`btn-export ${viewMode === 'table' ? 'active-view' : ''}`}
+                onClick={() => setViewMode('table')}
+                title="Tabular View"
+                style={{ padding: '6px 12px' }}
+              >
+                Table View
+              </button>
+            </div>
+          </div>
+
+          {/* Success Result Banner after Import */}
+          {importedStatus && (
+            <div className="ecourts-success-card">
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: '#15803d', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span>🎉</span> {importedStatus.message}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
+                  {importedStatus.imported_count} new cases added • {importedStatus.updated_count} existing cases updated with latest court stages.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  className="btn-submit"
+                  onClick={() => navigate('/')}
+                  style={{ padding: '8px 20px', fontSize: 13 }}
+                >
+                  Open Dashboard &rarr;
+                </button>
+                <button
+                  type="button"
+                  className="btn-edit"
+                  onClick={() => navigate('/diary')}
+                  style={{ padding: '8px 16px', fontSize: 13 }}
+                >
+                  View Court Diary
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW 1: GRID CARD VIEW */}
+          {viewMode === 'grid' && (
+            <div className="ecourts-case-grid">
+              {filteredCases.map((c) => {
+                const isExisting = existingCaseNumbers.has(c.case_number.trim().toUpperCase());
+                const isSelected = selectedCaseNumbers.has(c.case_number);
+                const isExpanded = expandedCase === c.case_number;
+
+                return (
+                  <div
+                    key={c.case_number}
+                    className={`ecourts-case-card ${isSelected ? 'is-selected' : ''}`}
+                    onClick={() => toggleCaseSelect(c.case_number)}
+                  >
+                    <div>
+                      {/* Top Bar */}
+                      <div className="ecourts-card-top">
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleCaseSelect(c.case_number);
+                            }}
+                            style={{ cursor: 'pointer', transform: 'scale(1.2)', marginTop: 3 }}
+                          />
+                          <div>
+                            <div className="ecourts-case-num">{c.case_number}</div>
+                            <div
+                              className="ecourts-cnr-tag"
+                              onClick={(e) => handleCopyCnr(c.cnr_number, e)}
+                              title="Click to copy CNR number"
+                            >
+                              <span>CNR: {c.cnr_number}</span>
+                              <span>{copiedCnr === c.cnr_number ? '✓' : '📋'}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                          CNR: <span style={{ fontFamily: 'monospace' }}>{c.cnr_number}</span>
+
+                        <div>
+                          {isExisting ? (
+                            <span className="badge-pill" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', fontWeight: 700 }}>
+                              ✓ In Diary
+                            </span>
+                          ) : (
+                            <span className="badge-pill" style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--accent)', fontWeight: 700 }}>
+                              Ready
+                            </span>
+                          )}
                         </div>
+                      </div>
+
+                      {/* Parties Box */}
+                      <div className="ecourts-parties-box">
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 2 }}>PARTIES / CAUSE TITLE</div>
+                        <div>{c.client_name || c.parties}</div>
+                      </div>
+
+                      {/* Court & Stage */}
+                      <div style={{ fontSize: 12.5, color: 'var(--text-dark)', fontWeight: 500, marginBottom: 6 }}>
+                        🏛️ {c.court_name}
+                      </div>
+                      <div>
+                        <span className="badge-pill" style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                          Stage: {c.case_stage}
+                        </span>
+                      </div>
+
+                      {/* Expandable Details Drawer */}
+                      {isExpanded && (
+                        <div className="ecourts-details-drawer" onClick={(e) => e.stopPropagation()}>
+                          <div className="ecourts-detail-item">
+                            <span className="ecourts-detail-key">Hon'ble Judge:</span>
+                            <span className="ecourts-detail-val">{c.judge_name}</span>
+                          </div>
+                          <div className="ecourts-detail-item">
+                            <span className="ecourts-detail-key">Court Room / Hall:</span>
+                            <span className="ecourts-detail-val">{c.court_hall} (Item #{c.item_number})</span>
+                          </div>
+                          <div className="ecourts-detail-item">
+                            <span className="ecourts-detail-key">Opposing Counsel:</span>
+                            <span className="ecourts-detail-val">{c.opposing_counsel}</span>
+                          </div>
+                          <div className="ecourts-detail-item">
+                            <span className="ecourts-detail-key">Matter Type:</span>
+                            <span className="ecourts-detail-val">{c.case_type}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Metadata & Expand Toggle */}
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12, marginTop: 14 }}>
+                      <div className="ecourts-card-meta-row">
+                        <div className="ecourts-hearing-pill">
+                          <Icon name="calendar" style={{ width: 14, height: 14 }} />
+                          Next: {c.next_hearing_date}
+                        </div>
+
                         <button
                           type="button"
-                          onClick={() => setExpandedCase(isExpanded ? null : c.case_number)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedCase(isExpanded ? null : c.case_number);
+                          }}
                           style={{
                             background: 'none',
                             border: 'none',
                             color: 'var(--accent)',
                             fontSize: 12,
-                            padding: 0,
-                            marginTop: 4,
+                            fontWeight: 600,
                             cursor: 'pointer',
-                            textDecoration: 'underline',
+                            padding: '2px 6px',
                           }}
                         >
-                          {isExpanded ? 'Hide Details ▲' : 'View Court Details ▼'}
+                          {isExpanded ? 'Hide Details ▲' : 'Details ▼'}
                         </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-                        {isExpanded && (
-                          <div style={{ marginTop: 8, padding: 8, background: 'var(--bg-main)', borderRadius: 6, fontSize: 12, lineHeight: 1.6 }}>
-                            <div><strong>Judge:</strong> {c.judge_name}</div>
-                            <div><strong>Court Room:</strong> {c.court_hall}</div>
-                            <div><strong>Opposing Counsel:</strong> {c.opposing_counsel} ({c.opposing_counsel_phone})</div>
-                            <div><strong>Type:</strong> {c.case_type}</div>
-                          </div>
-                        )}
-                      </td>
-
-                      <td style={{ padding: '14px', verticalAlign: 'top' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text-dark)' }}>
-                          {c.client_name || c.parties}
-                        </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                          Opp: {c.opposing_counsel}
-                        </div>
-                      </td>
-
-                      <td style={{ padding: '14px', verticalAlign: 'top' }}>
-                        <div style={{ color: 'var(--text-dark)' }}>{c.court_name}</div>
-                        <div style={{ marginTop: 4 }}>
-                          <span className="badge-pill" style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', fontSize: 11.5, color: 'var(--text-muted)' }}>
-                            {c.case_stage}
-                          </span>
-                        </div>
-                      </td>
-
-                      <td style={{ padding: '14px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontWeight: 600 }}>
-                          <Icon name="calendar" style={{ width: 14, height: 14 }} />
-                          {c.next_hearing_date}
-                        </div>
-                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                          Item #{c.item_number}
-                        </div>
-                      </td>
-
-                      <td style={{ padding: '14px', verticalAlign: 'top', textAlign: 'right' }}>
-                        {isExisting ? (
-                          <span className="badge-pill" style={{ background: 'rgba(34, 197, 94, 0.15)', color: 'var(--success)', fontWeight: 600 }}>
-                            ✓ In Diary
-                          </span>
-                        ) : (
-                          <span className="badge-pill" style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--info)', fontWeight: 600 }}>
-                            Ready to Import
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {filteredCases.length === 0 && (
-                  <tr>
-                    <td colSpan={6} style={{ padding: 30, textAlign: 'center', color: 'var(--text-muted)' }}>
-                      No cases match your search filter "{filterQuery}".
-                    </td>
+          {/* VIEW 2: COMPACT TABULAR VIEW */}
+          {viewMode === 'table' && (
+            <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-color)', marginBottom: 20 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13.5 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border-color)' }}>
+                    <th style={{ padding: '12px 14px', width: 44, textAlign: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={filteredCases.length > 0 && selectedCaseNumbers.size === filteredCases.length}
+                        onChange={handleToggleSelectAll}
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </th>
+                    <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)' }}>Case & CNR</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)' }}>Parties</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)' }}>Court & Stage</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)' }}>Next Date</th>
+                    <th style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-dark)', textAlign: 'right' }}>Status</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredCases.map((c) => {
+                    const isExisting = existingCaseNumbers.has(c.case_number.trim().toUpperCase());
+                    const isSelected = selectedCaseNumbers.has(c.case_number);
+
+                    return (
+                      <tr
+                        key={c.case_number}
+                        style={{
+                          borderBottom: '1px solid var(--border-color)',
+                          background: isSelected ? 'rgba(59, 130, 246, 0.04)' : 'transparent',
+                        }}
+                      >
+                        <td style={{ padding: '14px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleCaseSelect(c.case_number)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </td>
+                        <td style={{ padding: '14px' }}>
+                          <div style={{ fontWeight: 700, color: 'var(--text-dark)' }}>{c.case_number}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                            {c.cnr_number}
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{c.client_name || c.parties}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>Opp: {c.opposing_counsel}</div>
+                        </td>
+                        <td style={{ padding: '14px' }}>
+                          <div>{c.court_name}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{c.case_stage}</div>
+                        </td>
+                        <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--accent)' }}>{c.next_hearing_date}</div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{c.court_hall}</div>
+                        </td>
+                        <td style={{ padding: '14px', textAlign: 'right' }}>
+                          {isExisting ? (
+                            <span className="badge-pill" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', fontWeight: 700 }}>
+                              In Diary
+                            </span>
+                          ) : (
+                            <span className="badge-pill" style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--accent)', fontWeight: 700 }}>
+                              Ready
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {filteredCases.length === 0 && (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-main)', borderRadius: 10 }}>
+              No court matters found matching your filter criteria.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Floating Bottom Action Bar when items are selected */}
+      {selectedCaseNumbers.size > 0 && (
+        <div className="ecourts-floating-action-bar">
+          <div className="ecourts-floating-info">
+            <span className="ecourts-selection-bubble">{selectedCaseNumbers.size}</span>
+            <span>cases ready to sync with your diary</span>
           </div>
 
-          {/* Import Actions Banner */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, background: 'var(--bg-main)', padding: '16px 20px', borderRadius: 8, border: '1px solid var(--border-color)' }}>
-            <div>
-              <div style={{ fontWeight: 600, color: 'var(--text-dark)' }}>
-                Ready to sync with your Advo Buddy account
-              </div>
-              <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                Imported cases will be added to your daily hearing schedule, client directory, and conflict detector.
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                type="button"
-                className="btn-submit"
-                onClick={handleImportCases}
-                disabled={loadingImport || selectedCaseNumbers.size === 0}
-                style={{ width: 'auto', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8 }}
-              >
-                {loadingImport ? (
-                  <>Saving Cases…</>
-                ) : (
-                  <>
-                    <Icon name="download" /> Save {selectedCaseNumbers.size} Cases to Advo Buddy
-                  </>
-                )}
-              </button>
-
-              {importedStatus && (
-                <button
-                  type="button"
-                  className="btn-edit"
-                  onClick={() => navigate('/')}
-                  style={{ padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 6 }}
-                >
-                  <Icon name="checklist" /> Open Dashboard
-                </button>
-              )}
-            </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button
+              type="button"
+              className="btn-submit"
+              onClick={handleImportCases}
+              disabled={loadingImport}
+              style={{ padding: '10px 24px', fontSize: 14, fontWeight: 700 }}
+            >
+              {loadingImport ? <>Importing…</> : <>⚡ Sync {selectedCaseNumbers.size} Cases Now</>}
+            </button>
           </div>
         </div>
       )}
 
-      {/* Information Box */}
-      <div style={{ marginTop: 28, padding: 18, background: 'var(--bg-main)', borderRadius: 8, border: '1px dashed var(--border-color)', fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-        <strong>ℹ️ How eCourts Search Works:</strong>
+      {/* Educational Judicial Infrastructure Notice */}
+      <div style={{ marginTop: 32, padding: 20, background: 'var(--bg-main)', borderRadius: 12, border: '1px dashed var(--border-color)', fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+        <strong>🏛️ National Judicial Data Grid (NJDG) Direct Interface:</strong>
         <p style={{ margin: '6px 0 0 0' }}>
-          This tool interfaces with the National Judicial Data Grid (NJDG) & eCourts Services infrastructure. The visual CAPTCHA verification confirms security compliance before querying case status by Bar Council Registration Number. All imported records remain private to your advocate account.
+          Advo Buddy synchronizes with the official eCourts Services protocol. All retrieved case filings, orders, and hearing dates are indexed under your advocate profile for real-time diary management, conflict warning alerts, and client billing records.
         </p>
       </div>
     </div>
