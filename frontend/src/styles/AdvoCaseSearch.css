@@ -729,13 +729,196 @@
   z-index: 999;
 }
 
+/* ==========================================================================
+   Bespoke Enhanced Buttons (Autofill, Print Cause List, Select Toggle)
+   ========================================================================== */
+
+/* 1. Autofill from Profile Button */
+.ecourts-btn-autofill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.12) 100%);
+  color: var(--accent, #2563eb);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme='dark'] .ecourts-btn-autofill {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(99, 102, 241, 0.2) 100%);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+.ecourts-btn-autofill:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.18) 0%, rgba(99, 102, 241, 0.25) 100%);
+  border-color: var(--accent, #3b82f6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25);
+}
+
+.ecourts-btn-autofill:active {
+  transform: translateY(0);
+}
+
+.ecourts-autofill-icon-sparkle {
+  font-size: 14px;
+  filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.5));
+}
+
+.ecourts-autofill-tag {
+  background: var(--card-bg, #ffffff);
+  color: var(--text-dark, #1e293b);
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-family: 'SF Mono', monospace;
+  font-weight: 700;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+[data-theme='dark'] .ecourts-autofill-tag {
+  background: rgba(15, 23, 42, 0.8);
+  color: #e2e8f0;
+}
+
+/* 2. Executive Print / Export Cause List Button */
+.ecourts-btn-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--card-bg, #ffffff);
+  color: var(--text-dark, #334155);
+  border: 1px solid var(--border-color, #cbd5e1);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] .ecourts-btn-print {
+  background: rgba(30, 41, 59, 0.8);
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.ecourts-btn-print:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(59, 130, 246, 0.12) 100%);
+  border-color: var(--accent, #3b82f6);
+  color: var(--accent, #2563eb);
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 16px -2px rgba(59, 130, 246, 0.2);
+}
+
+[data-theme='dark'] .ecourts-btn-print:hover {
+  color: #93c5fd;
+  border-color: #60a5fa;
+}
+
+.ecourts-btn-print:active {
+  transform: translateY(0);
+}
+
+.ecourts-btn-print-icon {
+  font-size: 15px;
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.ecourts-btn-print:hover .ecourts-btn-print-icon {
+  transform: scale(1.15);
+}
+
+/* 3. State-Aware Select All / Deselect All Button */
+.ecourts-btn-select-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* Select All State */
+.ecourts-btn-select-toggle.mode-select-all {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--accent, #2563eb);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+[data-theme='dark'] .ecourts-btn-select-toggle.mode-select-all {
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+.ecourts-btn-select-toggle.mode-select-all:hover {
+  background: var(--accent, #3b82f6);
+  color: #ffffff;
+  border-color: var(--accent, #3b82f6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+}
+
+/* Deselect All State */
+.ecourts-btn-select-toggle.mode-deselect-all {
+  background: rgba(244, 63, 94, 0.08);
+  color: #e11d48;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+[data-theme='dark'] .ecourts-btn-select-toggle.mode-deselect-all {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border-color: rgba(251, 113, 133, 0.35);
+}
+
+.ecourts-btn-select-toggle.mode-deselect-all:hover {
+  background: #e11d48;
+  color: #ffffff;
+  border-color: #e11d48;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.3);
+}
+
+.ecourts-btn-select-toggle:active {
+  transform: scale(0.97);
+}
+
+.ecourts-select-toggle-count {
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] .ecourts-select-toggle-count {
+  background: rgba(255, 255, 255, 0.12);
+}
+
 /* Printable Docket Sheet (Print Media) */
 @media print {
   body {
     background: #ffffff !important;
     color: #000000 !important;
   }
-  header, .header-controls, .nav-links, .ecourts-hero-chips, .ecourts-stepper-wrap, .search-box, .btn-export, .btn-submit, .btn-edit, .ecourts-floating-action-bar, .back-link, .ecourts-live-status-badge {
+  header, .header-controls, .nav-links, .ecourts-hero-chips, .ecourts-stepper-wrap, .search-box, .btn-export, .btn-submit, .btn-edit, .ecourts-floating-action-bar, .back-link, .ecourts-live-status-badge, .ecourts-btn-autofill, .ecourts-btn-print, .ecourts-btn-select-toggle {
     display: none !important;
   }
   .ecourts-panel-card {

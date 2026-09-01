@@ -486,11 +486,13 @@ export default function AdvoCaseSearch() {
           {advocate?.bar_council_number && (
             <button
               type="button"
-              className="btn-edit"
+              className="ecourts-btn-autofill"
               onClick={() => setBarNumber(advocate.bar_council_number)}
-              style={{ fontSize: 12, padding: '5px 12px' }}
+              title={`Autofill Bar Registration Number ${advocate.bar_council_number}`}
             >
-              Autofill from Profile ({advocate.bar_council_number})
+              <span className="ecourts-autofill-icon-sparkle">⚡</span>
+              <span>Autofill from Profile</span>
+              <span className="ecourts-autofill-tag">{advocate.bar_council_number}</span>
             </button>
           )}
         </div>
@@ -703,21 +705,38 @@ export default function AdvoCaseSearch() {
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <button
                 type="button"
-                className="btn-edit"
+                className="ecourts-btn-print"
                 onClick={() => window.print()}
-                title="Print or Export Cause List"
-                style={{ padding: '8px 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+                title="Generate and print official court cause list document"
               >
-                🖨️ Print Cause List
+                <span className="ecourts-btn-print-icon">🖨️</span>
+                <span>Print Cause List</span>
               </button>
 
               <button
                 type="button"
-                className="btn-edit"
+                className={`ecourts-btn-select-toggle ${
+                  selectedCaseNumbers.size === filteredCases.length && filteredCases.length > 0
+                    ? 'mode-deselect-all'
+                    : 'mode-select-all'
+                }`}
                 onClick={handleToggleSelectAll}
-                style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600 }}
+                title={
+                  selectedCaseNumbers.size === filteredCases.length && filteredCases.length > 0
+                    ? 'Uncheck all selected cases'
+                    : 'Select all visible cases for diary sync'
+                }
               >
-                {selectedCaseNumbers.size === filteredCases.length ? 'Deselect All' : 'Select All'}
+                <span>
+                  {selectedCaseNumbers.size === filteredCases.length && filteredCases.length > 0
+                    ? '☒ Deselect All'
+                    : '☑️ Select All'}
+                </span>
+                <span className="ecourts-select-toggle-count">
+                  {selectedCaseNumbers.size === filteredCases.length && filteredCases.length > 0
+                    ? `${selectedCaseNumbers.size} selected`
+                    : `${filteredCases.length} total`}
+                </span>
               </button>
 
               <button
