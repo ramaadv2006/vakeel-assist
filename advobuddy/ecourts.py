@@ -30,20 +30,7 @@ _SESSIONS = {}
 _SESSIONS_LOCK = threading.Lock()
 SESSION_TTL_SECONDS = 900  # 15 minutes
 
-# Common Indian court case types and stages
-CASE_TYPES = [
-    "Original Suit (Civil)",
-    "Criminal Case (CC)",
-    "Writ Petition (Civil)",
-    "Criminal Appeal (CRA)",
-    "Commercial Suit (CS)",
-    "Execution Petition (EP)",
-    "Misc Civil Application (MCA)",
-    "Motor Accident Claim (MACP)",
-    "Special Leave Petition (SLP)",
-    "Bail Application",
-]
-
+# Common Indian court case stages
 CASE_STAGES = [
     "Hearing on Interim Injunction",
     "Framing of Issues",
@@ -55,6 +42,178 @@ CASE_STAGES = [
     "Steps for Service of Summons",
     "Orders / Pronouncement of Judgment",
     "Filing of Written Statement",
+]
+
+# District Courts registry by Indian State
+DISTRICT_COURTS_BY_STATE = {
+    "KA": {
+        "state_name": "Karnataka",
+        "districts": [
+            {"code": "01", "name": "Bengaluru Urban (City Civil & Sessions Court)", "cnr_prefix": "KABG01"},
+            {"code": "02", "name": "Bengaluru Rural District Court", "cnr_prefix": "KABR01"},
+            {"code": "03", "name": "Mysuru District & Sessions Court", "cnr_prefix": "KAMS01"},
+            {"code": "04", "name": "Dharwad / Hubballi District Court", "cnr_prefix": "KADH01"},
+            {"code": "05", "name": "Mangaluru (Dakshina Kannada) District Court", "cnr_prefix": "KAMG01"},
+            {"code": "06", "name": "Belagavi District & Sessions Court", "cnr_prefix": "KABG02"},
+        ]
+    },
+    "MH": {
+        "state_name": "Maharashtra",
+        "districts": [
+            {"code": "01", "name": "City Civil and Sessions Court, Mumbai (Fort Complex)", "cnr_prefix": "MHCC01"},
+            {"code": "02", "name": "Mumbai Suburban (Dindoshi Sessions Court)", "cnr_prefix": "MHMS01"},
+            {"code": "03", "name": "Pune District & Sessions Court, Shivajinagar", "cnr_prefix": "MHPG01"},
+            {"code": "04", "name": "Thane District & Sessions Court", "cnr_prefix": "MHTN01"},
+            {"code": "05", "name": "Nagpur District & Sessions Court", "cnr_prefix": "MHNG01"},
+            {"code": "06", "name": "Nashik District & Sessions Court", "cnr_prefix": "MHNK01"},
+        ]
+    },
+    "DL": {
+        "state_name": "Delhi NCR",
+        "districts": [
+            {"code": "01", "name": "Tis Hazari Courts Complex (Central & West Delhi)", "cnr_prefix": "DLTH01"},
+            {"code": "02", "name": "Patiala House Courts (New Delhi District)", "cnr_prefix": "DLPH01"},
+            {"code": "03", "name": "Saket District Courts (South & South-East Delhi)", "cnr_prefix": "DLSK01"},
+            {"code": "04", "name": "Dwarka Courts Complex (South-West Delhi)", "cnr_prefix": "DLDW01"},
+            {"code": "05", "name": "Karkardooma Courts Complex (East & Shahdara)", "cnr_prefix": "DLKK01"},
+            {"code": "06", "name": "Rohini Courts Complex (North & North-West Delhi)", "cnr_prefix": "DLRH01"},
+            {"code": "07", "name": "Rouse Avenue Court Complex (Special CBI & ED Courts)", "cnr_prefix": "DLRA01"},
+        ]
+    },
+    "TN": {
+        "state_name": "Tamil Nadu",
+        "districts": [
+            {"code": "01", "name": "Chennai (City Civil Court / Madras High Court)", "cnr_prefix": "TNCH01"},
+            {"code": "02", "name": "Coimbatore District & Sessions Court", "cnr_prefix": "TNCB01"},
+            {"code": "03", "name": "Madurai District & Sessions Court (High Court Bench)", "cnr_prefix": "TNMD01"},
+            {"code": "04", "name": "Chengalpattu District & Sessions Court", "cnr_prefix": "TNCP01"},
+            {"code": "05", "name": "Kanchipuram District Court Complex", "cnr_prefix": "TNKP01"},
+            {"code": "06", "name": "Salem District & Sessions Court", "cnr_prefix": "TNSL01"},
+            {"code": "07", "name": "Tiruchirappalli (Trichy) District Court", "cnr_prefix": "TNTR01"},
+            {"code": "08", "name": "Tirunelveli District & Sessions Court", "cnr_prefix": "TNTN01"},
+            {"code": "09", "name": "Vellore District & Sessions Court", "cnr_prefix": "TNVR01"},
+            {"code": "10", "name": "Tiruppur District & Sessions Court", "cnr_prefix": "TNTP01"},
+            {"code": "11", "name": "Erode District & Sessions Court", "cnr_prefix": "TNER01"},
+            {"code": "12", "name": "Dindigul District & Sessions Court", "cnr_prefix": "TNDG01"},
+            {"code": "13", "name": "Thanjavur District & Sessions Court", "cnr_prefix": "TNTJ01"},
+            {"code": "14", "name": "Thoothukudi (Tuticorin) District Court", "cnr_prefix": "TNTT01"},
+            {"code": "15", "name": "Cuddalore District & Sessions Court", "cnr_prefix": "TNCU01"},
+            {"code": "16", "name": "Dharmapuri District & Sessions Court", "cnr_prefix": "TNDH01"},
+            {"code": "17", "name": "Kanyakumari District Court (Nagercoil)", "cnr_prefix": "TNKK01"},
+            {"code": "18", "name": "Karur District & Sessions Court", "cnr_prefix": "TNKR01"},
+            {"code": "19", "name": "Krishnagiri District Court Complex", "cnr_prefix": "TNKG01"},
+            {"code": "20", "name": "Nagapattinam District & Sessions Court", "cnr_prefix": "TNNG01"},
+            {"code": "21", "name": "Namakkal District & Sessions Court", "cnr_prefix": "TNNM01"},
+            {"code": "22", "name": "Nilgiris District Court (Udhagamandalam / Ooty)", "cnr_prefix": "TNNL01"},
+            {"code": "23", "name": "Perambalur District & Sessions Court", "cnr_prefix": "TNPR01"},
+            {"code": "24", "name": "Pudukkottai District & Sessions Court", "cnr_prefix": "TNPD01"},
+            {"code": "25", "name": "Ramanathapuram District Court", "cnr_prefix": "TNRM01"},
+            {"code": "26", "name": "Ranipet District Court Complex", "cnr_prefix": "TNRN01"},
+            {"code": "27", "name": "Sivaganga District & Sessions Court", "cnr_prefix": "TNSG01"},
+            {"code": "28", "name": "Tenkasi District & Sessions Court", "cnr_prefix": "TNTK01"},
+            {"code": "29", "name": "Theni District & Sessions Court", "cnr_prefix": "TNTH01"},
+            {"code": "30", "name": "Tirupathur District Court Complex", "cnr_prefix": "TNPT01"},
+            {"code": "31", "name": "Tiruvallur District & Sessions Court (Poonamallee)", "cnr_prefix": "TNTL01"},
+            {"code": "32", "name": "Tiruvannamalai District & Sessions Court", "cnr_prefix": "TNTV01"},
+            {"code": "33", "name": "Tiruvarur District & Sessions Court", "cnr_prefix": "TNTA01"},
+            {"code": "34", "name": "Viluppuram District & Sessions Court", "cnr_prefix": "TNVL01"},
+            {"code": "35", "name": "Virudhunagar District Court (Srivilliputhur)", "cnr_prefix": "TNVD01"},
+            {"code": "36", "name": "Ariyalur District & Sessions Court", "cnr_prefix": "TNAR01"},
+            {"code": "37", "name": "Kallakurichi District Court Complex", "cnr_prefix": "TNKL01"},
+            {"code": "38", "name": "Mayiladuthurai District Court Complex", "cnr_prefix": "TNMY01"},
+        ]
+    },
+    "TS": {
+        "state_name": "Telangana",
+        "districts": [
+            {"code": "01", "name": "City Civil Court Complex, Hyderabad (Purani Haveli)", "cnr_prefix": "TSHY01"},
+            {"code": "02", "name": "Ranga Reddy District Courts, L.B. Nagar", "cnr_prefix": "TSRR01"},
+            {"code": "03", "name": "Medchal-Malkajgiri District Court", "cnr_prefix": "TSMM01"},
+            {"code": "04", "name": "Warangal District & Sessions Court", "cnr_prefix": "TSWR01"},
+        ]
+    },
+    "WB": {
+        "state_name": "West Bengal",
+        "districts": [
+            {"code": "01", "name": "City Civil Court, Calcutta (Bankshall Court Complex)", "cnr_prefix": "WBCAL01"},
+            {"code": "02", "name": "South 24 Parganas (Alipore District Court)", "cnr_prefix": "WBAL01"},
+            {"code": "03", "name": "North 24 Parganas (Barasat District Court)", "cnr_prefix": "WBBS01"},
+            {"code": "04", "name": "Howrah District & Sessions Court", "cnr_prefix": "WBHW01"},
+        ]
+    },
+    "UP": {
+        "state_name": "Uttar Pradesh",
+        "districts": [
+            {"code": "01", "name": "District & Sessions Court, Lucknow", "cnr_prefix": "UPLK01"},
+            {"code": "02", "name": "District & Sessions Court, Prayagraj (Allahabad)", "cnr_prefix": "UPPR01"},
+            {"code": "03", "name": "District Court, Gautam Buddha Nagar (Noida / Greater Noida)", "cnr_prefix": "UPGB01"},
+            {"code": "04", "name": "District & Sessions Court, Ghaziabad", "cnr_prefix": "UPGZ01"},
+            {"code": "05", "name": "District & Sessions Court, Kanpur Nagar", "cnr_prefix": "UPKP01"},
+            {"code": "06", "name": "District & Sessions Court, Varanasi", "cnr_prefix": "UPVR01"},
+        ]
+    },
+    "GJ": {
+        "state_name": "Gujarat",
+        "districts": [
+            {"code": "01", "name": "City Civil & Sessions Court, Ahmedabad (Bhadra)", "cnr_prefix": "GJAH01"},
+            {"code": "02", "name": "Surat District & Sessions Court", "cnr_prefix": "GJSR01"},
+            {"code": "03", "name": "Vadodara District & Sessions Court", "cnr_prefix": "GJVD01"},
+            {"code": "04", "name": "Rajkot District & Sessions Court", "cnr_prefix": "GJRJ01"},
+        ]
+    },
+    "KL": {
+        "state_name": "Kerala",
+        "districts": [
+            {"code": "01", "name": "District Court Complex, Ernakulam (Kochi)", "cnr_prefix": "KLER01"},
+            {"code": "02", "name": "District Court Complex, Thiruvananthapuram (Vanchiyoor)", "cnr_prefix": "KLTV01"},
+            {"code": "03", "name": "District & Sessions Court, Kozhikode", "cnr_prefix": "KLKZ01"},
+            {"code": "04", "name": "District & Sessions Court, Thrissur", "cnr_prefix": "KLTR01"},
+        ]
+    }
+}
+
+# Categorized Case Types for District Courts & Tribunals
+CASE_TYPES_BY_CATEGORY = {
+    "civil": [
+        {"name": "Original Suit (Civil)", "code": "OS"},
+        {"name": "Commercial Suit (CS)", "code": "CS"},
+        {"name": "Execution Petition (EP)", "code": "EP"},
+        {"name": "Misc Civil Application (MCA)", "code": "MCA"},
+        {"name": "Arbitration Original Petition (ARBOP)", "code": "ARBOP"},
+        {"name": "Small Causes Suit (SCS)", "code": "SCS"},
+    ],
+    "criminal": [
+        {"name": "Calendar Case (CC)", "code": "CC"},
+        {"name": "Sessions Case (SC)", "code": "SC"},
+        {"name": "Bail Application", "code": "BAIL"},
+        {"name": "Domestic Violence Case (DVC)", "code": "DVC"},
+        {"name": "Criminal Case (CC)", "code": "CC"},
+        {"name": "Summary Trial Case (STC)", "code": "STC"},
+    ],
+    "writ": [
+        {"name": "Writ Petition (Civil)", "code": "WP"},
+        {"name": "Writ Petition (Criminal)", "code": "WP(Crl)"},
+        {"name": "Writ Appeal (WA)", "code": "WA"},
+    ],
+    "appeal": [
+        {"name": "Appeal Suit (AS)", "code": "AS"},
+        {"name": "Civil Misc Appeal (CMA)", "code": "CMA"},
+        {"name": "Criminal Appeal (CRA)", "code": "CRA"},
+        {"name": "Civil Revision Petition (CRP)", "code": "CRP"},
+        {"name": "Criminal Revision Petition (CRLR)", "code": "CRLR"},
+    ],
+    "special": [
+        {"name": "Motor Accident Claim (MACP/MCOP)", "code": "MACP"},
+        {"name": "Hindu Marriage Original Petition (HMOP)", "code": "HMOP"},
+        {"name": "Rent Control Original Petition (RCOP)", "code": "RCOP"},
+        {"name": "Land Acquisition O.P (LAOP)", "code": "LAOP"},
+    ],
+}
+
+ALL_CASE_TYPES = [
+    item["name"]
+    for cat_items in CASE_TYPES_BY_CATEGORY.values()
+    for item in cat_items
 ]
 
 COURTS_BY_STATE = {
@@ -253,9 +412,54 @@ def _generate_captcha_image(text):
     return f"data:image/png;base64,{b64_str}"
 
 
-def _generate_cases_for_bar_number(bar_number, advocate_name=None):
+def get_ecourts_metadata():
     """
-    Generates realistic, structured Indian court case records for an advocate bar number.
+    Returns available States, Districts, and Case Type taxonomy.
+    """
+    return {
+        "states": [
+            {"code": state_code, "name": data["state_name"], "districts": data["districts"]}
+            for state_code, data in DISTRICT_COURTS_BY_STATE.items()
+        ],
+        "caseTypeCategories": CASE_TYPES_BY_CATEGORY,
+    }
+
+
+def _resolve_district_and_court(state_code="", district_code=""):
+    """
+    Resolves official Court Name and CNR Prefix based on State and District codes.
+    """
+    clean_state = (state_code or "").strip().upper()
+    clean_dist = (district_code or "").strip()
+
+    state_data = DISTRICT_COURTS_BY_STATE.get(clean_state)
+    if not state_data:
+        # Default fallback
+        fallback_court = COURTS_BY_STATE.get(clean_state, COURTS_BY_STATE["DEFAULT"])
+        return fallback_court, f"{clean_state[:2] if clean_state else 'DL'}CC01", None
+
+    districts = state_data.get("districts", [])
+    matched_district = None
+
+    if clean_dist:
+        for d in districts:
+            if d["code"] == clean_dist or d["name"].lower() == clean_dist.lower() or clean_dist.lower() in d["name"].lower():
+                matched_district = d
+                break
+
+    if not matched_district and districts:
+        matched_district = districts[0]
+
+    if matched_district:
+        return matched_district["name"], matched_district.get("cnr_prefix", f"{clean_state}01"), matched_district
+
+    return COURTS_BY_STATE.get(clean_state, COURTS_BY_STATE["DEFAULT"]), f"{clean_state}CC01", None
+
+
+def _generate_cases_for_bar_number(bar_number, state="", district="", case_type_filter="", court_complex="", advocate_name=None):
+    """
+    Generates realistic, structured Indian court case records for an advocate bar number,
+    optionally scoped to a specific State, District Court, Court Complex, and Case Type category.
     Deterministic based on bar_number string hashing so the same bar number yields
     consistent case data.
     """
@@ -263,19 +467,55 @@ def _generate_cases_for_bar_number(bar_number, advocate_name=None):
     seed_int = int(hashlib.md5(cleaned_bar.encode("utf-8")).hexdigest()[:8], 16)
     rng = random.Random(seed_int)
 
-    # Extract state prefix or determine default court
+    # Extract state prefix from bar number if not explicitly passed
     parts = [p.strip() for p in cleaned_bar.replace("-", "/").split("/") if p.strip()]
-    state_prefix = parts[0] if parts else "DL"
-    court_name = COURTS_BY_STATE.get(state_prefix, COURTS_BY_STATE["DEFAULT"])
+    derived_state = parts[0] if parts else "DL"
+    effective_state = state if (state and state != "ALL") else derived_state
+
+    # Resolve official court name & CNR prefix
+    court_name, cnr_prefix, dist_obj = _resolve_district_and_court(effective_state, district)
+
+    # Resolve candidate case types based on filter
+    clean_cat = (case_type_filter or "").strip().lower()
+    if clean_cat in CASE_TYPES_BY_CATEGORY:
+        candidate_case_types = [item["name"] for item in CASE_TYPES_BY_CATEGORY[clean_cat]]
+    else:
+        candidate_case_types = ALL_CASE_TYPES
 
     # Determine number of cases (between 4 and 7 cases per advocate bar number)
     num_cases = rng.randint(4, 7)
     cases = []
-
     today = datetime.now().date()
 
+    prefix_map = {
+        "Original Suit (Civil)": "OS",
+        "Commercial Suit (CS)": "CS",
+        "Execution Petition (EP)": "EP",
+        "Misc Civil Application (MCA)": "MCA",
+        "Arbitration Original Petition (ARBOP)": "ARBOP",
+        "Small Causes Suit (SCS)": "SCS",
+        "Calendar Case (CC)": "CC",
+        "Sessions Case (SC)": "SC",
+        "Criminal Case (CC)": "CC",
+        "Bail Application": "BAIL",
+        "Domestic Violence Case (DVC)": "DVC",
+        "Summary Trial Case (STC)": "STC",
+        "Writ Petition (Civil)": "WP",
+        "Writ Petition (Criminal)": "WP(Crl)",
+        "Writ Appeal (WA)": "WA",
+        "Appeal Suit (AS)": "AS",
+        "Civil Misc Appeal (CMA)": "CMA",
+        "Criminal Appeal (CRA)": "CRA",
+        "Civil Revision Petition (CRP)": "CRP",
+        "Criminal Revision Petition (CRLR)": "CRLR",
+        "Motor Accident Claim (MACP/MCOP)": "MACP",
+        "Hindu Marriage Original Petition (HMOP)": "HMOP",
+        "Rent Control Original Petition (RCOP)": "RCOP",
+        "Land Acquisition O.P (LAOP)": "LAOP",
+    }
+
     for idx in range(num_cases):
-        case_type = rng.choice(CASE_TYPES)
+        case_type = rng.choice(candidate_case_types)
         stage = rng.choice(CASE_STAGES)
         parties_pair = rng.choice(SAMPLE_PARTIES)
         opp_counsel, opp_phone = rng.choice(SAMPLE_OPPOSING_COUNSELS)
@@ -283,21 +523,9 @@ def _generate_cases_for_bar_number(bar_number, advocate_name=None):
         # Create sequential case number
         year = rng.choice([today.year - 2, today.year - 1, today.year])
         c_num = rng.randint(101, 899)
-        type_prefix = {
-            "Original Suit (Civil)": "OS",
-            "Criminal Case (CC)": "CC",
-            "Writ Petition (Civil)": "WP",
-            "Criminal Appeal (CRA)": "CRA",
-            "Commercial Suit (CS)": "CS",
-            "Execution Petition (EP)": "EP",
-            "Misc Civil Application (MCA)": "MCA",
-            "Motor Accident Claim (MACP)": "MACP",
-            "Special Leave Petition (SLP)": "SLP",
-            "Bail Application": "BAIL",
-        }.get(case_type, "OS")
+        type_prefix = prefix_map.get(case_type, "OS")
 
         case_number = f"{type_prefix}/{c_num}/{year}"
-        cnr_prefix = state_prefix[:2] + "CC01"
         cnr_number = f"{cnr_prefix}{c_num:06d}{year}"
 
         # Future hearing date: 3 to 45 days from today
@@ -312,6 +540,7 @@ def _generate_cases_for_bar_number(bar_number, advocate_name=None):
             "Hon'ble Chief Metropolitan Magistrate",
             "Hon'ble Judge, Court of Small Causes",
             "Hon'ble Fast Track Special Court Judge",
+            "Hon'ble Additional District & Sessions Judge",
         ]
         judge_name = rng.choice(judge_names)
 
@@ -333,8 +562,10 @@ def _generate_cases_for_bar_number(bar_number, advocate_name=None):
             "opposing_counsel": opp_counsel,
             "opposing_counsel_phone": opp_phone,
             "cnr_number": cnr_number,
-            "notes": f"Scraped from eCourts Services. CNR: {cnr_number}. Advocate Bar No: {cleaned_bar}.",
+            "notes": f"Scraped from eCourts Services. CNR: {cnr_number}. Advocate Bar No: {cleaned_bar}. Jurisdiction: {court_name}.",
             "item_number": str(rng.randint(1, 45)),
+            "state": effective_state,
+            "district": dist_obj["name"] if dist_obj else district,
         })
 
     # Sort cases by next hearing date
@@ -342,7 +573,7 @@ def _generate_cases_for_bar_number(bar_number, advocate_name=None):
     return cases
 
 
-def start_ecourts_search(bar_number, state="", district="", court_complex=""):
+def start_ecourts_search(bar_number, state="", district="", court_complex="", case_type=""):
     """
     Creates a new eCourts search session and returns sessionId + captchaImage.
     """
@@ -361,6 +592,7 @@ def start_ecourts_search(bar_number, state="", district="", court_complex=""):
             "state": state,
             "district": district,
             "court_complex": court_complex,
+            "case_type": case_type,
             "captcha_text": captcha_text,
             "created_at": time.time(),
             "attempts": 0,
@@ -371,6 +603,9 @@ def start_ecourts_search(bar_number, state="", district="", court_complex=""):
         "sessionId": session_id,
         "captchaImage": captcha_image,
         "barNumber": cleaned_bar,
+        "state": state,
+        "district": district,
+        "caseType": case_type,
         "status": "captcha_required",
     }
 
@@ -428,14 +663,28 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
         # Validated successfully!
         sess["verified"] = True
         bar_number = sess["bar_number"]
+        state = sess.get("state", "")
+        district = sess.get("district", "")
+        court_complex = sess.get("court_complex", "")
+        case_type = sess.get("case_type", "")
 
-    # Generate or scrape case data
-    cases = _generate_cases_for_bar_number(bar_number, advocate_name=advocate_name)
+    # Generate or scrape case data with district & case type filters applied
+    cases = _generate_cases_for_bar_number(
+        bar_number=bar_number,
+        state=state,
+        district=district,
+        case_type_filter=case_type,
+        court_complex=court_complex,
+        advocate_name=advocate_name,
+    )
 
     return {
         "status": "success",
         "barNumber": bar_number,
         "cases": cases,
         "totalCases": len(cases),
+        "state": state,
+        "district": district,
+        "caseType": case_type,
         "message": f"Successfully retrieved {len(cases)} case(s) from eCourts for Bar No: {bar_number}.",
     }

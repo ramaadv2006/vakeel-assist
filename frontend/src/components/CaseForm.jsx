@@ -116,7 +116,33 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
         </div>
         <div className="form-group">
           <label htmlFor="court_name">Court Name *</label>
-          <input type="text" id="court_name" required value={form.court_name} onChange={update('court_name')} placeholder="e.g. Chennai District Court" />
+          <input
+            type="text"
+            id="court_name"
+            required
+            value={form.court_name}
+            onChange={update('court_name')}
+            placeholder="e.g. City Civil Court, Chennai or Sub Court, Madurai"
+            list="common-courts-list"
+          />
+          <datalist id="common-courts-list">
+            <option value="Madras High Court" />
+            <option value="Madras High Court Bench, Madurai" />
+            <option value="City Civil Court, Chennai" />
+            <option value="Chennai District Court (Poonamallee)" />
+            <option value="Coimbatore District Court" />
+            <option value="Principal District Court" />
+            <option value="Sub Court (Subordinate Court)" />
+            <option value="Chief Judicial Magistrate Court" />
+            <option value="Judicial Magistrate Court - I" />
+            <option value="Judicial Magistrate Court - II" />
+            <option value="Family Court" />
+            <option value="Mahila Court (Fast Track Mahila Court)" />
+            <option value="Labour Court" />
+            <option value="Motor Accident Claims Tribunal (MACT)" />
+            <option value="Special Court (POCSO / NDPS)" />
+            <option value="Consumer Disputes Redressal Commission" />
+          </datalist>
         </div>
       </div>
 

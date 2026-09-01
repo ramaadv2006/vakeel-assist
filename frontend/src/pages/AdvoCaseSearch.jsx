@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFlash } from '../context/FlashContext';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
+import SearchableSelect from '../components/SearchableSelect';
 import '../styles/AdvoCaseSearch.css';
 
 const INDIAN_STATES = [
@@ -20,15 +21,124 @@ const INDIAN_STATES = [
   { code: 'KL', label: 'Kerala (Kerala HC & District Courts)' },
 ];
 
+const DISTRICTS_BY_STATE = {
+  KA: [
+    { code: '01', name: 'Bengaluru Urban (City Civil & Sessions Court)' },
+    { code: '02', name: 'Bengaluru Rural District Court' },
+    { code: '03', name: 'Mysuru District & Sessions Court' },
+    { code: '04', name: 'Dharwad / Hubballi District Court' },
+    { code: '05', name: 'Mangaluru (Dakshina Kannada) District Court' },
+    { code: '06', name: 'Belagavi District & Sessions Court' },
+  ],
+  MH: [
+    { code: '01', name: 'City Civil and Sessions Court, Mumbai (Fort)' },
+    { code: '02', name: 'Mumbai Suburban (Dindoshi Sessions Court)' },
+    { code: '03', name: 'Pune District & Sessions Court (Shivajinagar)' },
+    { code: '04', name: 'Thane District & Sessions Court' },
+    { code: '05', name: 'Nagpur District & Sessions Court' },
+    { code: '06', name: 'Nashik District & Sessions Court' },
+  ],
+  DL: [
+    { code: '01', name: 'Tis Hazari Courts Complex (Central & West)' },
+    { code: '02', name: 'Patiala House Courts (New Delhi District)' },
+    { code: '03', name: 'Saket District Courts (South & South-East)' },
+    { code: '04', name: 'Dwarka Courts Complex (South-West)' },
+    { code: '05', name: 'Karkardooma Courts Complex (East & Shahdara)' },
+    { code: '06', name: 'Rohini Courts Complex (North & North-West)' },
+    { code: '07', name: 'Rouse Avenue Special CBI & ED Courts' },
+  ],
+  TN: [
+    { code: '01', name: 'Chennai (City Civil Court / Madras High Court)' },
+    { code: '02', name: 'Coimbatore District & Sessions Court' },
+    { code: '03', name: 'Madurai District & Sessions Court (HC Bench)' },
+    { code: '04', name: 'Chengalpattu District & Sessions Court' },
+    { code: '05', name: 'Kanchipuram District Court Complex' },
+    { code: '06', name: 'Salem District & Sessions Court' },
+    { code: '07', name: 'Tiruchirappalli (Trichy) District Court' },
+    { code: '08', name: 'Tirunelveli District & Sessions Court' },
+    { code: '09', name: 'Vellore District & Sessions Court' },
+    { code: '10', name: 'Tiruppur District & Sessions Court' },
+    { code: '11', name: 'Erode District & Sessions Court' },
+    { code: '12', name: 'Dindigul District & Sessions Court' },
+    { code: '13', name: 'Thanjavur District & Sessions Court' },
+    { code: '14', name: 'Thoothukudi (Tuticorin) District Court' },
+    { code: '15', name: 'Cuddalore District & Sessions Court' },
+    { code: '16', name: 'Dharmapuri District & Sessions Court' },
+    { code: '17', name: 'Kanyakumari District Court (Nagercoil)' },
+    { code: '18', name: 'Karur District & Sessions Court' },
+    { code: '19', name: 'Krishnagiri District Court Complex' },
+    { code: '20', name: 'Nagapattinam District & Sessions Court' },
+    { code: '21', name: 'Namakkal District & Sessions Court' },
+    { code: '22', name: 'Nilgiris District Court (Udhagamandalam / Ooty)' },
+    { code: '23', name: 'Perambalur District & Sessions Court' },
+    { code: '24', name: 'Pudukkottai District & Sessions Court' },
+    { code: '25', name: 'Ramanathapuram District Court' },
+    { code: '26', name: 'Ranipet District Court Complex' },
+    { code: '27', name: 'Sivaganga District & Sessions Court' },
+    { code: '28', name: 'Tenkasi District & Sessions Court' },
+    { code: '29', name: 'Theni District & Sessions Court' },
+    { code: '30', name: 'Tirupathur District Court Complex' },
+    { code: '31', name: 'Tiruvallur District & Sessions Court (Poonamallee)' },
+    { code: '32', name: 'Tiruvannamalai District & Sessions Court' },
+    { code: '33', name: 'Tiruvarur District & Sessions Court' },
+    { code: '34', name: 'Viluppuram District & Sessions Court' },
+    { code: '35', name: 'Virudhunagar District Court (Srivilliputhur)' },
+    { code: '36', name: 'Ariyalur District & Sessions Court' },
+    { code: '37', name: 'Kallakurichi District Court Complex' },
+    { code: '38', name: 'Mayiladuthurai District Court Complex' },
+  ],
+  TS: [
+    { code: '01', name: 'City Civil Court Complex, Hyderabad (Purani Haveli)' },
+    { code: '02', name: 'Ranga Reddy District Courts (L.B. Nagar)' },
+    { code: '03', name: 'Medchal-Malkajgiri District Court' },
+    { code: '04', name: 'Warangal District & Sessions Court' },
+  ],
+  WB: [
+    { code: '01', name: 'City Civil Court, Calcutta (Bankshall Complex)' },
+    { code: '02', name: 'South 24 Parganas (Alipore District Court)' },
+    { code: '03', name: 'North 24 Parganas (Barasat District Court)' },
+    { code: '04', name: 'Howrah District & Sessions Court' },
+  ],
+  UP: [
+    { code: '01', name: 'District & Sessions Court, Lucknow' },
+    { code: '02', name: 'District & Sessions Court, Prayagraj (Allahabad)' },
+    { code: '03', name: 'District Court, Gautam Buddha Nagar (Noida)' },
+    { code: '04', name: 'District & Sessions Court, Ghaziabad' },
+    { code: '05', name: 'District & Sessions Court, Kanpur Nagar' },
+    { code: '06', name: 'District & Sessions Court, Varanasi' },
+  ],
+  GJ: [
+    { code: '01', name: 'City Civil & Sessions Court, Ahmedabad (Bhadra)' },
+    { code: '02', name: 'Surat District & Sessions Court' },
+    { code: '03', name: 'Vadodara District & Sessions Court' },
+    { code: '04', name: 'Rajkot District & Sessions Court' },
+  ],
+  KL: [
+    { code: '01', name: 'District Court Complex, Ernakulam (Kochi)' },
+    { code: '02', name: 'District Court Complex, Thiruvananthapuram' },
+    { code: '03', name: 'District & Sessions Court, Kozhikode' },
+    { code: '04', name: 'District & Sessions Court, Thrissur' },
+  ],
+};
+
+const CASE_TYPE_OPTIONS = [
+  { value: '', label: '-- All Case Types --' },
+  { value: 'civil', label: 'Civil (OS / CS / EP / MCA / Arb)' },
+  { value: 'criminal', label: 'Criminal (CC / SC / Bail / DVC)' },
+  { value: 'writ', label: 'Writ Petition (WP / WA)' },
+  { value: 'appeal', label: 'Appeal & Revision (AS / CMA / CRA / CRP)' },
+  { value: 'special', label: 'Special Tribunals (MACP / HMOP / RCOP)' },
+];
+
 const POPULAR_PREFIXES = [
-  { label: 'Karnataka', prefix: 'KAR/' },
-  { label: 'Maharashtra', prefix: 'MS/' },
-  { label: 'Delhi', prefix: 'D/' },
-  { label: 'Tamil Nadu', prefix: 'TN/' },
-  { label: 'Uttar Pradesh', prefix: 'UP/' },
-  { label: 'West Bengal', prefix: 'WB/' },
-  { label: 'Telangana', prefix: 'TS/' },
-  { label: 'Gujarat', prefix: 'GJ/' },
+  { label: 'Karnataka', prefix: 'KAR/', state: 'KA' },
+  { label: 'Maharashtra', prefix: 'MS/', state: 'MH' },
+  { label: 'Delhi', prefix: 'D/', state: 'DL' },
+  { label: 'Tamil Nadu', prefix: 'TN/', state: 'TN' },
+  { label: 'Uttar Pradesh', prefix: 'UP/', state: 'UP' },
+  { label: 'West Bengal', prefix: 'WB/', state: 'WB' },
+  { label: 'Telangana', prefix: 'TS/', state: 'TS' },
+  { label: 'Gujarat', prefix: 'GJ/', state: 'GJ' },
 ];
 
 const STAGE_MILESTONES = ['Filing', 'Notice', 'Evidence', 'Arguments', 'Orders'];
@@ -52,11 +162,14 @@ export default function AdvoCaseSearch() {
 
   // Search & Session State
   const [barNumber, setBarNumber] = useState('MS/4321/2018');
-  const [selectedState, setSelectedState] = useState('ALL');
+  const [selectedState, setSelectedState] = useState('MH');
+  const [selectedDistrict, setSelectedDistrict] = useState('01');
+  const [selectedCaseType, setSelectedCaseType] = useState('');
   const [sessionId, setSessionId] = useState(null);
   const [captchaImage, setCaptchaImage] = useState(null);
   const [captchaText, setCaptchaText] = useState('');
   const [cases, setCases] = useState([]);
+  const [searchMeta, setSearchMeta] = useState(null);
   const [existingCasesMap, setExistingCasesMap] = useState(new Map());
   const [selectedCaseNumbers, setSelectedCaseNumbers] = useState(new Set());
   const [expandedCase, setExpandedCase] = useState(null);
@@ -180,6 +293,12 @@ export default function AdvoCaseSearch() {
     render();
   };
 
+  // Computed available districts for currently selected State
+  const availableDistricts = useMemo(() => {
+    if (!selectedState || selectedState === 'ALL') return [];
+    return DISTRICTS_BY_STATE[selectedState] || [];
+  }, [selectedState]);
+
   // Compute Active Step
   const currentStep = useMemo(() => {
     if (cases.length > 0) return 3;
@@ -205,12 +324,19 @@ export default function AdvoCaseSearch() {
       const res = await api.post('/ecourts/start-search', {
         barNumber: cleanBar,
         state: selectedState,
+        district: selectedDistrict,
+        caseType: selectedCaseType,
       });
 
       setSessionId(res.sessionId);
       setCaptchaImage(res.captchaImage);
+      setSearchMeta({
+        state: res.state || selectedState,
+        district: res.district || selectedDistrict,
+        caseType: res.caseType || selectedCaseType,
+      });
       saveToRecent(cleanBar);
-      addFlash('eCourts query session active! Please solve the security verification challenge below.', 'info');
+      addFlash('eCourts District search session active! Please solve the security verification challenge below.', 'info');
     } catch (err) {
       addFlash(err.message || 'Could not connect to eCourts service.', 'error');
     } finally {
@@ -498,7 +624,8 @@ export default function AdvoCaseSearch() {
         </div>
 
         <form onSubmit={handleStartSearch}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 16 }}>
+          {/* Row 1: Bar Number & Quick Formatting */}
+          <div style={{ marginBottom: 18 }}>
             <div className="form-group" style={{ margin: 0 }}>
               <label htmlFor="bar-number-input">
                 Advocate Bar Council Number <span style={{ color: 'var(--danger)' }}>*</span>
@@ -515,7 +642,7 @@ export default function AdvoCaseSearch() {
                 style={{ fontWeight: 600, letterSpacing: 0.5 }}
               />
 
-              {/* Quick Format Chips */}
+              {/* Quick Format Chips with Auto-State & Auto-District Binding */}
               <div className="ecourts-quick-prefixes">
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Quick Format:</span>
                 {POPULAR_PREFIXES.map((item) => (
@@ -523,7 +650,14 @@ export default function AdvoCaseSearch() {
                     key={item.prefix}
                     type="button"
                     className="ecourts-prefix-btn"
-                    onClick={() => setBarNumber(`${item.prefix}4321/${new Date().getFullYear() - 2}`)}
+                    onClick={() => {
+                      setBarNumber(`${item.prefix}4321/${new Date().getFullYear() - 2}`);
+                      if (item.state) {
+                        setSelectedState(item.state);
+                        const dists = DISTRICTS_BY_STATE[item.state] || [];
+                        setSelectedDistrict(dists.length > 0 ? dists[0].code : '');
+                      }
+                    }}
                   >
                     {item.label} ({item.prefix})
                   </button>
@@ -557,27 +691,79 @@ export default function AdvoCaseSearch() {
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="form-group" style={{ margin: 0 }}>
-              <label htmlFor="state-select">Court Jurisdiction Filter</label>
-              <select
-                id="state-select"
-                className="form-control"
+          {/* Row 2: District Court & Case Type Specification (Official eCourts Hierarchy) */}
+          <div className="row statedistdiv" id="divLangState" style={{ position: 'relative', zIndex: 10 }}>
+            {/* State Jurisdiction Select */}
+            <div className="col-md-4 col-sm-6 pb-3 form-group" style={{ margin: 0, position: 'relative' }}>
+              <label htmlFor="sess_state_code" className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
+                🏛️ State Jurisdiction
+              </label>
+              <SearchableSelect
+                id="sess_state_code"
+                name="sess_state_code"
+                options={INDIAN_STATES.map((s) => ({ value: s.code, label: s.label }))}
                 value={selectedState}
-                onChange={(e) => setSelectedState(e.target.value)}
+                onChange={(newState) => {
+                  setSelectedState(newState);
+                  const dists = DISTRICTS_BY_STATE[newState] || [];
+                  setSelectedDistrict(dists.length > 0 ? dists[0].code : '');
+                }}
+                placeholder="-- Select State --"
                 disabled={loadingSearch || loadingCaptcha}
-              >
-                {INDIAN_STATES.map((s) => (
-                  <option key={s.code} value={s.code}>{s.label}</option>
-                ))}
-              </select>
-              <span className="field-hint" style={{ marginTop: 6, display: 'block' }}>
-                Select a specific state court complex or leave as All Courts for full scan.
-              </span>
+              />
+            </div>
+
+            {/* Existing: District Court Select */}
+            <div className="col-md-4 col-sm-6 pb-3 form-group" style={{ margin: 0, position: 'relative' }}>
+              <label htmlFor="sess_dist_code" className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
+                📍 District Court
+              </label>
+              <SearchableSelect
+                id="sess_dist_code"
+                name="sess_dist_code"
+                options={[
+                  { code: '', name: '-- All Districts in State --' },
+                  ...availableDistricts,
+                ]}
+                value={selectedDistrict}
+                onChange={(val) => setSelectedDistrict(val)}
+                placeholder="-- Select District Court --"
+                disabled={loadingSearch || loadingCaptcha || availableDistricts.length === 0}
+              />
+            </div>
+
+            {/* New: Case Type Select */}
+            <div className="col-md-4 col-sm-6 pb-3 form-group" style={{ margin: 0, position: 'relative' }}>
+              <label htmlFor="case_type" className="form-label" style={{ fontWeight: 600, fontSize: 13 }}>
+                ⚖️ Case Type Specification
+              </label>
+              <SearchableSelect
+                id="case_type"
+                name="case_type"
+                options={CASE_TYPE_OPTIONS}
+                value={selectedCaseType}
+                onChange={(val) => setSelectedCaseType(val)}
+                placeholder="-- Select Case Type --"
+                disabled={loadingSearch || loadingCaptcha}
+              />
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginTop: 16 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              🎯 Scoping to: <strong style={{ color: 'var(--text-dark)' }}>
+                {INDIAN_STATES.find((s) => s.code === selectedState)?.label || selectedState}
+              </strong>
+              {selectedDistrict && (
+                <> &bull; <span style={{ color: 'var(--accent)' }}>{availableDistricts.find((d) => d.code === selectedDistrict)?.name || selectedDistrict}</span></>
+              )}
+              {selectedCaseType && (
+                <> &bull; <span style={{ color: '#8b5cf6' }}>{CASE_TYPE_OPTIONS.find((o) => o.value === selectedCaseType)?.label}</span></>
+              )}
+            </div>
+
             <button
               type="submit"
               className="btn-submit"
@@ -588,7 +774,7 @@ export default function AdvoCaseSearch() {
                 <>Connecting to eCourts…</>
               ) : (
                 <>
-                  <Icon name="search" /> Query eCourts Registry &rarr;
+                  <Icon name="search" /> Query District Registry &rarr;
                 </>
               )}
             </button>
@@ -716,9 +902,21 @@ export default function AdvoCaseSearch() {
                 <span style={{ color: 'var(--success)' }}>📋</span>
                 Step 3: Cases Found for Bar No. {barNumber}
               </h3>
-              <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                {selectedCaseNumbers.size} of {filteredCases.length} case(s) selected for import
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  {selectedCaseNumbers.size} of {filteredCases.length} case(s) selected for import
+                </span>
+                {searchMeta?.district && (
+                  <span className="ecourts-jurisdiction-chip" title="District Court Scope">
+                    📍 {searchMeta.district}
+                  </span>
+                )}
+                {searchMeta?.caseType && (
+                  <span className="ecourts-jurisdiction-chip" style={{ borderColor: 'rgba(139, 92, 246, 0.4)', color: '#8b5cf6' }} title="Case Type Scope">
+                    ⚖️ {CASE_TYPE_OPTIONS.find((o) => o.value === searchMeta.caseType)?.label || searchMeta.caseType}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>

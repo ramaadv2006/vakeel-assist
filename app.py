@@ -34,12 +34,15 @@ from advobuddy.ecourts import (
     start_ecourts_search,
     refresh_ecourts_captcha,
     submit_ecourts_captcha,
+    get_ecourts_metadata,
 )
+from advobuddy.blueprints.courts import courts_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "advo-buddy-secret-key-change-this-in-production")
 
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+app.register_blueprint(courts_bp)
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -2508,10 +2511,23 @@ def student_ai_tutor():
 # eCourts Search & Import APIs
 # ==========================================
 
+@app.route("/api/ecourts/meta", methods=["GET"])
+def ecourts_metadata():
+    """
+    Returns available States, Districts, and Case Type taxonomy.
+    """
+    try:
+        data = get_ecourts_metadata()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": f"Failed to retrieve eCourts metadata: {str(e)}"}), 500
+
+
 @app.route("/api/ecourts/start-search", methods=["POST"])
 def ecourts_start_search():
     """
-    Initiates an eCourts search session for an advocate bar number.
+    Initiates an eCourts search session for an Advocate Bar Registration Number,
+    optionally scoped to a State, District Court, and Case Type.
     Returns session ID and a visual CAPTCHA image.
     """
     try:
@@ -2520,6 +2536,7 @@ def ecourts_start_search():
         state = data.get("state") or ""
         district = data.get("district") or ""
         court_complex = data.get("courtComplex") or data.get("court_complex") or ""
+        case_type = data.get("caseType") or data.get("case_type") or ""
 
         if not bar_number.strip():
             return jsonify({"error": "Please enter an Advocate Bar Registration Number (e.g. MS/4321/2018)."}), 400
@@ -2529,6 +2546,7 @@ def ecourts_start_search():
             state=state,
             district=district,
             court_complex=court_complex,
+            case_type=case_type,
         )
         return jsonify(result)
     except ValueError as ve:
