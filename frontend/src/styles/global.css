@@ -42,6 +42,10 @@
     /* App background */
     --bg-card: #ffffff;
     --border-card: #e4e9f0;
+    --bg-main: var(--bg-app);
+    --card-bg: var(--bg-card);
+    --border-color: var(--border-card);
+    --text-muted: var(--gray-500);
 
     /* --- Status colors (deepened, richer than stock bootstrap hues) --- */
     --success: #157f4a;
@@ -107,6 +111,10 @@ body.dark {
     --bg-app: #060a13;
     --bg-card: #0e1524;
     --border-card: #1e2a3e;
+    --bg-main: var(--bg-app);
+    --card-bg: var(--bg-card);
+    --border-color: var(--border-card);
+    --text-muted: var(--gray-500);
 
     /* Neutral scale inverts: low numbers stay the darkest surfaces,
        high numbers become the readable text tints. 500/600 were left

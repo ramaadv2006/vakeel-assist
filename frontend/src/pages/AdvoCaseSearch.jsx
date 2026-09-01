@@ -1078,7 +1078,7 @@ export default function AdvoCaseSearch() {
           {importedStatus && (
             <div className="ecourts-success-card">
               <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: '#15803d', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span>🎉</span> {importedStatus.message}
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
@@ -1150,11 +1150,11 @@ export default function AdvoCaseSearch() {
 
                         <div>
                           {isExisting ? (
-                            <span className="badge-pill" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', fontWeight: 700 }}>
+                            <span className="badge-pill" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontWeight: 700 }}>
                               ✓ In Diary
                             </span>
                           ) : (
-                            <span className="badge-pill" style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--accent)', fontWeight: 700 }}>
+                            <span className="badge-pill" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', fontWeight: 700 }}>
                               Ready
                             </span>
                           )}
@@ -1169,94 +1169,91 @@ export default function AdvoCaseSearch() {
                         <div style={{ fontWeight: 600 }}>{c.client_name || c.parties}</div>
                       </div>
 
-                      {/* Court & Stage */}
-                      <div style={{ fontSize: 12.5, color: 'var(--text-dark)', fontWeight: 500, marginBottom: 4 }}>
-                        🏛️ {c.court_name}
+                      {/* Court & Hearing Metadata */}
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>🏛️</span> {c.court_name}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2, display: 'flex', gap: 8 }}>
+                          <span>{c.court_hall}</span>
+                          <span>&bull;</span>
+                          <span>Judge: {c.judge_name || c.judge_designation || 'Hon. Presiding Officer'}</span>
+                        </div>
                       </div>
 
-                      {/* Stage Progress Tracker */}
-                      <div className="ecourts-stage-progress-track" title={`Current Stage: ${c.case_stage}`}>
-                        {STAGE_MILESTONES.map((step, idx) => (
-                          <div
-                            key={step}
-                            className={`ecourts-stage-step ${idx < stageIndex ? 'is-done' : ''} ${idx === stageIndex ? 'is-current' : ''}`}
-                          >
-                            <div className="ecourts-stage-step-dot" />
-                            <span className="ecourts-stage-step-label">{step}</span>
-                          </div>
-                        ))}
+                      {/* Visual Stage Progress Tracker */}
+                      {stageIndex >= 0 && (
+                        <div className="ecourts-stage-progress-track">
+                          {['FILING', 'EVIDENCE', 'ARGUMENTS', 'ORDERS'].map((stepName, sIdx) => {
+                            const isDone = stageIndex > sIdx;
+                            const isCurrent = stageIndex === sIdx;
+                            return (
+                              <div
+                                key={stepName}
+                                className={`ecourts-stage-step ${isDone ? 'is-done' : ''} ${isCurrent ? 'is-current' : ''}`}
+                              >
+                                <div className="ecourts-stage-step-dot" />
+                                <div className="ecourts-stage-step-label">{stepName}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      {/* Card Meta Row */}
+                      <div className="ecourts-card-meta-row">
+                        <div className={`ecourts-hearing-pill ${daysUntil !== null && daysUntil <= 3 ? 'ecourts-hearing-urgent' : ''}`}>
+                          <Icon name="calendar" style={{ width: 13, height: 13 }} />
+                          <span>
+                            {c.next_hearing_date}
+                            {daysUntil !== null && (
+                              <strong style={{ marginLeft: 4 }}>
+                                ({daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `in ${daysUntil}d`})
+                              </strong>
+                            )}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn-edit"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedCase(isExpanded ? null : c.case_number);
+                          }}
+                          style={{ padding: '4px 10px', fontSize: 11.5 }}
+                        >
+                          {isExpanded ? 'Hide Details ▲' : 'Full Details ▼'}
+                        </button>
                       </div>
 
-                      {/* Expandable Details Drawer */}
+                      {/* Accordion Detail Drawer */}
                       {isExpanded && (
-                        <div className="ecourts-details-drawer" onClick={(e) => e.stopPropagation()}>
+                        <div className="ecourts-details-drawer">
                           <div className="ecourts-detail-item">
-                            <span className="ecourts-detail-key">Hon'ble Judge:</span>
-                            <span className="ecourts-detail-val">{c.judge_name}</span>
-                          </div>
-                          <div className="ecourts-detail-item">
-                            <span className="ecourts-detail-key">Court Room / Hall:</span>
-                            <span className="ecourts-detail-val">{c.court_hall} (Item #{c.item_number})</span>
-                          </div>
-                          <div className="ecourts-detail-item">
-                            <span className="ecourts-detail-key">Opposing Counsel:</span>
-                            <span className="ecourts-detail-val">
-                              {c.opposing_counsel}
-                              {c.opposing_counsel_phone && (
-                                <a
-                                  href={`tel:${c.opposing_counsel_phone}`}
-                                  style={{ marginLeft: 6, color: 'var(--accent)', textDecoration: 'none' }}
-                                  title="Call opposing counsel"
-                                >
-                                  📞 {c.opposing_counsel_phone}
-                                </a>
-                              )}
-                            </span>
-                          </div>
-                          <div className="ecourts-detail-item">
-                            <span className="ecourts-detail-key">Matter Type:</span>
+                            <span className="ecourts-detail-key">Case Type / Category:</span>
                             <span className="ecourts-detail-val">{c.case_type}</span>
+                          </div>
+                          <div className="ecourts-detail-item">
+                            <span className="ecourts-detail-key">Filing Date:</span>
+                            <span className="ecourts-detail-val">{c.filing_date}</span>
                           </div>
                           <div className="ecourts-detail-item">
                             <span className="ecourts-detail-key">Current Stage:</span>
                             <span className="ecourts-detail-val" style={{ color: 'var(--accent)' }}>{c.case_stage}</span>
                           </div>
+                          <div className="ecourts-detail-item">
+                            <span className="ecourts-detail-key">Opposing Counsel:</span>
+                            <span className="ecourts-detail-val">{c.opposing_counsel}</span>
+                          </div>
+                          <div className="ecourts-detail-item">
+                            <span className="ecourts-detail-key">Court Hall:</span>
+                            <span className="ecourts-detail-val">{c.court_hall}</span>
+                          </div>
                         </div>
                       )}
-                    </div>
-
-                    {/* Bottom Metadata & Expand Toggle */}
-                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12, marginTop: 14 }}>
-                      <div className="ecourts-card-meta-row">
-                        <div className={`ecourts-hearing-pill ${daysUntil !== null && daysUntil <= 3 ? 'ecourts-hearing-urgent' : ''}`}>
-                          <Icon name="calendar" style={{ width: 14, height: 14 }} />
-                          Next: {c.next_hearing_date}
-                          {daysUntil !== null && (
-                            <span style={{ fontSize: 10.5, opacity: 0.85 }}>
-                              ({daysUntil === 0 ? 'Today!' : daysUntil === 1 ? 'Tomorrow!' : `in ${daysUntil}d`})
-                            </span>
-                          )}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedCase(isExpanded ? null : c.case_number);
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--accent)',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            padding: '2px 6px',
-                          }}
-                        >
-                          {isExpanded ? 'Hide Details ▲' : 'Details ▼'}
-                        </button>
-                      </div>
                     </div>
                   </div>
                 );
@@ -1266,10 +1263,10 @@ export default function AdvoCaseSearch() {
 
           {/* VIEW 2: COMPACT TABULAR VIEW */}
           {viewMode === 'table' && (
-            <div style={{ overflowX: 'auto', borderRadius: 12, border: '1px solid var(--border-color)', marginBottom: 20 }}>
+            <div className="ecourts-table-container">
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13.5 }}>
                 <thead>
-                  <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border-color)' }}>
+                  <tr style={{ background: 'var(--gray-100)', borderBottom: '2px solid var(--border-card)' }}>
                     <th style={{ padding: '12px 14px', width: 44, textAlign: 'center' }}>
                       <input
                         type="checkbox"
@@ -1295,8 +1292,8 @@ export default function AdvoCaseSearch() {
                       <tr
                         key={c.case_number}
                         style={{
-                          borderBottom: '1px solid var(--border-color)',
-                          background: isSelected ? 'rgba(59, 130, 246, 0.04)' : 'transparent',
+                          borderBottom: '1px solid var(--border-card)',
+                          background: isSelected ? 'var(--accent-bg)' : 'transparent',
                         }}
                       >
                         <td style={{ padding: '14px', textAlign: 'center' }}>
@@ -1325,7 +1322,7 @@ export default function AdvoCaseSearch() {
                           <div style={{ fontWeight: 600, color: 'var(--accent)' }}>
                             {c.next_hearing_date}
                             {daysUntil !== null && daysUntil <= 3 && (
-                              <span style={{ marginLeft: 6, color: '#e11d48', fontSize: 11, fontWeight: 700 }}>
+                              <span style={{ marginLeft: 6, color: 'var(--danger)', fontSize: 11, fontWeight: 700 }}>
                                 (Urgent)
                               </span>
                             )}
@@ -1334,11 +1331,11 @@ export default function AdvoCaseSearch() {
                         </td>
                         <td style={{ padding: '14px', textAlign: 'right' }}>
                           {isExisting ? (
-                            <span className="badge-pill" style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#16a34a', fontWeight: 700 }}>
+                            <span className="badge-pill" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontWeight: 700 }}>
                               In Diary
                             </span>
                           ) : (
-                            <span className="badge-pill" style={{ background: 'rgba(59, 130, 246, 0.12)', color: 'var(--accent)', fontWeight: 700 }}>
+                            <span className="badge-pill" style={{ background: 'var(--accent-bg)', color: 'var(--accent)', fontWeight: 700 }}>
                               Ready
                             </span>
                           )}
