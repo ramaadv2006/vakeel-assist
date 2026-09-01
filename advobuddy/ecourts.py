@@ -106,16 +106,34 @@ def _cleanup_expired_sessions():
 
 
 def _generate_captcha_text(length=5):
-    """Generates an unambiguous 5-character alphanumeric captcha code matching eCourts standard (Uppercase letters & digits)."""
-    # Exclude confusing glyphs (0, O, 1, I)
-    charset = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-    return "".join(random.choices(charset, k=length))
+    """
+    Generates a 5-character alphanumeric captcha code guaranteed to contain
+    a mix of uppercase letters, lowercase letters, and digits.
+    """
+    uppercase_chars = "ABDEFGHJKLMNPQRTY"
+    lowercase_chars = "abdefghjkmnpqrty"
+    digit_chars = "23456789"
+
+    # Ensure at least 1 uppercase, 1 lowercase, and 1 digit
+    code = [
+        random.choice(uppercase_chars),
+        random.choice(lowercase_chars),
+        random.choice(digit_chars),
+    ]
+
+    # Fill remaining characters from combined pool
+    all_pool = uppercase_chars + lowercase_chars + digit_chars
+    for _ in range(length - len(code)):
+        code.append(random.choice(all_pool))
+
+    random.shuffle(code)
+    return "".join(code)
 
 
 def _generate_captcha_image(text):
     """
-    Renders a crisp, high-contrast captcha image matching judicial portal standards.
-    Returns a base64 data URI.
+    Renders a high-contrast mixed-case captcha image with clear baseline alignment
+    and distinct uppercase vs lowercase font sizing. Returns a base64 data URI.
     """
     width, height = 180, 56
     text_colors = [
@@ -127,30 +145,33 @@ def _generate_captcha_image(text):
     ]
 
     if not PIL_AVAILABLE:
-        # Fallback SVG generation (zero external dependencies)
+        # Fallback SVG generation with distinct uppercase vs lowercase sizing
         svg_chars = []
         char_width = width / (len(text) + 1)
         for i, char in enumerate(text):
-            x = (i + 0.65) * char_width + random.randint(-2, 2)
-            y = 38 + random.randint(-3, 3)
-            rot = random.randint(-12, 12)
+            x = (i + 0.65) * char_width + random.randint(-1, 1)
+            is_upper = char.isupper() or char.isdigit()
+            font_size = 32 if is_upper else 23
+            y = 38 if is_upper else (40 if char in "gjpqy" else 37)
+            rot = random.randint(-8, 8)
             col = text_colors[i % len(text_colors)]
+            weight = "bold" if is_upper else "600"
             svg_chars.append(
-                f'<text x="{x:.1f}" y="{y:.1f}" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="bold" fill="{col}" transform="rotate({rot} {x:.1f} {y:.1f})">{char}</text>'
+                f'<text x="{x:.1f}" y="{y:.1f}" font-family="Arial, Helvetica, sans-serif" font-size="{font_size}" font-weight="{weight}" fill="{col}" transform="rotate({rot} {x:.1f} {y:.1f})">{char}</text>'
             )
 
         # Background noise lines
         svg_lines = []
-        for _ in range(4):
+        for _ in range(3):
             x1, y1 = random.randint(0, width // 2), random.randint(0, height)
             x2, y2 = random.randint(width // 2, width), random.randint(0, height)
-            svg_lines.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#cbd5e1" stroke-width="1.5" opacity="0.6"/>')
+            svg_lines.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#cbd5e1" stroke-width="1.2" opacity="0.6"/>')
 
         svg_content = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
             <rect width="100%" height="100%" fill="#ffffff" rx="6"/>
             {''.join(svg_lines)}
             {''.join(svg_chars)}
-            <path d="M 0 28 Q 45 12, 90 28 T 180 28" fill="none" stroke="#94a3b8" stroke-width="1.5" opacity="0.45"/>
+            <path d="M 0 32 Q 45 18, 90 32 T 180 32" fill="none" stroke="#94a3b8" stroke-width="1.2" opacity="0.4"/>
         </svg>'''
         b64_svg = base64.b64encode(svg_content.encode("utf-8")).decode("utf-8")
         return f"data:image/svg+xml;base64,{b64_svg}"
@@ -161,20 +182,21 @@ def _generate_captcha_image(text):
     draw = ImageDraw.Draw(image)
 
     # Add background subtle noise dots
-    for _ in range(100):
+    for _ in range(80):
         xy = (random.randint(0, width - 1), random.randint(0, height - 1))
-        dot_color = (random.randint(200, 230), random.randint(200, 230), random.randint(200, 230))
+        dot_color = (random.randint(210, 235), random.randint(210, 235), random.randint(210, 235))
         draw.point(xy, fill=dot_color)
 
     # Add background interference lines
     for _ in range(3):
         start = (random.randint(0, width // 2), random.randint(0, height))
         end = (random.randint(width // 2, width), random.randint(0, height))
-        line_color = (random.randint(180, 210), random.randint(180, 210), random.randint(180, 210))
+        line_color = (random.randint(190, 220), random.randint(190, 220), random.randint(190, 220))
         draw.line([start, end], fill=line_color, width=1)
 
-    # Load bold system font with fallback
-    font = None
+    # Load system truetype fonts for uppercase (32px) and lowercase (24px)
+    font_upper = None
+    font_lower = None
     possible_fonts = [
         "arialbd.ttf", "arial.ttf", "calibrib.ttf", "calibri.ttf", "segoeuib.ttf", "times.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -182,15 +204,17 @@ def _generate_captcha_image(text):
     ]
     for font_name in possible_fonts:
         try:
-            font = ImageFont.truetype(font_name, 32)
+            font_upper = ImageFont.truetype(font_name, 32)
+            font_lower = ImageFont.truetype(font_name, 24)
             break
         except Exception:
             continue
 
-    if font is None:
-        font = ImageFont.load_default()
+    if font_upper is None:
+        font_upper = ImageFont.load_default()
+        font_lower = font_upper
 
-    # Draw each uppercase character with crisp alignment and distinct color
+    # Draw characters with fixed baseline and distinct font sizes
     char_width = width // (len(text) + 1)
     rgb_colors = [
         (30, 58, 138),   # Navy
@@ -201,16 +225,18 @@ def _generate_captcha_image(text):
     ]
 
     for i, char in enumerate(text):
-        char_x = int((i + 0.6) * char_width) + random.randint(-3, 3)
-        char_y = random.randint(10, 14)
+        is_upper = char.isupper() or char.isdigit()
+        font_to_use = font_upper if is_upper else font_lower
+        char_x = int((i + 0.6) * char_width) + random.randint(-2, 2)
+        char_y = 10 if is_upper else (16 if char not in "gjpqy" else 18)
         color = rgb_colors[i % len(rgb_colors)]
 
         # Render single character with slight rotation
         char_img = Image.new("RGBA", (44, 48), (255, 255, 255, 0))
         char_draw = ImageDraw.Draw(char_img)
-        char_draw.text((8, 2), char, font=font, fill=color)
+        char_draw.text((8, 2), char, font=font_to_use, fill=color)
 
-        angle = random.randint(-10, 10)
+        angle = random.randint(-8, 8)
         rotated_char = char_img.rotate(angle, resample=Image.BICUBIC, expand=1)
 
         image.paste(rotated_char, (char_x, char_y), rotated_char)
@@ -218,7 +244,7 @@ def _generate_captcha_image(text):
     # Subtle sine wave security line
     for x in range(0, width, 3):
         y = int(height / 2 + math.sin(x / 16.0) * 6)
-        draw.point((x, y), fill=(148, 163, 184))
+        draw.point((x, y), fill=(160, 175, 195))
 
     # Export to base64 PNG
     buf = io.BytesIO()
@@ -386,8 +412,8 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
         expected = sess["captcha_text"]
         provided = (user_captcha_text or "").strip()
 
-        # Alphanumeric verification matching eCourts standard
-        if provided.upper() != expected.upper():
+        # Strict exact case-sensitive comparison (must match exact uppercase, lowercase & digits)
+        if provided != expected:
             # Generate fresh captcha on failure
             new_captcha_text = _generate_captcha_text(5)
             new_captcha_image = _generate_captcha_image(new_captcha_text)
@@ -395,7 +421,7 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
             sess["created_at"] = time.time()
             return {
                 "status": "retry",
-                "message": "Security code did not match. A fresh code has been generated.",
+                "message": "Security code did not match. Please enter the exact uppercase and lowercase characters as shown in the image.",
                 "captchaImage": new_captcha_image,
             }
 
