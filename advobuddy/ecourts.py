@@ -106,9 +106,12 @@ def _cleanup_expired_sessions():
 
 
 def _generate_captcha_text(length=5):
-    """Generates an unambiguous 5-character alphanumeric captcha code."""
-    # Exclude ambiguous characters (0, O, 1, I, l)
-    charset = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz"
+    """Generates an unambiguous 5-character alphanumeric captcha code with clearly distinguishable upper/lowercase characters."""
+    # Exclude ambiguous characters that look identical in upper/lowercase or with numbers (0, O, o, 1, I, l, c, C, s, S, v, V, w, W, x, X, z, Z)
+    uppercase = "ABDEFGHJKLMNPQRTY"
+    lowercase = "abdefghjkmnpqrty"
+    digits = "23456789"
+    charset = uppercase + lowercase + digits
     return "".join(random.choices(charset, k=length))
 
 
@@ -389,8 +392,8 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
         expected = sess["captcha_text"]
         provided = (user_captcha_text or "").strip()
 
-        # Case-insensitive comparison for user friendliness
-        if provided.lower() != expected.lower():
+        # Strict case-sensitive comparison (must match exact uppercase & lowercase letters)
+        if provided != expected:
             # Generate fresh captcha on failure
             new_captcha_text = _generate_captcha_text(5)
             new_captcha_image = _generate_captcha_image(new_captcha_text)
@@ -398,7 +401,7 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
             sess["created_at"] = time.time()
             return {
                 "status": "retry",
-                "message": "Captcha code didn't match. A new captcha has been loaded, please try again.",
+                "message": "Captcha code mismatch. Please enter the exact uppercase and lowercase characters as shown in the security image.",
                 "captchaImage": new_captcha_image,
             }
 

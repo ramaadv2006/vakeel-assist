@@ -671,7 +671,7 @@ export default function AdvoCaseSearch() {
                 />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
                   <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                    ✓ Case-insensitive (lowercase or uppercase)
+                    🔒 Case-sensitive (match uppercase & lowercase exactly)
                   </span>
                   {captchaText && (
                     <button
