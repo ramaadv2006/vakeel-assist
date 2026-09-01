@@ -657,13 +657,32 @@ export default function AdvoCaseSearch() {
                   id="captcha-input"
                   type="text"
                   className="form-control ecourts-captcha-input"
-                  placeholder="CODE"
+                  placeholder="e.g. 7kX9a"
                   value={captchaText}
-                  onChange={(e) => setCaptchaText(e.target.value)}
+                  onChange={(e) => setCaptchaText(e.target.value.replace(/\s+/g, ''))}
                   disabled={loadingCaptcha}
+                  maxLength={6}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="none"
+                  spellCheck="false"
                   autoFocus
                   required
                 />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                    ✓ Case-insensitive (lowercase or uppercase)
+                  </span>
+                  {captchaText && (
+                    <button
+                      type="button"
+                      onClick={() => setCaptchaText('')}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
