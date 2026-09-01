@@ -18,7 +18,12 @@ import string
 import threading
 import time
 from datetime import datetime, timedelta
-from PIL import Image, ImageDraw, ImageFont
+
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
 
 # In-memory session store: session_id -> dict
 _SESSIONS = {}
@@ -111,8 +116,47 @@ def _generate_captcha_image(text):
     """
     Renders a captcha image using Pillow with noise, colored lines,
     character rotation, and returns a base64 data URI.
+    Falls back to an inline SVG if Pillow is not available.
     """
     width, height = 180, 56
+    text_colors = [
+        "#182b49",  # Deep navy
+        "#8b2635",  # Crimson
+        "#226644",  # Forest green
+        "#732c7a",  # Purple
+        "#a04000",  # Amber brown
+    ]
+
+    if not PIL_AVAILABLE:
+        # Fallback SVG generation (zero external dependencies)
+        svg_chars = []
+        char_width = width / (len(text) + 1)
+        for i, char in enumerate(text):
+            x = (i + 0.6) * char_width + random.randint(-2, 2)
+            y = 38 + random.randint(-4, 4)
+            rot = random.randint(-15, 15)
+            col = text_colors[i % len(text_colors)]
+            svg_chars.append(
+                f'<text x="{x:.1f}" y="{y:.1f}" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="{col}" transform="rotate({rot} {x:.1f} {y:.1f})">{char}</text>'
+            )
+
+        # Background noise lines
+        svg_lines = []
+        for _ in range(4):
+            x1, y1 = random.randint(0, width // 2), random.randint(0, height)
+            x2, y2 = random.randint(width // 2, width), random.randint(0, height)
+            svg_lines.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#94a3b8" stroke-width="1.5" opacity="0.6"/>')
+
+        svg_content = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
+            <rect width="100%" height="100%" fill="#f8fafc"/>
+            {''.join(svg_lines)}
+            {''.join(svg_chars)}
+            <path d="M 0 28 Q 45 10, 90 28 T 180 28" fill="none" stroke="#64748b" stroke-width="1.5" opacity="0.5"/>
+        </svg>'''
+        b64_svg = base64.b64encode(svg_content.encode("utf-8")).decode("utf-8")
+        return f"data:image/svg+xml;base64,{b64_svg}"
+
+    # Pillow PNG generation
     bg_color = (random.randint(240, 252), random.randint(240, 252), random.randint(240, 252))
     image = Image.new("RGB", (width, height), bg_color)
     draw = ImageDraw.Draw(image)
@@ -149,7 +193,7 @@ def _generate_captcha_image(text):
 
     # Draw each character with slight offset and distinct color
     char_width = width // (len(text) + 1)
-    text_colors = [
+    rgb_colors = [
         (24, 43, 73),    # Deep navy
         (139, 38, 53),   # Crimson
         (34, 102, 68),   # Forest green
@@ -160,7 +204,7 @@ def _generate_captcha_image(text):
     for i, char in enumerate(text):
         char_x = int((i + 0.5) * char_width) + random.randint(-4, 4)
         char_y = random.randint(8, 16)
-        color = text_colors[i % len(text_colors)]
+        color = rgb_colors[i % len(rgb_colors)]
 
         # Create single character image for rotation/jitter
         char_img = Image.new("RGBA", (40, 45), (255, 255, 255, 0))
