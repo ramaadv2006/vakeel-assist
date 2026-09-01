@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -24,17 +24,31 @@ const POPULAR_PREFIXES = [
   { label: 'Karnataka', prefix: 'KAR/' },
   { label: 'Maharashtra', prefix: 'MS/' },
   { label: 'Delhi', prefix: 'D/' },
-  { label: 'Tamil Nadu', prefix: 'MS/' },
+  { label: 'Tamil Nadu', prefix: 'TN/' },
   { label: 'Uttar Pradesh', prefix: 'UP/' },
   { label: 'West Bengal', prefix: 'WB/' },
   { label: 'Telangana', prefix: 'TS/' },
   { label: 'Gujarat', prefix: 'GJ/' },
 ];
 
+const STAGE_MILESTONES = ['Filing', 'Notice', 'Evidence', 'Arguments', 'Orders'];
+
+function getStageStepIndex(stageName) {
+  if (!stageName) return 1;
+  const s = stageName.toLowerCase();
+  if (s.includes('filing') || s.includes('admission') || s.includes('registration')) return 0;
+  if (s.includes('notice') || s.includes('summons') || s.includes('appearance') || s.includes('written statement')) return 1;
+  if (s.includes('evidence') || s.includes('issues') || s.includes('examination') || s.includes('pw-') || s.includes('dw-')) return 2;
+  if (s.includes('argument') || s.includes('hearing') || s.includes('injunction')) return 3;
+  if (s.includes('order') || s.includes('judgment') || s.includes('pronouncement') || s.includes('disposed')) return 4;
+  return 2;
+}
+
 export default function AdvoCaseSearch() {
   const { advocate } = useAuth();
   const addFlash = useFlash();
   const navigate = useNavigate();
+  const canvasRef = useRef(null);
 
   // Search & Session State
   const [barNumber, setBarNumber] = useState('MS/4321/2018');
@@ -43,14 +57,23 @@ export default function AdvoCaseSearch() {
   const [captchaImage, setCaptchaImage] = useState(null);
   const [captchaText, setCaptchaText] = useState('');
   const [cases, setCases] = useState([]);
-  const [existingCaseNumbers, setExistingCaseNumbers] = useState(new Set());
+  const [existingCasesMap, setExistingCasesMap] = useState(new Map());
   const [selectedCaseNumbers, setSelectedCaseNumbers] = useState(new Set());
   const [expandedCase, setExpandedCase] = useState(null);
   const [copiedCnr, setCopiedCnr] = useState(null);
 
+  // Recent searches in localStorage
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('advo_recent_bar_searches') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
   // Filters & Views
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
-  const [filterType, setFilterType] = useState('all'); // 'all' | 'new' | 'civil' | 'criminal'
+  const [filterType, setFilterType] = useState('all'); // 'all' | 'new' | 'civil' | 'criminal' | 'urgent'
   const [filterQuery, setFilterQuery] = useState('');
 
   // Loading & Progress States
@@ -60,18 +83,18 @@ export default function AdvoCaseSearch() {
   const [loadingImport, setLoadingImport] = useState(false);
   const [importedStatus, setImportedStatus] = useState(null);
 
-  // Initialize bar number from advocate profile if available
+  // Auto-fill from advocate profile on mount
   useEffect(() => {
-    if (advocate?.bar_council_number) {
+    if (advocate?.bar_council_number && barNumber === 'MS/4321/2018') {
       setBarNumber(advocate.bar_council_number);
     }
   }, [advocate]);
 
-  // Load existing cases to identify duplicates
+  // Load existing cases to identify duplicates & conflicts
   useEffect(() => {
     api.get('/dashboard')
       .then((data) => {
-        const existing = new Set();
+        const caseMap = new Map();
         const list = [
           ...(data.overdue || []),
           ...(data.today || []),
@@ -79,14 +102,85 @@ export default function AdvoCaseSearch() {
           ...(data.upcoming || []),
         ];
         list.forEach((c) => {
-          if (c.case_number) existing.add(c.case_number.trim().toUpperCase());
+          if (c.case_number) {
+            caseMap.set(c.case_number.trim().toUpperCase(), c);
+          }
         });
-        setExistingCaseNumbers(existing);
+        setExistingCasesMap(caseMap);
       })
       .catch(() => {});
   }, []);
 
-  // Compute Current Active Step
+  // Save to recent searches
+  const saveToRecent = (num) => {
+    const clean = num.trim().toUpperCase();
+    if (!clean) return;
+    const updated = [clean, ...recentSearches.filter((item) => item !== clean)].slice(0, 5);
+    setRecentSearches(updated);
+    try {
+      localStorage.setItem('advo_recent_bar_searches', JSON.stringify(updated));
+    } catch {}
+  };
+
+  // Trigger celebration particle confetti
+  const triggerConfetti = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const emojis = ['⚖️', '🏛️', '✨', '📜', '🎉', '🌟', '💼'];
+    const particles = [];
+    for (let i = 0; i < 45; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 300,
+        y: canvas.height / 2,
+        vx: (Math.random() - 0.5) * 16,
+        vy: (Math.random() - 0.9) * 18,
+        gravity: 0.45,
+        emoji: emojis[Math.floor(Math.random() * emojis.length)],
+        size: Math.random() * 16 + 18,
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10,
+        alpha: 1,
+      });
+    }
+
+    let animFrame;
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += p.gravity;
+        p.rotation += p.rotSpeed;
+        p.alpha -= 0.012;
+
+        if (p.alpha > 0) {
+          alive = true;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rotation * Math.PI) / 180);
+          ctx.font = `${p.size}px serif`;
+          ctx.textAlign = 'center';
+          ctx.fillText(p.emoji, 0, 0);
+          ctx.restore();
+        }
+      });
+
+      if (alive) {
+        animFrame = requestAnimationFrame(render);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    };
+    render();
+  };
+
+  // Compute Active Step
   const currentStep = useMemo(() => {
     if (cases.length > 0) return 3;
     if (captchaImage) return 2;
@@ -98,7 +192,7 @@ export default function AdvoCaseSearch() {
     if (e) e.preventDefault();
     const cleanBar = barNumber.trim();
     if (!cleanBar) {
-      addFlash('Please enter your Advocate Bar Registration Number (e.g. MS/4321/2018).', 'warning');
+      addFlash('Please enter an Advocate Bar Council Registration Number.', 'warning');
       return;
     }
 
@@ -115,7 +209,8 @@ export default function AdvoCaseSearch() {
 
       setSessionId(res.sessionId);
       setCaptchaImage(res.captchaImage);
-      addFlash('eCourts session established! Solve the security verification captcha below.', 'info');
+      saveToRecent(cleanBar);
+      addFlash('eCourts query session active! Please solve the security verification challenge below.', 'info');
     } catch (err) {
       addFlash(err.message || 'Could not connect to eCourts service.', 'error');
     } finally {
@@ -131,7 +226,7 @@ export default function AdvoCaseSearch() {
       const res = await api.post('/ecourts/refresh-captcha', { sessionId });
       setCaptchaImage(res.captchaImage);
       setCaptchaText('');
-      addFlash('New captcha challenge loaded.', 'info');
+      addFlash('New verification captcha code loaded.', 'info');
     } catch (err) {
       addFlash(err.message || 'Failed to refresh captcha.', 'error');
     } finally {
@@ -145,7 +240,7 @@ export default function AdvoCaseSearch() {
       addFlash('Speech synthesis not supported in this browser.', 'warning');
       return;
     }
-    const msg = new SpeechSynthesisUtterance('Please enter the security verification letters shown on your screen.');
+    const msg = new SpeechSynthesisUtterance('Please enter the security verification characters shown on your screen.');
     msg.rate = 0.95;
     window.speechSynthesis.speak(msg);
   };
@@ -154,7 +249,7 @@ export default function AdvoCaseSearch() {
   const handleSubmitCaptcha = async (e) => {
     if (e) e.preventDefault();
     if (!captchaText.trim()) {
-      addFlash('Please enter the captcha characters before submitting.', 'warning');
+      addFlash('Please type the captcha characters before submitting.', 'warning');
       return;
     }
 
@@ -169,7 +264,7 @@ export default function AdvoCaseSearch() {
       if (res.status === 'retry') {
         setCaptchaImage(res.captchaImage);
         setCaptchaText('');
-        addFlash(res.message || 'Captcha code did not match. A fresh code has been generated.', 'warning');
+        addFlash(res.message || 'Captcha code mismatch. A new challenge has been generated.', 'warning');
         return;
       }
 
@@ -180,13 +275,13 @@ export default function AdvoCaseSearch() {
         // Pre-select all un-imported cases by default
         const toSelect = new Set();
         fetchedCases.forEach((c) => {
-          if (!existingCaseNumbers.has(c.case_number.trim().toUpperCase())) {
+          if (!existingCasesMap.has(c.case_number.trim().toUpperCase())) {
             toSelect.add(c.case_number);
           }
         });
         setSelectedCaseNumbers(toSelect);
 
-        addFlash(`Successfully verified! Found ${fetchedCases.length} case(s) on eCourts.`, 'success');
+        addFlash(`Session verified! Retrieved ${fetchedCases.length} case(s) from eCourts registry.`, 'success');
       }
     } catch (err) {
       addFlash(err.message || 'Verification failed. Please retry.', 'error');
@@ -200,7 +295,7 @@ export default function AdvoCaseSearch() {
     if (e) e.stopPropagation();
     navigator.clipboard.writeText(cnr);
     setCopiedCnr(cnr);
-    addFlash(`Copied CNR: ${cnr}`, 'info');
+    addFlash(`Copied CNR Number: ${cnr}`, 'info');
     setTimeout(() => setCopiedCnr(null), 2000);
   };
 
@@ -239,10 +334,15 @@ export default function AdvoCaseSearch() {
       const res = await api.post('/ecourts/import', { cases: casesToImport });
       setImportedStatus(res);
 
-      // Update existing case numbers cache
-      const updatedExisting = new Set(existingCaseNumbers);
-      casesToImport.forEach((c) => updatedExisting.add(c.case_number.trim().toUpperCase()));
-      setExistingCaseNumbers(updatedExisting);
+      // Update existing case numbers map
+      const updatedExisting = new Map(existingCasesMap);
+      casesToImport.forEach((c) => {
+        updatedExisting.set(c.case_number.trim().toUpperCase(), c);
+      });
+      setExistingCasesMap(updatedExisting);
+
+      // Trigger Confetti Celebration!
+      triggerConfetti();
 
       if (res.conflicts && res.conflicts.length > 0) {
         addFlash(`Notice: ${res.conflicts.length} hearing date conflict(s) detected with your active schedule!`, 'warning');
@@ -255,17 +355,27 @@ export default function AdvoCaseSearch() {
     }
   };
 
+  // Helper to calculate days until hearing
+  const getDaysUntil = (dateStr) => {
+    if (!dateStr) return null;
+    const hearing = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((hearing - today) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
+
   // Filtered cases based on search & category
   const filteredCases = useMemo(() => {
     return cases.filter((c) => {
-      // Type Filter
-      if (filterType === 'new') {
-        if (existingCaseNumbers.has(c.case_number.trim().toUpperCase())) return false;
-      } else if (filterType === 'civil') {
-        if (!c.case_type?.toLowerCase().includes('civil') && !c.case_type?.toLowerCase().includes('suit')) return false;
-      } else if (filterType === 'criminal') {
-        if (!c.case_type?.toLowerCase().includes('criminal') && !c.case_type?.toLowerCase().includes('cc') && !c.case_type?.toLowerCase().includes('bail')) return false;
-      }
+      const isExisting = existingCasesMap.has(c.case_number.trim().toUpperCase());
+      const daysUntil = getDaysUntil(c.next_hearing_date);
+
+      // Category filter
+      if (filterType === 'new' && isExisting) return false;
+      if (filterType === 'civil' && !c.case_type?.toLowerCase().includes('civil') && !c.case_type?.toLowerCase().includes('suit')) return false;
+      if (filterType === 'criminal' && !c.case_type?.toLowerCase().includes('criminal') && !c.case_type?.toLowerCase().includes('cc') && !c.case_type?.toLowerCase().includes('bail')) return false;
+      if (filterType === 'urgent' && (daysUntil === null || daysUntil > 7)) return false;
 
       // Query Search
       if (!filterQuery) return true;
@@ -283,12 +393,12 @@ export default function AdvoCaseSearch() {
       ].filter(Boolean).join(' ').toLowerCase();
       return haystack.includes(q);
     });
-  }, [cases, filterType, filterQuery, existingCaseNumbers]);
+  }, [cases, filterType, filterQuery, existingCasesMap]);
 
   // Statistics
   const stats = useMemo(() => {
     const total = cases.length;
-    const newCount = cases.filter((c) => !existingCaseNumbers.has(c.case_number.trim().toUpperCase())).length;
+    const newCount = cases.filter((c) => !existingCasesMap.has(c.case_number.trim().toUpperCase())).length;
     const existingCount = total - newCount;
     const nextDates = cases.map((c) => c.next_hearing_date).filter(Boolean).sort();
     return {
@@ -297,13 +407,14 @@ export default function AdvoCaseSearch() {
       existingCount,
       earliestHearing: nextDates[0] || 'None',
     };
-  }, [cases, existingCaseNumbers]);
+  }, [cases, existingCasesMap]);
 
   return (
     <div className="ecourts-page-wrap">
+      <canvas ref={canvasRef} className="ecourts-confetti-canvas" />
       <div className="ecourts-ambient-glow" />
 
-      {/* Top Back Nav & Quick Badge */}
+      {/* Top Breadcrumb & Live Security Indicator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, position: 'relative', zIndex: 1 }}>
         <Link to="/" className="back-link" style={{ marginBottom: 0 }}>
           <Icon name="back" />
@@ -401,6 +512,8 @@ export default function AdvoCaseSearch() {
                 required
                 style={{ fontWeight: 600, letterSpacing: 0.5 }}
               />
+
+              {/* Quick Format Chips */}
               <div className="ecourts-quick-prefixes">
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Quick Format:</span>
                 {POPULAR_PREFIXES.map((item) => (
@@ -414,6 +527,33 @@ export default function AdvoCaseSearch() {
                   </button>
                 ))}
               </div>
+
+              {/* Recent Searches Chips */}
+              {recentSearches.length > 0 && (
+                <div className="ecourts-recent-history-row">
+                  <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 600 }}>🕒 Recent:</span>
+                  {recentSearches.map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className="ecourts-history-pill"
+                      onClick={() => setBarNumber(item)}
+                    >
+                      {item}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}
+                    onClick={() => {
+                      setRecentSearches([]);
+                      localStorage.removeItem('advo_recent_bar_searches');
+                    }}
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="form-group" style={{ margin: 0 }}>
@@ -560,7 +700,17 @@ export default function AdvoCaseSearch() {
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn-edit"
+                onClick={() => window.print()}
+                title="Print or Export Cause List"
+                style={{ padding: '8px 14px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                🖨️ Print Cause List
+              </button>
+
               <button
                 type="button"
                 className="btn-edit"
@@ -641,11 +791,19 @@ export default function AdvoCaseSearch() {
               </button>
               <button
                 type="button"
+                className={`btn-export ${filterType === 'urgent' ? 'active-view' : ''}`}
+                onClick={() => setFilterType('urgent')}
+                style={{ padding: '6px 14px', fontSize: 12.5 }}
+              >
+                🔥 Urgent (&le;7d)
+              </button>
+              <button
+                type="button"
                 className={`btn-export ${filterType === 'civil' ? 'active-view' : ''}`}
                 onClick={() => setFilterType('civil')}
                 style={{ padding: '6px 14px', fontSize: 12.5 }}
               >
-                Civil Suits
+                Civil
               </button>
               <button
                 type="button"
@@ -653,7 +811,7 @@ export default function AdvoCaseSearch() {
                 onClick={() => setFilterType('criminal')}
                 style={{ padding: '6px 14px', fontSize: 12.5 }}
               >
-                Criminal Matters
+                Criminal
               </button>
             </div>
 
@@ -716,9 +874,11 @@ export default function AdvoCaseSearch() {
           {viewMode === 'grid' && (
             <div className="ecourts-case-grid">
               {filteredCases.map((c) => {
-                const isExisting = existingCaseNumbers.has(c.case_number.trim().toUpperCase());
+                const isExisting = existingCasesMap.has(c.case_number.trim().toUpperCase());
                 const isSelected = selectedCaseNumbers.has(c.case_number);
                 const isExpanded = expandedCase === c.case_number;
+                const daysUntil = getDaysUntil(c.next_hearing_date);
+                const stageIndex = getStageStepIndex(c.case_stage);
 
                 return (
                   <div
@@ -767,18 +927,28 @@ export default function AdvoCaseSearch() {
 
                       {/* Parties Box */}
                       <div className="ecourts-parties-box">
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 2 }}>PARTIES / CAUSE TITLE</div>
-                        <div>{c.client_name || c.parties}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.5, marginBottom: 2 }}>
+                          PARTIES / LITIGANTS
+                        </div>
+                        <div style={{ fontWeight: 600 }}>{c.client_name || c.parties}</div>
                       </div>
 
                       {/* Court & Stage */}
-                      <div style={{ fontSize: 12.5, color: 'var(--text-dark)', fontWeight: 500, marginBottom: 6 }}>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-dark)', fontWeight: 500, marginBottom: 4 }}>
                         🏛️ {c.court_name}
                       </div>
-                      <div>
-                        <span className="badge-pill" style={{ background: 'var(--bg-main)', border: '1px solid var(--border-color)', fontSize: 11.5, color: 'var(--text-muted)' }}>
-                          Stage: {c.case_stage}
-                        </span>
+
+                      {/* Stage Progress Tracker */}
+                      <div className="ecourts-stage-progress-track" title={`Current Stage: ${c.case_stage}`}>
+                        {STAGE_MILESTONES.map((step, idx) => (
+                          <div
+                            key={step}
+                            className={`ecourts-stage-step ${idx < stageIndex ? 'is-done' : ''} ${idx === stageIndex ? 'is-current' : ''}`}
+                          >
+                            <div className="ecourts-stage-step-dot" />
+                            <span className="ecourts-stage-step-label">{step}</span>
+                          </div>
+                        ))}
                       </div>
 
                       {/* Expandable Details Drawer */}
@@ -794,11 +964,26 @@ export default function AdvoCaseSearch() {
                           </div>
                           <div className="ecourts-detail-item">
                             <span className="ecourts-detail-key">Opposing Counsel:</span>
-                            <span className="ecourts-detail-val">{c.opposing_counsel}</span>
+                            <span className="ecourts-detail-val">
+                              {c.opposing_counsel}
+                              {c.opposing_counsel_phone && (
+                                <a
+                                  href={`tel:${c.opposing_counsel_phone}`}
+                                  style={{ marginLeft: 6, color: 'var(--accent)', textDecoration: 'none' }}
+                                  title="Call opposing counsel"
+                                >
+                                  📞 {c.opposing_counsel_phone}
+                                </a>
+                              )}
+                            </span>
                           </div>
                           <div className="ecourts-detail-item">
                             <span className="ecourts-detail-key">Matter Type:</span>
                             <span className="ecourts-detail-val">{c.case_type}</span>
+                          </div>
+                          <div className="ecourts-detail-item">
+                            <span className="ecourts-detail-key">Current Stage:</span>
+                            <span className="ecourts-detail-val" style={{ color: 'var(--accent)' }}>{c.case_stage}</span>
                           </div>
                         </div>
                       )}
@@ -807,9 +992,14 @@ export default function AdvoCaseSearch() {
                     {/* Bottom Metadata & Expand Toggle */}
                     <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 12, marginTop: 14 }}>
                       <div className="ecourts-card-meta-row">
-                        <div className="ecourts-hearing-pill">
+                        <div className={`ecourts-hearing-pill ${daysUntil !== null && daysUntil <= 3 ? 'ecourts-hearing-urgent' : ''}`}>
                           <Icon name="calendar" style={{ width: 14, height: 14 }} />
                           Next: {c.next_hearing_date}
+                          {daysUntil !== null && (
+                            <span style={{ fontSize: 10.5, opacity: 0.85 }}>
+                              ({daysUntil === 0 ? 'Today!' : daysUntil === 1 ? 'Tomorrow!' : `in ${daysUntil}d`})
+                            </span>
+                          )}
                         </div>
 
                         <button
@@ -840,7 +1030,7 @@ export default function AdvoCaseSearch() {
 
           {/* VIEW 2: COMPACT TABULAR VIEW */}
           {viewMode === 'table' && (
-            <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-color)', marginBottom: 20 }}>
+            <div style={{ overflowX: 'auto', borderRadius: 12, border: '1px solid var(--border-color)', marginBottom: 20 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13.5 }}>
                 <thead>
                   <tr style={{ background: 'var(--bg-main)', borderBottom: '2px solid var(--border-color)' }}>
@@ -861,8 +1051,9 @@ export default function AdvoCaseSearch() {
                 </thead>
                 <tbody>
                   {filteredCases.map((c) => {
-                    const isExisting = existingCaseNumbers.has(c.case_number.trim().toUpperCase());
+                    const isExisting = existingCasesMap.has(c.case_number.trim().toUpperCase());
                     const isSelected = selectedCaseNumbers.has(c.case_number);
+                    const daysUntil = getDaysUntil(c.next_hearing_date);
 
                     return (
                       <tr
@@ -895,7 +1086,14 @@ export default function AdvoCaseSearch() {
                           <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{c.case_stage}</div>
                         </td>
                         <td style={{ padding: '14px', whiteSpace: 'nowrap' }}>
-                          <div style={{ fontWeight: 600, color: 'var(--accent)' }}>{c.next_hearing_date}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--accent)' }}>
+                            {c.next_hearing_date}
+                            {daysUntil !== null && daysUntil <= 3 && (
+                              <span style={{ marginLeft: 6, color: '#e11d48', fontSize: 11, fontWeight: 700 }}>
+                                (Urgent)
+                              </span>
+                            )}
+                          </div>
                           <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{c.court_hall}</div>
                         </td>
                         <td style={{ padding: '14px', textAlign: 'right' }}>
@@ -918,7 +1116,7 @@ export default function AdvoCaseSearch() {
           )}
 
           {filteredCases.length === 0 && (
-            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-main)', borderRadius: 10 }}>
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-main)', borderRadius: 12 }}>
               No court matters found matching your filter criteria.
             </div>
           )}
@@ -930,7 +1128,7 @@ export default function AdvoCaseSearch() {
         <div className="ecourts-floating-action-bar">
           <div className="ecourts-floating-info">
             <span className="ecourts-selection-bubble">{selectedCaseNumbers.size}</span>
-            <span>cases ready to sync with your diary</span>
+            <span>cases selected for diary sync</span>
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -941,14 +1139,14 @@ export default function AdvoCaseSearch() {
               disabled={loadingImport}
               style={{ padding: '10px 24px', fontSize: 14, fontWeight: 700 }}
             >
-              {loadingImport ? <>Importing…</> : <>⚡ Sync {selectedCaseNumbers.size} Cases Now</>}
+              {loadingImport ? <>Importing…</> : <>⚡ Sync {selectedCaseNumbers.size} Cases to Diary</>}
             </button>
           </div>
         </div>
       )}
 
       {/* Educational Judicial Infrastructure Notice */}
-      <div style={{ marginTop: 32, padding: 20, background: 'var(--bg-main)', borderRadius: 12, border: '1px dashed var(--border-color)', fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+      <div style={{ marginTop: 34, padding: 22, background: 'var(--bg-main)', borderRadius: 14, border: '1px dashed var(--border-color)', fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.6 }}>
         <strong>🏛️ National Judicial Data Grid (NJDG) Direct Interface:</strong>
         <p style={{ margin: '6px 0 0 0' }}>
           Advo Buddy synchronizes with the official eCourts Services protocol. All retrieved case filings, orders, and hearing dates are indexed under your advocate profile for real-time diary management, conflict warning alerts, and client billing records.
