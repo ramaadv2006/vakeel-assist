@@ -1456,31 +1456,113 @@ def billing():
 # ============================================
 import json
 
-def _call_gemini_chat(message, formatted_history, system_instruction):
+def _call_groq_chat(message, formatted_history, system_instruction):
     groq_api_key = os.environ.get("GROQ_API_KEY")
-    if groq_api_key:
-        import requests
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {groq_api_key}",
-            "Content-Type": "application/json"
-        }
-        messages = [{"role": "system", "content": system_instruction}]
-        for item in formatted_history:
-            role = "assistant" if item.get("role") in ["assistant", "model"] else "user"
-            content = item.get("parts", [""])[0] if item.get("parts") else ""
-            messages.append({"role": role, "content": content})
-        messages.append({"role": "user", "content": message})
+    if not groq_api_key:
+        return None
+    import requests
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {groq_api_key}",
+        "Content-Type": "application/json"
+    }
+    messages = [{"role": "system", "content": system_instruction}]
+    for item in formatted_history:
+        role = "assistant" if item.get("role") in ["assistant", "model"] else "user"
+        content = item.get("parts", [""])[0] if item.get("parts") else ""
+        messages.append({"role": role, "content": content})
+    messages.append({"role": "user", "content": message})
 
-        model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-        payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": 0.7
-        }
-        res = requests.post(url, headers=headers, json=payload)
-        res.raise_for_status()
-        return res.json()["choices"][0]["message"]["content"]
+    configured_model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+    candidate_models = [configured_model, "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "groq/compound-mini", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    seen = set()
+    models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
+
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            payload = {
+                "model": model_name,
+                "messages": messages,
+                "temperature": 0.7
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=30)
+            if res.status_code == 200:
+                return res.json()["choices"][0]["message"]["content"]
+            err_data = res.json() if res.headers.get("content-type", "").startswith("application/json") else {}
+            err_msg = err_data.get("error", {}).get("message", res.text)
+            last_error = Exception(f"Groq error ({res.status_code}): {err_msg}")
+            if res.status_code in [404, 400] and ("model" in err_msg.lower() or "not found" in err_msg.lower()):
+                continue
+            res.raise_for_status()
+        except Exception as e:
+            last_error = e
+            err_str = str(e).lower()
+            if "404" in err_str or "not found" in err_str or "model" in err_str:
+                continue
+            raise e
+    if last_error:
+        raise last_error
+    return None
+
+
+def _call_groq_generate(prompt, system_instruction):
+    groq_api_key = os.environ.get("GROQ_API_KEY")
+    if not groq_api_key:
+        return None
+    import requests
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {groq_api_key}",
+        "Content-Type": "application/json"
+    }
+    messages = [
+        {"role": "system", "content": system_instruction},
+        {"role": "user", "content": prompt}
+    ]
+    configured_model = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+    candidate_models = [configured_model, "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "groq/compound-mini", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+    seen = set()
+    models_to_try = [m for m in candidate_models if m and not (m in seen or seen.add(m))]
+
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            payload = {
+                "model": model_name,
+                "messages": messages,
+                "temperature": 0.2,
+                "response_format": {"type": "json_object"}
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=30)
+            if res.status_code == 200:
+                return res.json()["choices"][0]["message"]["content"]
+            err_data = res.json() if res.headers.get("content-type", "").startswith("application/json") else {}
+            err_msg = err_data.get("error", {}).get("message", res.text)
+            last_error = Exception(f"Groq error ({res.status_code}): {err_msg}")
+            if res.status_code in [404, 400] and ("model" in err_msg.lower() or "not found" in err_msg.lower() or "json" in err_msg.lower()):
+                continue
+            res.raise_for_status()
+        except Exception as e:
+            last_error = e
+            err_str = str(e).lower()
+            if "404" in err_str or "not found" in err_str or "model" in err_str:
+                continue
+            raise e
+    if last_error:
+        raise last_error
+    return None
+
+
+def _call_gemini_chat(message, formatted_history, system_instruction):
+    if os.environ.get("GROQ_API_KEY"):
+        try:
+            res = _call_groq_chat(message, formatted_history, system_instruction)
+            if res:
+                return res
+        except Exception as groq_err:
+            if not (os.environ.get("AI_API_KEY") or os.environ.get("GEMINI_API_KEY")):
+                raise groq_err
 
     api_key = os.environ.get("AI_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -1511,28 +1593,14 @@ def _call_gemini_chat(message, formatted_history, system_instruction):
 
 
 def _call_gemini_generate(prompt, system_instruction):
-    groq_api_key = os.environ.get("GROQ_API_KEY")
-    if groq_api_key:
-        import requests
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {groq_api_key}",
-            "Content-Type": "application/json"
-        }
-        messages = [
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": prompt}
-        ]
-        model = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-        payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": 0.2,
-            "response_format": {"type": "json_object"}
-        }
-        res = requests.post(url, headers=headers, json=payload)
-        res.raise_for_status()
-        return res.json()["choices"][0]["message"]["content"]
+    if os.environ.get("GROQ_API_KEY"):
+        try:
+            res = _call_groq_generate(prompt, system_instruction)
+            if res:
+                return res
+        except Exception as groq_err:
+            if not (os.environ.get("AI_API_KEY") or os.environ.get("GEMINI_API_KEY")):
+                raise groq_err
 
     api_key = os.environ.get("AI_API_KEY") or os.environ.get("GEMINI_API_KEY")
     if not api_key:
