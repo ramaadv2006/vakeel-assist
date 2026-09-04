@@ -25,10 +25,82 @@ try:
 except ImportError:
     PIL_AVAILABLE = False
 
-# In-memory session store: session_id -> dict
-_SESSIONS = {}
-_SESSIONS_LOCK = threading.Lock()
+import json
+
 SESSION_TTL_SECONDS = 900  # 15 minutes
+
+class SessionStore:
+    """Thread-safe session store with Redis integration and memory fallback."""
+    def __init__(self, ttl_seconds=SESSION_TTL_SECONDS):
+        self.ttl = ttl_seconds
+        self._lock = threading.Lock()
+        self._memory_store = {}
+        self._redis_client = None
+        
+        redis_url = os.environ.get("REDIS_URL")
+        if redis_url:
+            try:
+                import redis
+                client = redis.Redis.from_url(redis_url, decode_responses=True)
+                client.ping()
+                self._redis_client = client
+            except Exception:
+                self._redis_client = None
+
+    def set(self, session_id, data):
+        if self._redis_client:
+            try:
+                self._redis_client.setex(f"ecourts:sess:{session_id}", self.ttl, json.dumps(data))
+                return
+            except Exception:
+                pass
+        with self._lock:
+            data_copy = dict(data)
+            data_copy["_expires_at"] = time.time() + self.ttl
+            self._memory_store[session_id] = data_copy
+            self._cleanup_locked()
+
+    def get(self, session_id):
+        if self._redis_client:
+            try:
+                val = self._redis_client.get(f"ecourts:sess:{session_id}")
+                if val:
+                    return json.loads(val)
+                return None
+            except Exception:
+                pass
+        with self._lock:
+            self._cleanup_locked()
+            item = self._memory_store.get(session_id)
+            if item and item.get("_expires_at", 0) > time.time():
+                return dict(item)
+            return None
+
+    def update(self, session_id, updates):
+        current = self.get(session_id)
+        if not current:
+            return None
+        current.update(updates)
+        self.set(session_id, current)
+        return current
+
+    def delete(self, session_id):
+        if self._redis_client:
+            try:
+                self._redis_client.delete(f"ecourts:sess:{session_id}")
+            except Exception:
+                pass
+        with self._lock:
+            self._memory_store.pop(session_id, None)
+
+    def _cleanup_locked(self):
+        now = time.time()
+        expired = [k for k, v in self._memory_store.items() if v.get("_expires_at", 0) <= now]
+        for k in expired:
+            self._memory_store.pop(k, None)
+
+_SESSION_STORE = SessionStore(ttl_seconds=SESSION_TTL_SECONDS)
+
 
 # Common Indian court case stages
 CASE_STAGES = [
@@ -252,16 +324,6 @@ SAMPLE_OPPOSING_COUNSELS = [
 ]
 
 
-def _cleanup_expired_sessions():
-    """Removes sessions older than SESSION_TTL_SECONDS."""
-    now = time.time()
-    with _SESSIONS_LOCK:
-        expired_keys = [
-            sid for sid, s in _SESSIONS.items()
-            if now - s.get("created_at", 0) > SESSION_TTL_SECONDS
-        ]
-        for sid in expired_keys:
-            _SESSIONS.pop(sid, None)
 
 
 def _generate_captcha_text(length=5):
@@ -577,7 +639,6 @@ def start_ecourts_search(bar_number, state="", district="", court_complex="", ca
     """
     Creates a new eCourts search session and returns sessionId + captchaImage.
     """
-    _cleanup_expired_sessions()
     cleaned_bar = (bar_number or "").strip().upper()
     if not cleaned_bar:
         raise ValueError("Advocate Bar Registration Number is required.")
@@ -586,18 +647,18 @@ def start_ecourts_search(bar_number, state="", district="", court_complex="", ca
     captcha_text = _generate_captcha_text(5)
     captcha_image = _generate_captcha_image(captcha_text)
 
-    with _SESSIONS_LOCK:
-        _SESSIONS[session_id] = {
-            "bar_number": cleaned_bar,
-            "state": state,
-            "district": district,
-            "court_complex": court_complex,
-            "case_type": case_type,
-            "captcha_text": captcha_text,
-            "created_at": time.time(),
-            "attempts": 0,
-            "verified": False,
-        }
+    session_data = {
+        "bar_number": cleaned_bar,
+        "state": state,
+        "district": district,
+        "court_complex": court_complex,
+        "case_type": case_type,
+        "captcha_text": captcha_text,
+        "created_at": time.time(),
+        "attempts": 0,
+        "verified": False,
+    }
+    _SESSION_STORE.set(session_id, session_data)
 
     return {
         "sessionId": session_id,
@@ -614,16 +675,15 @@ def refresh_ecourts_captcha(session_id):
     """
     Generates a new captcha image for an existing session.
     """
-    _cleanup_expired_sessions()
-    with _SESSIONS_LOCK:
-        sess = _SESSIONS.get(session_id)
-        if not sess:
-            raise KeyError("Search session has expired. Please start a new search.")
+    sess = _SESSION_STORE.get(session_id)
+    if not sess:
+        raise KeyError("Search session has expired. Please start a new search.")
 
-        captcha_text = _generate_captcha_text(5)
-        captcha_image = _generate_captcha_image(captcha_text)
-        sess["captcha_text"] = captcha_text
-        sess["created_at"] = time.time()
+    captcha_text = _generate_captcha_text(5)
+    captcha_image = _generate_captcha_image(captcha_text)
+    sess["captcha_text"] = captcha_text
+    sess["created_at"] = time.time()
+    _SESSION_STORE.set(session_id, sess)
 
     return {
         "sessionId": session_id,
@@ -637,36 +697,38 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
     Validates user captcha. Returns { status: "retry", captchaImage } if invalid,
     or { status: "success", cases: [...] } if valid.
     """
-    _cleanup_expired_sessions()
-    with _SESSIONS_LOCK:
-        sess = _SESSIONS.get(session_id)
-        if not sess:
-            raise KeyError("Search session has expired or is invalid. Please start a new search.")
+    sess = _SESSION_STORE.get(session_id)
+    if not sess:
+        raise KeyError("Search session has expired or is invalid. Please start a new search.")
 
-        sess["attempts"] += 1
-        expected = sess["captcha_text"]
-        provided = (user_captcha_text or "").strip()
+    sess["attempts"] = sess.get("attempts", 0) + 1
+    expected = sess.get("captcha_text", "")
+    provided = (user_captcha_text or "").strip()
 
-        # Strict exact case-sensitive comparison (must match exact uppercase, lowercase & digits)
-        if provided != expected:
-            # Generate fresh captcha on failure
-            new_captcha_text = _generate_captcha_text(5)
-            new_captcha_image = _generate_captcha_image(new_captcha_text)
-            sess["captcha_text"] = new_captcha_text
-            sess["created_at"] = time.time()
-            return {
-                "status": "retry",
-                "message": "Security code did not match. Please enter the exact uppercase and lowercase characters as shown in the image.",
-                "captchaImage": new_captcha_image,
-            }
+    # Strict exact case-sensitive comparison (must match exact uppercase, lowercase & digits)
+    if provided != expected:
+        # Generate fresh captcha on failure
+        new_captcha_text = _generate_captcha_text(5)
+        new_captcha_image = _generate_captcha_image(new_captcha_text)
+        sess["captcha_text"] = new_captcha_text
+        sess["created_at"] = time.time()
+        _SESSION_STORE.set(session_id, sess)
+        return {
+            "status": "retry",
+            "message": "Security code did not match. Please enter the exact uppercase and lowercase characters as shown in the image.",
+            "captchaImage": new_captcha_image,
+        }
 
-        # Validated successfully!
-        sess["verified"] = True
-        bar_number = sess["bar_number"]
-        state = sess.get("state", "")
-        district = sess.get("district", "")
-        court_complex = sess.get("court_complex", "")
-        case_type = sess.get("case_type", "")
+    # Validated successfully!
+    sess["verified"] = True
+    _SESSION_STORE.set(session_id, sess)
+
+    bar_number = sess["bar_number"]
+    state = sess.get("state", "")
+    district = sess.get("district", "")
+    court_complex = sess.get("court_complex", "")
+    case_type = sess.get("case_type", "")
+
 
     # Generate or scrape case data with district & case type filters applied
     cases = _generate_cases_for_bar_number(

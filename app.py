@@ -16,8 +16,12 @@ from flask import Flask, request, jsonify, Response, g, has_app_context, send_fr
 from datetime import datetime, timedelta
 from functools import wraps
 import csv
+import hashlib
 import io
 import os
+import threading
+import time
+from types import SimpleNamespace
 
 try:
     from dotenv import load_dotenv
@@ -29,7 +33,13 @@ import psycopg2
 import psycopg2.extras
 from psycopg2 import pool as pg_pool
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+import jwt
+from werkzeug.utils import secure_filename
+from PIL import Image as PILImage
 from supabase import create_client
+from advobuddy.config import Config
 from advobuddy.ecourts import (
     start_ecourts_search,
     refresh_ecourts_captcha,
@@ -38,19 +48,88 @@ from advobuddy.ecourts import (
 )
 from advobuddy.blueprints.courts import courts_bp
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "advo-buddy-secret-key-change-this-in-production")
+config = Config.from_env()
 
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+app = Flask(__name__)
+app.secret_key = config.SECRET_KEY
+app.config["MAX_CONTENT_LENGTH"] = config.MAX_CONTENT_LENGTH
+
+# Strict CORS configuration derived from environment configuration
+CORS(app, resources={r"/api/*": {"origins": config.CORS_ORIGINS}}, supports_credentials=True)
 app.register_blueprint(courts_bp)
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
+# Rate Limiter setup with Redis support and memory fallback
+def get_rate_limit_key():
+    # Per-advocate rate limit when authenticated, fallback to client IP
+    if getattr(g, "advocate_id", None):
+        return f"advocate:{g.advocate_id}"
+    return get_remote_address()
 
-STALE_CASE_DAYS = 60
+limiter = Limiter(
+    key_func=get_rate_limit_key,
+    app=app,
+    storage_uri=config.RATELIMIT_STORAGE_URI,
+    default_limits=["120 per minute", "2000 per hour"],
+    strategy="fixed-window",
+)
 
-UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "avatars")
+@app.after_request
+def apply_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if config.is_production:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+# Standardized JSON Error Handlers
+@app.errorhandler(400)
+def handle_400(e):
+    msg = getattr(e, "description", "Bad request.")
+    return jsonify({"error": str(msg), "status": 400}), 400
+
+@app.errorhandler(401)
+def handle_401(e):
+    msg = getattr(e, "description", "Unauthorized access.")
+    return jsonify({"error": str(msg), "status": 401}), 401
+
+@app.errorhandler(403)
+def handle_403(e):
+    msg = getattr(e, "description", "Forbidden.")
+    return jsonify({"error": str(msg), "status": 403}), 403
+
+@app.errorhandler(404)
+def handle_404(e):
+    if request.path.startswith("/api/"):
+        return jsonify({"error": "Resource not found.", "status": 404}), 404
+    if os.path.isfile(os.path.join(FRONTEND_DIST, "index.html")):
+        return send_from_directory(FRONTEND_DIST, "index.html")
+    return jsonify({"error": "Page not found.", "status": 404}), 404
+
+@app.errorhandler(429)
+def handle_429(e):
+    retry_after = getattr(e, "retry_after", None)
+    msg = f"Rate limit exceeded. Please slow down. {getattr(e, 'description', '')}".strip()
+    res = {"error": msg, "status": 429}
+    if retry_after:
+        res["retry_after"] = retry_after
+    return jsonify(res), 429
+
+@app.errorhandler(500)
+def handle_500(e):
+    app.logger.error(f"Internal Server Error: {e}", exc_info=True)
+    if config.DEBUG:
+        return jsonify({"error": f"Internal Server Error: {str(e)}", "status": 500}), 500
+    return jsonify({"error": "An internal server error occurred. Please try again later.", "status": 500}), 500
+
+DATABASE_URL = config.DATABASE_URL
+SUPABASE_URL = config.SUPABASE_URL
+SUPABASE_ANON_KEY = config.SUPABASE_ANON_KEY
+
+STALE_CASE_DAYS = config.STALE_CASE_DAYS
+
+UPLOAD_FOLDER = config.UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp", "gif"}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -145,9 +224,10 @@ def _get_pool():
         if db_url.startswith("postgres://"):
             db_url = db_url.replace("postgres://", "postgresql://", 1)
         _connection_pool = pg_pool.ThreadedConnectionPool(
-            1, 10, db_url, cursor_factory=psycopg2.extras.RealDictCursor
+            config.DB_POOL_MIN, config.DB_POOL_MAX, db_url, cursor_factory=psycopg2.extras.RealDictCursor
         )
     return _connection_pool
+
 
 
 def _checkout_live_connection(pool):
@@ -537,7 +617,65 @@ def resolve_advocate_id(supa_user):
 
     conn.commit()
     cur.close()
-    conn.close()
+_AUTH_TOKEN_CACHE = {}
+_AUTH_TOKEN_CACHE_LOCK = threading.Lock()
+
+def _resolve_user_from_token(token):
+    if not token:
+        return None
+
+    token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    now = time.time()
+
+    with _AUTH_TOKEN_CACHE_LOCK:
+        cached = _AUTH_TOKEN_CACHE.get(token_hash)
+        if cached and cached.get("expires_at", 0) > now:
+            return cached.get("advocate_id")
+
+    supa_user = None
+
+    # Fast-path 1: Decode JWT locally if SUPABASE_JWT_SECRET is configured
+    if config.SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(
+                token,
+                config.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+                options={"verify_exp": True},
+            )
+            supa_user = SimpleNamespace(
+                id=payload.get("sub"),
+                email=payload.get("email"),
+                user_metadata=payload.get("user_metadata") or {},
+            )
+        except Exception as jwt_err:
+            app.logger.debug(f"Local JWT verification failed: {jwt_err}")
+            supa_user = None
+
+    # Fast-path 2: Fall back to Supabase client API
+    if supa_user is None:
+        try:
+            supa_user = get_supabase().auth.get_user(token).user
+        except Exception:
+            supa_user = None
+
+    if supa_user is None:
+        return None
+
+    advocate_id = resolve_advocate_id(supa_user)
+    if advocate_id:
+        with _AUTH_TOKEN_CACHE_LOCK:
+            _AUTH_TOKEN_CACHE[token_hash] = {
+                "advocate_id": advocate_id,
+                "expires_at": now + config.AUTH_TOKEN_CACHE_TTL_SECONDS,
+            }
+            # Evict expired entries if cache grows
+            if len(_AUTH_TOKEN_CACHE) > 1000:
+                expired = [k for k, v in _AUTH_TOKEN_CACHE.items() if v.get("expires_at", 0) <= now]
+                for k in expired:
+                    _AUTH_TOKEN_CACHE.pop(k, None)
+
     return advocate_id
 
 
@@ -552,17 +690,14 @@ def login_required(f):
         if not token:
             return jsonify({"error": "Please log in to continue."}), 401
 
-        try:
-            supa_user = get_supabase().auth.get_user(token).user
-        except Exception:
-            supa_user = None
-
-        if supa_user is None:
+        advocate_id = _resolve_user_from_token(token)
+        if advocate_id is None:
             return jsonify({"error": "Please log in to continue."}), 401
 
-        g.advocate_id = resolve_advocate_id(supa_user)
+        g.advocate_id = advocate_id
         return f(*args, **kwargs)
     return wrapper
+
 
 
 @app.route("/")
@@ -574,17 +709,15 @@ def index():
 
 @app.route("/<path:path>")
 def serve_frontend(path):
-    # Only reached for paths that don't match any other route above (Flask/
-    # Werkzeug prefers the more specific /api/* and /static/* rules first),
-    # so this is either a real built asset (JS/CSS/images) or a client-side
-    # route like /dashboard that only React Router knows about - fall back
-    # to index.html for the latter so a hard refresh on any page still works.
+    if path.startswith("api/") or path == "api":
+        return jsonify({"error": "Resource not found.", "status": 404}), 404
     if not os.path.isdir(FRONTEND_DIST):
         return jsonify({"error": "Not found"}), 404
     requested = os.path.join(FRONTEND_DIST, path)
     if os.path.isfile(requested):
         return send_from_directory(FRONTEND_DIST, path)
     return send_from_directory(FRONTEND_DIST, "index.html")
+
 
 
 @app.route("/api/auth/me")
@@ -704,6 +837,7 @@ def switch_role():
 
 @app.route("/api/settings/avatar", methods=["POST"])
 @login_required
+@limiter.limit("30 per minute")
 def upload_avatar():
     if "profile_image" not in request.files:
         return jsonify({"error": "No file provided."}), 400
@@ -711,9 +845,18 @@ def upload_avatar():
     if not file or file.filename == "":
         return jsonify({"error": "No file selected."}), 400
 
-    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    clean_name = secure_filename(file.filename)
+    ext = clean_name.rsplit(".", 1)[-1].lower() if "." in clean_name else ""
     if ext not in ALLOWED_EXTENSIONS:
-        return jsonify({"error": "Invalid image format. Allowed: PNG, JPG, JPEG, WEBP, GIF."}), 400
+        return jsonify({"error": f"Invalid image format. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS)).upper()}."}), 400
+
+    # Binary image verification to prevent disguised payloads
+    try:
+        img = PILImage.open(file.stream)
+        img.verify()
+        file.stream.seek(0)
+    except Exception:
+        return jsonify({"error": "Corrupted or invalid image file content."}), 400
 
     conn = get_db()
     cur = conn.cursor()
@@ -742,6 +885,7 @@ def upload_avatar():
     conn.close()
 
     return jsonify({"advocate": advocate_public(advocate)})
+
 
 
 @app.route("/api/settings/avatar", methods=["DELETE"])
@@ -1632,6 +1776,7 @@ def _call_gemini_generate(prompt, system_instruction):
 
 @app.route("/api/chat", methods=["POST"])
 @login_required
+@limiter.limit("20 per minute")
 def ai_chat():
     try:
         data = request.get_json(silent=True) or {}
@@ -1674,6 +1819,7 @@ def ai_chat():
 
 @app.route("/api/analyze-case", methods=["POST"])
 @login_required
+@limiter.limit("10 per minute")
 def analyze_case():
     try:
         if "caseFile" not in request.files:
@@ -1759,7 +1905,9 @@ def analyze_case():
 
 @app.route("/api/draftmitra/import", methods=["POST"])
 @login_required
+@limiter.limit("15 per minute")
 def draftmitra_import():
+
     try:
         data = request.get_json(silent=True) or {}
         text = data.get("text")
@@ -2394,7 +2542,9 @@ def delete_student_case_brief(brief_id):
 
 @app.route("/api/student/case-briefs/ai-generate", methods=["POST"])
 @login_required
+@limiter.limit("10 per minute")
 def ai_generate_case_brief():
+
     try:
         data = request.get_json(silent=True) or {}
         case_input = (data.get("case_input") or data.get("query") or data.get("text") or "").strip()
@@ -2535,6 +2685,7 @@ def get_student_study_deck():
 
 @app.route("/api/student/ai-tutor", methods=["POST"])
 @login_required
+@limiter.limit("20 per minute")
 def student_ai_tutor():
     try:
         data = request.get_json(silent=True) or {}
@@ -2592,6 +2743,7 @@ def ecourts_metadata():
 
 
 @app.route("/api/ecourts/start-search", methods=["POST"])
+@limiter.limit("20 per minute")
 def ecourts_start_search():
     """
     Initiates an eCourts search session for an Advocate Bar Registration Number,
@@ -2624,6 +2776,7 @@ def ecourts_start_search():
 
 
 @app.route("/api/ecourts/refresh-captcha", methods=["POST"])
+@limiter.limit("20 per minute")
 def ecourts_refresh_captcha():
     """
     Refreshes the CAPTCHA image for an active search session.
@@ -2643,6 +2796,7 @@ def ecourts_refresh_captcha():
 
 
 @app.route("/api/ecourts/submit-captcha", methods=["POST"])
+@limiter.limit("25 per minute")
 def ecourts_submit_captcha():
     """
     Submits user-entered CAPTCHA text. Returns either retry status with new captcha
@@ -2673,7 +2827,9 @@ def ecourts_submit_captcha():
 
 @app.route("/api/ecourts/import", methods=["POST"])
 @login_required
+@limiter.limit("30 per minute")
 def ecourts_import_cases():
+
     """
     Imports a list of verified eCourts cases into the advocate's Advo Buddy diary.
     Avoids duplicate entries and registers initial hearing history.

@@ -38,15 +38,17 @@ on anyone's personal laptop being on). Suggested approach:
    expected format). Tables are created/migrated automatically on startup.
 4. **Environment variables to set** on the API host (instead of using
    config.py, since we removed real secrets from this zip):
-   - `DATABASE_URL` - required - the Supabase Postgres connection string
-   - `SECRET_KEY` - any random string, used to sign auth tokens (and password
-     reset links) - keep this stable across deploys or existing logins/reset
-     links will be invalidated
-   - `TWILIO_ACCOUNT_SID`
-   - `TWILIO_AUTH_TOKEN`
-   - `TWILIO_SMS_FROM`
-   - `TWILIO_WHATSAPP_FROM` (defaults to Twilio's sandbox number
-     `whatsapp:+14155238886` if not set)
+   - `DATABASE_URL` - required - the Supabase Postgres connection string (use PgBouncer port 6543)
+   - `SECRET_KEY` - required - any random 64-char string for application secret signing
+   - `CORS_ORIGINS` - required in production - comma-separated list of allowed frontend origins (e.g. `https://advobuddy.com,https://app.advobuddy.com`)
+   - `SUPABASE_URL` & `SUPABASE_ANON_KEY` - required for Supabase Auth integration
+   - `SUPABASE_JWT_SECRET` - (recommended for ultra-low latency) enables sub-millisecond local JWT verification without outbound HTTP round-trips
+   - `REDIS_URL` - (recommended for high traffic) enables distributed rate limiting & shared eCourts CAPTCHA sessions across multiple Gunicorn workers / containers
+   - `DB_POOL_MIN` & `DB_POOL_MAX` - database connection pool sizes (default 2 and 20)
+   - `AI_API_KEY` or `GEMINI_API_KEY` - for AI Case Analysis and Legal Assistant features
+   - `GROQ_API_KEY` - (optional) backup AI provider
+   - `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` - (optional) for WhatsApp hearing reminders
+
 
    (`send_reminders.py` already reads these from environment variables
    first, falling back to `config.py` only for local dev — see the code.)
