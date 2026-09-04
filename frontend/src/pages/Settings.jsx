@@ -288,6 +288,114 @@ export default function Settings() {
 
         <button type="submit" className="btn-submit" style={{ marginTop: 16 }}>Save Profile & Preferences</button>
       </form>
+
+      {/* Legal & Compliance Section */}
+      <div className="card-form staggered-entry" style={{ marginTop: 24, padding: 20 }}>
+        <div style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+          <Icon name="court" style={{ color: 'var(--accent)' }} />
+          Legal &amp; Data Protection Compliance
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text-main)', lineHeight: 1.5, margin: '0 0 14px 0' }}>
+          Your data is processed in accordance with the <em>Digital Personal Data Protection Act, 2023</em> and Bar Council ethical standards. All chamber files, briefs, and client records are encrypted and strictly isolated to your account.
+        </p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <Link
+            to="/terms"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 12.5,
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: 'var(--text-dark)',
+              background: 'var(--bg-app)',
+              border: '1px solid var(--border-color)',
+            }}
+          >
+            <Icon name="case" style={{ width: 13, height: 13 }} />
+            Terms of Service
+          </Link>
+          <Link
+            to="/privacy"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 12.5,
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: 'var(--text-dark)',
+              background: 'var(--bg-app)',
+              border: '1px solid var(--border-color)',
+            }}
+          >
+            <Icon name="settings" style={{ width: 13, height: 13 }} />
+            Privacy Policy
+          </Link>
+          <Link
+            to="/about"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 12.5,
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: 'var(--text-dark)',
+              background: 'var(--bg-app)',
+              border: '1px solid var(--border-color)',
+            }}
+          >
+            <Icon name="court" style={{ width: 13, height: 13 }} />
+            About Us
+          </Link>
+          <Link
+            to="/contact"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 12.5,
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: 'var(--text-dark)',
+              background: 'var(--bg-app)',
+              border: '1px solid var(--border-color)',
+            }}
+          >
+            <Icon name="phone" style={{ width: 13, height: 13 }} />
+            Contact Support
+          </Link>
+          <Link
+            to="/refund-policy"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '7px 12px',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 12.5,
+              fontWeight: 600,
+              textDecoration: 'none',
+              color: 'var(--text-dark)',
+              background: 'var(--bg-app)',
+              border: '1px solid var(--border-color)',
+            }}
+          >
+            <Icon name="billing" style={{ width: 13, height: 13 }} />
+            Refund Policy
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

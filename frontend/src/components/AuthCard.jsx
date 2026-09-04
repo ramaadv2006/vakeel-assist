@@ -413,6 +413,17 @@ export default function AuthCard() {
 
                   <SubmitButton loading={signupLoading}>Create Account</SubmitButton>
 
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 12, lineHeight: 1.45 }}>
+                    By signing up, you agree to AdvoBuddy&rsquo;s{' '}
+                    <Link to="/terms" className="auth-gold-link" style={{ textDecoration: 'underline' }}>
+                      Terms &amp; Conditions
+                    </Link>{' '}
+                    and{' '}
+                    <Link to="/privacy" className="auth-gold-link" style={{ textDecoration: 'underline' }}>
+                      Privacy Policy
+                    </Link>.
+                  </div>
+
                   <div className="auth-alt-footer">
                     Already have an account?{' '}
                     <Link to="/login" onClick={() => setMode('login')} className="auth-gold-link">

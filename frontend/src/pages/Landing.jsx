@@ -777,6 +777,15 @@ export default function Landing() {
           </div>
 
           <div className="lp-footer-col">
+            <h4>Company & Legal</h4>
+            <Link to="/about">About Us</Link>
+            <Link to="/contact">Contact Support</Link>
+            <Link to="/terms">Terms &amp; Conditions</Link>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/refund-policy">Refund Policy</Link>
+          </div>
+
+          <div className="lp-footer-col">
             <h4>Account</h4>
             <Link to="/login">Log in</Link>
             <Link to="/signup">Create account</Link>
@@ -785,10 +794,18 @@ export default function Landing() {
         </div>
 
         <div className="lp-footer-base">
-          <span>© {new Date().getFullYear()} Advo Buddy. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} Advo Buddy. All rights reserved. Support: support@advobuddy.com</span>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Link to="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13 }}>Terms</Link>
+            <span style={{ color: 'var(--text-muted)' }}>•</span>
+            <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13 }}>Privacy</Link>
+            <span style={{ color: 'var(--text-muted)' }}>•</span>
+            <Link to="/refund-policy" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13 }}>Refunds</Link>
+            <span style={{ color: 'var(--text-muted)' }}>•</span>
+            <Link to="/contact" style={{ color: 'var(--text-muted)', textDecoration: 'none', fontSize: 13 }}>Contact</Link>
+          </div>
           <span className="lp-footer-note">
-            A drafting and diary aid — not legal advice, and not a substitute for an advocate’s
-            own review.
+            A drafting and diary aid — not legal advice, and not a substitute for an advocate’s own review.
           </span>
         </div>
       </footer>

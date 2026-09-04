@@ -22,6 +22,11 @@ import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import Templates from './pages/Templates';
 import AiAssistant from './pages/AiAssistant';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
+import AboutUs from './pages/AboutUs';
+import ContactUs from './pages/ContactUs';
+import RefundPolicy from './pages/RefundPolicy';
 import AdvoCaseSearch from './pages/AdvoCaseSearch';
 
 // Student Portal Pages
@@ -81,11 +86,17 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
 
-              {/* Full-screen Dedicated Auth Routes (no Header/Hero, 100% viewport coverage) */}
+              {/* Full-screen Dedicated Auth & Public Legal / Company Routes */}
               <Route path="/login" element={<AuthCard />} />
               <Route path="/signup" element={<AuthCard />} />
               <Route path="/forgot-password" element={<AuthCard />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/contact" element={<ContactUs />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
+              <Route path="/refunds" element={<RefundPolicy />} />
 
               <Route element={<Layout />}>
                 <Route element={<ProtectedRoute />}>
