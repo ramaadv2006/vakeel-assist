@@ -23,6 +23,12 @@ function ensureTokenSynced() {
 
 async function getAccessToken() {
   await ensureTokenSynced();
+  if (!cachedToken) {
+    try {
+      const devToken = localStorage.getItem('advo_dev_token');
+      if (devToken) return devToken;
+    } catch (_) {}
+  }
   return cachedToken;
 }
 

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useFlash } from '../context/FlashContext';
 import Icon from './Icon';
 
 const ADVOCATE_LINKS = [
@@ -16,25 +15,13 @@ const ADVOCATE_LINKS = [
   { to: '/diary', icon: 'calendar', label: 'Diary' },
 ];
 
-const STUDENT_LINKS = [
-  { to: '/', icon: 'school', label: 'Student Hub' },
-  { to: '/student/moots', icon: 'trophy', label: 'Moot Court' },
-  { to: '/student/briefs', icon: 'briefs', label: 'Case Briefs' },
-  { to: '/student/internships', icon: 'internship', label: 'Court Diary' },
-  { to: '/student/study-deck', icon: 'deck', label: 'Study Deck' },
-  { to: '/student/tutor', icon: 'tutor', label: 'AI Legal Tutor' },
-  { to: '/student/tasks', icon: 'tasks', label: 'Study Tasks' },
-];
-
 export default function Header() {
-  const { advocate, isStudent, switchRole, logout } = useAuth();
+  const { advocate, logout } = useAuth();
   const { toggleTheme } = useTheme();
-  const addFlash = useFlash();
   const location = useLocation();
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [switching, setSwitching] = useState(false);
   
   const navRef = useRef(null);
   const toggleBtnRef = useRef(null);
@@ -83,34 +70,17 @@ export default function Header() {
     navigate('/login');
   };
 
-  const handleRoleToggle = async () => {
-    setSwitching(true);
-    setProfileMenuOpen(false);
-    try {
-      const targetRole = isStudent ? 'advocate' : 'student';
-      const res = await switchRole(targetRole);
-      addFlash(res.message || `Switched to ${targetRole === 'student' ? 'Law Student' : 'Advocate'} View`, 'success');
-      navigate('/');
-    } catch (err) {
-      addFlash(err.message || 'Failed to switch role.', 'error');
-    } finally {
-      setSwitching(false);
-    }
-  };
-
-  const navLinks = isStudent ? STUDENT_LINKS : ADVOCATE_LINKS;
-
   return (
     <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-      {/* 1. Left: Brand & Role */}
+      {/* 1. Left: Brand & Title */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
         <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
           <img src="/logo.jpeg" alt="Logo" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
           <h1>Advo <span>Buddy</span></h1>
         </Link>
         {advocate && (
-          <span className="student-badge-pill">
-            {isStudent ? '🎓 Student' : '⚖️ Advocate'}
+          <span className="advo-badge-pill" style={{ background: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent)', border: '1px solid rgba(212, 160, 23, 0.3)', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+            ⚖️ Advocate
           </span>
         )}
       </div>
@@ -118,7 +88,7 @@ export default function Header() {
       {/* 2. Center: Core Navigation Links */}
       {advocate && (
         <nav className={`nav-links${navOpen ? ' open' : ''}`} id="nav-links" ref={navRef}>
-          {navLinks.map((link) => (
+          {ADVOCATE_LINKS.map((link) => (
             <Link
               key={link.to}
               to={link.to}
@@ -134,15 +104,9 @@ export default function Header() {
       {/* 3. Right: Action Controls & User Popover */}
       <div className="header-controls" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         {advocate && (
-          isStudent ? (
-            <Link to="/student/briefs?new=1" className="btn-add-nav" style={{ textDecoration: 'none' }}>
-              + New Brief
-            </Link>
-          ) : (
-            <Link to="/add" className="btn-add-nav" style={{ textDecoration: 'none' }}>
-              + Add Case
-            </Link>
-          )
+          <Link to="/add" className="btn-add-nav" style={{ textDecoration: 'none' }}>
+            + Add Case
+          </Link>
         )}
 
         <button
@@ -165,7 +129,7 @@ export default function Header() {
               className="header-user-btn"
               onClick={() => setProfileMenuOpen((v) => !v)}
               aria-expanded={profileMenuOpen}
-              title="Account & Portal Settings"
+              title="Account Settings"
             >
               {advocate.avatar_url ? (
                 <img
@@ -177,7 +141,7 @@ export default function Header() {
                 <Icon name="user" style={{ width: 16, height: 16 }} />
               )}
               <span style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {advocate.name || 'User'}
+                {advocate.name || 'Advocate'}
               </span>
               <Icon name="chevronDown" style={{ width: 12, height: 12, opacity: 0.7 }} />
             </button>
@@ -194,28 +158,17 @@ export default function Header() {
                         fontWeight: 700,
                         padding: '2px 8px',
                         borderRadius: 10,
-                        background: isStudent ? 'rgba(59, 130, 246, 0.2)' : 'rgba(212, 160, 23, 0.2)',
-                        color: isStudent ? '#93c5fd' : '#fce7b0',
-                        border: `1px solid ${isStudent ? 'rgba(59, 130, 246, 0.4)' : 'rgba(212, 160, 23, 0.4)'}`,
+                        background: 'rgba(212, 160, 23, 0.2)',
+                        color: '#fce7b0',
+                        border: '1px solid rgba(212, 160, 23, 0.4)',
                       }}
                     >
-                      {isStudent ? '🎓 Law Student' : '⚖️ Practicing Advocate'}
+                      ⚖️ Practicing Advocate
                     </span>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <button
-                    type="button"
-                    onClick={handleRoleToggle}
-                    disabled={switching}
-                    className="header-dropdown-item"
-                    style={{ color: 'var(--accent-hover)' }}
-                  >
-                    <Icon name="switch" style={{ width: 15, height: 15 }} />
-                    <span>{isStudent ? 'Switch to Advocate View' : 'Switch to Student View'}</span>
-                  </button>
-
                   <Link to="/settings" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
                     <Icon name="settings" style={{ width: 15, height: 15 }} />
                     <span>Settings & Profile</span>

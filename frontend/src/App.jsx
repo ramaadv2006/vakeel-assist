@@ -29,15 +29,6 @@ import ContactUs from './pages/ContactUs';
 import RefundPolicy from './pages/RefundPolicy';
 import AdvoCaseSearch from './pages/AdvoCaseSearch';
 
-// Student Portal Pages
-import StudentDashboard from './pages/student/StudentDashboard';
-import MootTracker from './pages/student/MootTracker';
-import CaseBriefs from './pages/student/CaseBriefs';
-import InternshipDiary from './pages/student/InternshipDiary';
-import StudyDeck from './pages/student/StudyDeck';
-import AiStudentTutor from './pages/student/AiStudentTutor';
-import StudentTasks from './pages/student/StudentTasks';
-
 // Supabase persists its session under `sb-<project-ref>-auth-token`. Checking
 // for it is a synchronous hint about which way "/" is about to resolve — it
 // decides only what to paint for the few hundred ms before /auth/me answers,
@@ -56,9 +47,9 @@ function hasStoredSession() {
 
 // "/" is the one route that differs by who is asking: visitors get the
 // marketing page (its own full-page chrome, no app header), logged-in
-// advocates/students get their respective dashboard inside the app shell.
+// advocates get their dashboard inside the app shell.
 function Home() {
-  const { advocate, isStudent, loading } = useAuth();
+  const { advocate, loading } = useAuth();
 
   if (loading) {
     // Never a blank page: returning advocates get the dashboard's shimmer,
@@ -72,7 +63,7 @@ function Home() {
 
   return (
     <Layout>
-      {isStudent ? <StudentDashboard /> : <Dashboard />}
+      <Dashboard />
     </Layout>
   );
 }
@@ -113,17 +104,11 @@ export default function App() {
                   <Route path="/billing" element={<Billing />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/templates" element={<Templates />} />
+                  <Route path="/drafts" element={<Templates />} />
+                  <Route path="/draft" element={<Templates />} />
+                  <Route path="/draft-mitra" element={<Templates />} />
                   <Route path="/case-search" element={<AdvoCaseSearch />} />
                   <Route path="/ecourts-search" element={<AdvoCaseSearch />} />
-
-                  {/* Student Portal Routes */}
-                  <Route path="/student/moots" element={<MootTracker />} />
-                  <Route path="/student/briefs" element={<CaseBriefs />} />
-                  <Route path="/student/briefs/:briefId" element={<CaseBriefs />} />
-                  <Route path="/student/internships" element={<InternshipDiary />} />
-                  <Route path="/student/study-deck" element={<StudyDeck />} />
-                  <Route path="/student/tutor" element={<AiStudentTutor />} />
-                  <Route path="/student/tasks" element={<StudentTasks />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

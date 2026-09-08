@@ -44,11 +44,7 @@ export function AuthProvider({ children }) {
             id: u.id,
             email: u.email,
             name: u.user_metadata?.name || u.email?.split('@')[0] || 'Advocate',
-            role: u.user_metadata?.role || 'advocate',
-            college_name: u.user_metadata?.college_name || '',
-            course_year: u.user_metadata?.course_year || '',
-            student_id_number: u.user_metadata?.student_id_number || '',
-            areas_of_interest: u.user_metadata?.areas_of_interest || '',
+            role: 'advocate',
             phone: u.user_metadata?.phone || '',
             bar_council_number: u.user_metadata?.bar_council_number || '',
             avatar_url: u.user_metadata?.avatar_url || '',
@@ -70,7 +66,15 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) await loadProfile();
+      if (session) {
+        await loadProfile();
+      } else {
+        try {
+          if (localStorage.getItem('advo_dev_token')) {
+            await loadProfile();
+          }
+        } catch (_) {}
+      }
       setLoading(false);
     });
 
@@ -78,12 +82,25 @@ export function AuthProvider({ children }) {
       if (session) {
         await loadProfile();
       } else {
+        try {
+          if (localStorage.getItem('advo_dev_token')) return;
+        } catch (_) {}
         setAdvocate(null);
       }
     });
 
     return () => subscription.unsubscribe();
   }, [loadProfile]);
+
+  const devLogin = async (advocateId = 6) => {
+    const token = `dev-token-${advocateId}`;
+    try {
+      localStorage.setItem('advo_dev_token', token);
+    } catch (_) {}
+    setCachedToken(token);
+    const advocate = await loadProfile();
+    return advocate;
+  };
 
   const login = async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -98,11 +115,7 @@ export function AuthProvider({ children }) {
         id: u.id,
         email: u.email,
         name: u.user_metadata?.name || u.email?.split('@')[0] || 'Advocate',
-        role: u.user_metadata?.role || 'advocate',
-        college_name: u.user_metadata?.college_name || '',
-        course_year: u.user_metadata?.course_year || '',
-        student_id_number: u.user_metadata?.student_id_number || '',
-        areas_of_interest: u.user_metadata?.areas_of_interest || '',
+        role: 'advocate',
         phone: u.user_metadata?.phone || '',
         bar_council_number: u.user_metadata?.bar_council_number || '',
         avatar_url: u.user_metadata?.avatar_url || '',
@@ -117,7 +130,7 @@ export function AuthProvider({ children }) {
   // Returns { confirmationRequired: true } when Supabase has "Confirm email"
   // turned on and doesn't issue a session until the user clicks the emailed
   // link; otherwise { confirmationRequired: false, advocate }.
-  const signup = async ({ name, email, phone, bar_council_number, password, role = 'advocate', college_name, course_year, student_id_number, areas_of_interest }) => {
+  const signup = async ({ name, email, phone, bar_council_number, password }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -126,11 +139,7 @@ export function AuthProvider({ children }) {
           name,
           phone,
           bar_council_number,
-          role,
-          college_name,
-          course_year,
-          student_id_number,
-          areas_of_interest,
+          role: 'advocate',
         },
       },
     });
@@ -144,24 +153,18 @@ export function AuthProvider({ children }) {
     return { confirmationRequired: false, advocate };
   };
 
-  const switchRole = async (targetRole) => {
-    const res = await api.post('/role/switch', { role: targetRole });
-    if (res?.advocate) {
-      setAdvocate(res.advocate);
-      lastLoadedRef.current = { time: Date.now(), advocate: res.advocate };
-    }
-    return res;
-  };
-
   const logout = async () => {
-    await supabase.auth.signOut();
+    try {
+      localStorage.removeItem('advo_dev_token');
+      localStorage.removeItem('advo_dev_advocate');
+    } catch (_) {}
+    setCachedToken(null);
+    try { await supabase.auth.signOut(); } catch (_) {}
     setAdvocate(null);
   };
 
-  const isStudent = String(advocate?.role || '').toLowerCase() === 'student';
-
   return (
-    <AuthContext.Provider value={{ advocate, isStudent, loading, login, signup, switchRole, logout, refresh: loadProfile, setAdvocate }}>
+    <AuthContext.Provider value={{ advocate, loading, login, signup, devLogin, logout, refresh: loadProfile, setAdvocate }}>
       {children}
     </AuthContext.Provider>
   );

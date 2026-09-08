@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
@@ -50,6 +50,19 @@ export default function Diary() {
   return (
     <>
       <div className="form-container no-print" style={{ maxWidth: 900, marginBottom: 20 }}>
+        {/* Top Hero Navigation */}
+        <div className="page-hero-nav">
+          <Link to="/" className="btn-back-dashboard">
+            <span>←</span>
+            <span>Back to Dashboard</span>
+          </Link>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
+            <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
+            <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Court Diary</span>
+          </div>
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }} className="staggered-entry">
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button className="btn-export" title="Previous day" onClick={() => goDate(data.prev_date)} type="button">&larr; Prev Day</button>

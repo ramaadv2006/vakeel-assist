@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useFlash } from '../context/FlashContext';
 import CaseCard from '../components/CaseCard';
@@ -37,6 +38,19 @@ export default function Archive() {
 
   return (
     <div className="form-container" style={{ maxWidth: 1000 }}>
+      {/* Top Hero Navigation */}
+      <div className="page-hero-nav">
+        <Link to="/" className="btn-back-dashboard">
+          <span>←</span>
+          <span>Back to Dashboard</span>
+        </Link>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
+          <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
+          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Archive</span>
+        </div>
+      </div>
+
       <div className="form-header staggered-entry">
         <h2>Case Archive</h2>
         <p>Deleted, closed, and on-hold cases are kept here so you can review them and restore them later.</p>

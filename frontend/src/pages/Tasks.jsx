@@ -137,9 +137,22 @@ export default function Tasks() {
 
   return (
     <div className="form-container" style={{ maxWidth: 900 }}>
+      {/* Top Hero Navigation */}
+      <div className="page-hero-nav">
+        <Link to="/" className="btn-back-dashboard">
+          <span>←</span>
+          <span>Back to Dashboard</span>
+        </Link>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
+          <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
+          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Tasks Hub</span>
+        </div>
+      </div>
+
       <div className="form-header staggered-entry">
-        <h2>My Tasks Hub</h2>
-        <p>Outstanding pre-hearing checklist items across all your active cases</p>
+        <h2>Action Items & Case Tasks</h2>
+        <p>Manage checklists and pending actions grouped by case file</p>
       </div>
 
       <div className="stats-row staggered-entry" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 28 }}>

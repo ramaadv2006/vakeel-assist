@@ -102,6 +102,19 @@ export default function Clients() {
 
   return (
     <div className="form-container" style={{ maxWidth: 900 }}>
+      {/* Top Hero Navigation */}
+      <div className="page-hero-nav">
+        <Link to="/" className="btn-back-dashboard">
+          <span>←</span>
+          <span>Back to Dashboard</span>
+        </Link>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
+          <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
+          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Clients</span>
+        </div>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, marginBottom: 24 }} className="staggered-entry">
         <div className="form-header" style={{ margin: 0, textAlign: 'left' }}>
           <h2>Client Rolodex Directory</h2>

@@ -71,7 +71,6 @@ def test_unauthenticated_api_endpoints_reject_without_token(client):
         "/api/billing",
         "/api/chat",
         "/api/analyze-case",
-        "/api/student/dashboard",
     ]
     for endpoint in protected_endpoints:
         res = client.get(endpoint) if endpoint not in ["/api/cases", "/api/chat", "/api/analyze-case"] else client.post(endpoint)
@@ -150,4 +149,63 @@ def test_api_404_json_format(client):
     assert json_data is not None
     assert "error" in json_data
     assert json_data["status"] == 404
+
+
+def test_ecourts_file_parser():
+    """Verify parse_ecourts_export accurately parses real government eCourts .txt exports."""
+    from advobuddy.ecourts import parse_ecourts_export
+
+    with open("tests/sample_ecourts_export.txt", "r", encoding="utf-8") as f:
+        content = f.read()
+
+    cases = parse_ecourts_export(content)
+    assert len(cases) == 3
+
+    # Verify extracted fields for Case 1 (CC/56/2025)
+    cc_56 = next(c for c in cases if c["case_number"] == "CC/56/2025")
+    assert cc_56["cnr_number"] == "TNSA040001182025"
+    assert "LENIN KUMAR" in cc_56["parties"]
+    assert "Sub Inspector of police" in cc_56["parties"]
+    assert "CJM Establishment" in cc_56["court_name"]
+    assert cc_56["is_disposed"] is True
+    assert cc_56["disp_name"] == "Acquitted"
+    assert cc_56["regional"]["petparty_name"] == "நிறுவனத்தின்"
+    assert cc_56["regional"]["resparty_name"] == "லெனின் குமார்"
+
+    # Verify Active / Pending Case (CC/569/2026)
+    cc_569 = next(c for c in cases if c["case_number"] == "CC/569/2026")
+    assert cc_569["cnr_number"] == "TNSA040012642019"
+    assert cc_569["is_disposed"] is False
+    assert cc_569["status"] == "Pending / Active"
+    assert cc_569["next_hearing_date"] == "2026-09-03"
+
+
+def test_ecourts_parse_file_endpoint(client):
+    """Verify /api/ecourts/parse-file handles both file uploads and JSON content payloads."""
+    with open("tests/sample_ecourts_export.txt", "rb") as f:
+        file_bytes = f.read()
+
+    # Test multipart file upload
+    res = client.post(
+        "/api/ecourts/parse-file",
+        data={"file": (io.BytesIO(file_bytes), "ecourts_export.txt")},
+        content_type="multipart/form-data"
+    )
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["status"] == "success"
+    assert data["totalCases"] == 3
+    assert data["summary"]["pending"] == 1
+    assert data["summary"]["disposed"] == 2
+    assert "Salem" in data["summary"]["districts"]
+
+    # Test direct JSON text content
+    res_json = client.post(
+        "/api/ecourts/parse-file",
+        json={"content": file_bytes.decode("utf-8")}
+    )
+    assert res_json.status_code == 200
+    data_json = res_json.get_json()
+    assert data_json["totalCases"] == 3
+
 

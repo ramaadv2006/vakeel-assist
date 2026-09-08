@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
 import '../styles/AiAssistant.css';
@@ -109,6 +110,19 @@ export default function AiAssistant() {
 
   return (
     <div className="ai-assistant-container">
+      {/* Top Hero Navigation */}
+      <div className="page-hero-nav">
+        <Link to="/" className="btn-back-dashboard">
+          <span>←</span>
+          <span>Back to Dashboard</span>
+        </Link>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
+          <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
+          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>AI Assistant</span>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="ai-header">
         <div className="ai-header-title">

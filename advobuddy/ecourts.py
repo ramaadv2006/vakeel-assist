@@ -750,3 +750,170 @@ def submit_ecourts_captcha(session_id, user_captcha_text, advocate_name=None):
         "caseType": case_type,
         "message": f"Successfully retrieved {len(cases)} case(s) from eCourts for Bar No: {bar_number}.",
     }
+
+
+def parse_ecourts_export(content):
+    """Parse real eCourts / CIS government exported .txt or .json files.
+
+    Handles:
+    - Double-stringified JSON arrays: ["{\"cino\":\"...\", ...}"]
+    - Standard JSON arrays: [{"cino": "..."}]
+    - Single JSON object
+    - Newline-delimited JSON (NDJSON)
+    - Codeblock wrapped content (```json ... ```)
+    """
+    if isinstance(content, bytes):
+        content = content.decode("utf-8-sig", errors="replace")
+
+    text = content.strip()
+    if not text:
+        return []
+
+    # Strip markdown code blocks if wrapped
+    if text.startswith("```"):
+        lines = text.splitlines()
+        first_line = lines[0].strip()
+        last_line = lines[-1].strip()
+        if first_line.startswith("```") and last_line.startswith("```"):
+            text = "\n".join(lines[1:-1]).strip()
+
+    raw_items = []
+    # Attempt 1: Direct JSON parse
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, list):
+            raw_items = parsed
+        elif isinstance(parsed, dict):
+            raw_items = [parsed]
+    except Exception:
+        pass
+
+    # Attempt 2: NDJSON (line by line)
+    if not raw_items:
+        items = []
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+                items.append(obj)
+            except Exception:
+                continue
+        if items:
+            raw_items = items
+
+    if not raw_items:
+        raise ValueError("Could not parse file content as valid eCourts JSON/export format.")
+
+    # Process items: unwrap double-stringified JSON elements if needed
+    unwrapped_items = []
+    for item in raw_items:
+        if isinstance(item, str):
+            try:
+                unwrapped = json.loads(item)
+                if isinstance(unwrapped, dict):
+                    unwrapped_items.append(unwrapped)
+                elif isinstance(unwrapped, list):
+                    unwrapped_items.extend([u for u in unwrapped if isinstance(u, dict)])
+            except Exception:
+                continue
+        elif isinstance(item, dict):
+            unwrapped_items.append(item)
+
+    if not unwrapped_items:
+        raise ValueError("File does not contain valid eCourts case records.")
+
+    normalized_cases = []
+    for raw in unwrapped_items:
+        cino = (raw.get("cino") or "").strip()
+        type_name = (raw.get("type_name") or raw.get("fil_type_name") or "").strip()
+        reg_no = raw.get("reg_no")
+        reg_year = raw.get("reg_year")
+        raw_case_no = str(raw.get("case_no") or "").strip()
+
+        # Format human-friendly case number (e.g., "CC/56/2025" or "STC/973/2025")
+        if type_name and reg_no and reg_year:
+            case_number = f"{type_name}/{reg_no}/{reg_year}"
+        elif type_name and reg_no:
+            case_number = f"{type_name}/{reg_no}"
+        elif raw_case_no:
+            case_number = raw_case_no
+        else:
+            case_number = cino or "UNKNOWN"
+
+        pet_name = (raw.get("petparty_name") or "").strip()
+        res_name = (raw.get("resparty_name") or "").strip()
+        if pet_name and res_name:
+            parties = f"{pet_name} vs. {res_name}"
+        else:
+            parties = pet_name or res_name or "Unknown Parties"
+
+        est_name = (raw.get("establishment_name") or "").strip()
+        court_desg = (raw.get("court_no_desg_name") or "").strip()
+        district = (raw.get("district_name") or "").strip()
+        state = (raw.get("state_name") or "").strip()
+
+        court_parts = [p for p in [court_desg, est_name, district, state] if p]
+        court_name = ", ".join(court_parts) if court_parts else (est_name or "District Court")
+
+        date_next_list = raw.get("date_next_list")
+        date_of_decision = raw.get("date_of_decision")
+        date_last_list = raw.get("date_last_list")
+        disp_name = (raw.get("disp_name") or "").strip()
+
+        is_disposed = False
+        if date_of_decision:
+            is_disposed = True
+        elif disp_name and disp_name.lower() not in ("null", "none", ""):
+            is_disposed = True
+
+        purpose_name = (raw.get("purpose_name") or "").strip()
+        if not purpose_name:
+            purpose_name = "Disposed" if is_disposed else "Hearing / Proceedings"
+
+        # Extract regional (e.g. Tamil) localized fields
+        regional = {
+            "type_name": raw.get("ltype_name"),
+            "petparty_name": raw.get("lpetparty_name"),
+            "resparty_name": raw.get("lresparty_name"),
+            "establishment_name": raw.get("lestablishment_name"),
+            "district_name": raw.get("ldistrict_name"),
+            "court_no_desg_name": raw.get("lcourt_no_desg_name"),
+            "disp_name": raw.get("ldisp_name"),
+            "purpose_name": raw.get("lpurpose_name"),
+            "state_name": raw.get("lstate_name"),
+        }
+        # Filter out keys where value is None or 'NULL'
+        regional = {k: v for k, v in regional.items() if v and str(v).strip().lower() not in ("null", "none")}
+
+        normalized_case = {
+            "case_number": case_number,
+            "cnr_number": cino,
+            "raw_case_no": raw_case_no,
+            "parties": parties,
+            "petitioner": pet_name,
+            "respondent": res_name,
+            "court_name": court_name,
+            "court_hall": court_desg,
+            "establishment_name": est_name,
+            "district": district,
+            "state": state,
+            "case_type": type_name or "General",
+            "next_hearing_date": date_next_list,
+            "last_hearing_date": date_last_list,
+            "decision_date": date_of_decision,
+            "case_stage": purpose_name,
+            "disp_name": disp_name if is_disposed else None,
+            "is_disposed": is_disposed,
+            "status": "Disposed" if is_disposed else "Pending / Active",
+            "notes": (raw.get("note") or "").strip(),
+            "filing_number": f"{raw.get('fil_type_name', '')}/{raw.get('fil_no', '')}/{raw.get('fil_year', '')}".strip("/"),
+            "registration_number": f"{raw.get('type_name', '')}/{raw.get('reg_no', '')}/{raw.get('reg_year', '')}".strip("/"),
+            "regional": regional,
+            "raw_metadata": raw,
+        }
+        normalized_cases.append(normalized_case)
+
+    return normalized_cases
+
