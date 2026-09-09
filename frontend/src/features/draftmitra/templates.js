@@ -101,19 +101,16 @@ export const TEMPLATES = [
     ],
     generate: (d) => {
       const lines = (d.docsTable || "").split("\n").filter(Boolean);
-      let table = "-------------------------------------------------------------------------------------------------------\n";
-      table += "S. No. | Date of filing documents | Date of the documents | Description of the documents       | Remarks\n";
-      table += "-------------------------------------------------------------------------------------------------------\n";
-      lines.forEach((line) => {
+      const rows = lines.map((line) => {
         const parts = line.split("|").map((s) => s.trim());
-        const sno = parts[0] || "";
-        const fd = parts[1] || "";
-        const dd = parts[2] || "";
-        const desc = parts[3] || "";
-        const rem = parts[4] || "";
-        table += `${sno.padEnd(6)} | ${fd.padEnd(24)} | ${dd.padEnd(21)} | ${desc.padEnd(34)} | ${rem}\n`;
+        return {
+          sno: parts[0] || "",
+          filedDate: parts[1] || "",
+          docDate: parts[2] || "",
+          desc: parts[3] || "",
+          remarks: parts[4] || "",
+        };
       });
-      table += "-------------------------------------------------------------------------------------------------------";
 
       return [
         { t: "center", v: "APPLICATION FOR COPIES" },
@@ -125,13 +122,11 @@ export const TEMPLATES = [
         { t: "versus" },
         { t: "party", v: d.opponent || "________________", role: `${d.opponentRole}` },
         { t: "space" },
-        { t: "left", v: "To\nThe judge of the said court" },
+        { t: "left", v: "To\nThe Judge of the said Court" },
         { t: "space" },
-        { t: "left", v: `Application for certified copies filed on behalf of ${d.filedBy || "Accused"}` },
-        { t: "space" },
-        { t: "para", v: `It is requested that the Certified Copies of the documents here under mentioned may be furnished to the ${d.furnishedTo || "Counsel for Accused"}` },
-        { t: "space" },
-        { t: "pre", v: table },
+        { t: "left", v: `Application for certified copies filed on behalf of ${d.filedBy || "Accused"}:` },
+        { t: "para", v: `It is requested that the Certified Copies of the documents here under mentioned may be furnished to the ${d.furnishedTo || "Counsel for Accused"}:` },
+        { t: "table", rows },
         { t: "space" },
         { t: "signblock", v: `Counsel for ${d.filedBy || "Accused"}` },
       ];
@@ -702,6 +697,10 @@ export function blocksToPlainText(blocks) {
           return `\n${b.v}`;
         case "space":
           return "";
+        case "table": {
+          const rows = b.rows || [];
+          return rows.map((r) => `${r.sno}\t${r.filedDate}\t${r.docDate}\t${r.desc}\t${r.remarks}`).join("\n");
+        }
         case "pre":
           return b.v;
         default:
@@ -729,36 +728,85 @@ function renderBlocks(blocks, { folded = false } = {}) {
     .map((b) => {
       switch (b.t) {
         case "small":
-          return `<p style="text-align:center;font-size:11px;margin:0 0 4px;">${esc(b.v)}</p>`;
+          return `<p style="text-align:center;font-size:14px;margin:0 0 8px;color:#555;">${esc(b.v)}</p>`;
         case "titleTop":
-          return `<p style="text-align:center;font-weight:bold;text-decoration:underline;letter-spacing:2px;margin:0 0 10px;">${esc(b.v)}</p>`;
+          return `<p style="text-align:center;font-weight:bold;font-size:19px;text-decoration:underline;letter-spacing:2px;margin:0 0 14px;">${esc(b.v)}</p>`;
         case "center":
-          return `<p style="text-align:center;font-weight:bold;margin:0 0 6px;white-space:pre-line;">${esc(b.v)}</p>`;
+          return `<p style="text-align:center;font-weight:bold;font-size:17.5px;margin:6px 0 12px;line-height:1.65;letter-spacing:0.25px;white-space:pre-line;">${esc(b.v)}</p>`;
         case "left":
-          return `<p style="margin:0 0 2px;white-space:pre-line;">${esc(b.v)}</p>`;
+          return `<p style="margin:6px 0;line-height:1.7;font-size:17px;white-space:pre-line;">${esc(b.v)}</p>`;
         case "right":
-          return `<p style="text-align:right;margin:0 0 2px;white-space:pre-line;">${esc(b.v)}</p>`;
+          return `<p style="text-align:right;margin:6px 0;line-height:1.7;font-size:17px;white-space:pre-line;">${esc(b.v)}</p>`;
         case "party":
           return folded
-            ? `<p style="margin:0 0 6px;white-space:pre-line;">${esc(b.v)}<br/><span style="font-size:12px;color:#333;">${esc(b.role)}</span></p>`
-            : `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 2px;"><tr>` +
-              `<td valign="top" style="white-space:pre-line;">${esc(b.v)}</td>` +
-              `<td valign="top" align="right" style="text-align:right;color:#444;white-space:nowrap;">${esc(b.role)}</td>` +
+            ? `<div style="margin:12px 0;line-height:1.6;white-space:pre-line;"><strong style="font-size:16.5px;">${esc(b.v)}</strong><br/><span style="font-size:14.5px;color:#333;font-style:italic;">${esc(b.role)}</span></div>`
+            : `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:8px 0 10px;"><tr>` +
+              `<td valign="top" style="white-space:pre-line;line-height:1.7;font-weight:bold;font-size:17px;">${esc(b.v)}</td>` +
+              `<td valign="top" align="right" style="text-align:right;color:#333;white-space:nowrap;line-height:1.7;font-style:italic;padding-left:14px;font-size:16px;">...${esc(b.role ? b.role.replace(/^\.\.\./, "") : "")}</td>` +
               `</tr></table>`;
         case "versus":
-          return `<p style="text-align:center;font-style:italic;margin:2px 0;">Versus</p>`;
+          return `<p style="text-align:center;font-style:italic;margin:10px 0;font-size:16px;color:#444;">— Versus —</p>`;
         case "title":
-          return `<p style="text-align:center;font-weight:bold;text-decoration:underline;margin:14px 0;white-space:pre-line;">${esc(b.v)}</p>`;
+          return `<p style="text-align:center;font-weight:bold;font-size:18px;text-decoration:underline;letter-spacing:0.5px;margin:22px 0 18px;line-height:1.7;white-space:pre-line;">${esc(b.v)}</p>`;
         case "num":
-          return `<p style="margin:0 0 10px;text-align:${align};white-space:pre-line;"><b>${b.n}.</b> ${esc(b.v)}</p>`;
+          return `<p style="margin:12px 0;text-align:${align};line-height:1.85;text-indent:32px;font-size:17px;white-space:pre-line;"><b>${b.n}.</b>&nbsp;&nbsp;${esc(b.v)}</p>`;
         case "para":
-          return `<p style="margin:0 0 10px;text-align:${align};white-space:pre-line;">${esc(b.v)}</p>`;
-        case "signblock":
-          return `<p style="margin:24px 0 0;text-align:right;white-space:pre-line;">${esc(b.v)}</p>`;
+          return `<p style="margin:12px 0;text-align:${align};line-height:1.85;text-indent:${folded ? "0" : "32px"};font-size:17px;white-space:pre-line;">${esc(b.v)}</p>`;
+        case "prayer":
+          return `<div style="margin:18px 0;padding:12px 16px;background:#fafafa;border-left:3.5px solid #b8935e;"><p style="font-weight:bold;margin:0 0 6px;font-size:17px;text-decoration:underline;">PRAYER:</p><p style="margin:0;text-align:${align};line-height:1.85;text-indent:20px;font-size:17px;white-space:pre-line;">${esc(b.v)}</p></div>`;
+        case "table": {
+          const rows = b.rows || [];
+          return `<table width="100%" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;border:1.5px solid #222;margin:16px 0;font-size:15px;">
+<thead>
+<tr style="background:#f2f2f2;">
+<th style="border:1px solid #222;padding:8px 6px;text-align:center;width:8%;">S. No.</th>
+<th style="border:1px solid #222;padding:8px 6px;text-align:left;width:22%;">Date of Filing</th>
+<th style="border:1px solid #222;padding:8px 6px;text-align:left;width:22%;">Date of Document</th>
+<th style="border:1px solid #222;padding:8px 6px;text-align:left;width:30%;">Description of Documents</th>
+<th style="border:1px solid #222;padding:8px 6px;text-align:left;width:18%;">Remarks</th>
+</tr>
+</thead>
+<tbody>
+${rows.map((r) => `<tr>
+<td style="border:1px solid #222;padding:7px 6px;text-align:center;">${esc(r.sno)}</td>
+<td style="border:1px solid #222;padding:7px 6px;">${esc(r.filedDate)}</td>
+<td style="border:1px solid #222;padding:7px 6px;">${esc(r.docDate)}</td>
+<td style="border:1px solid #222;padding:7px 6px;">${esc(r.desc)}</td>
+<td style="border:1px solid #222;padding:7px 6px;">${esc(r.remarks)}</td>
+</tr>`).join("")}
+</tbody>
+</table>`;
+        }
+        case "signdual":
+          return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:44px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
+            `<td valign="bottom" align="left" style="font-weight:bold;font-size:17px;line-height:1.7;">${esc(b.left || "Accused")}</td>` +
+            `<td valign="bottom" align="right" style="text-align:right;font-weight:bold;font-size:17px;line-height:1.7;">${esc(b.right || "Counsel for Accused")}</td>` +
+            `</tr></table>`;
+        case "sign":
+          return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:40px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
+            `<td valign="bottom" align="left" style="font-size:16px;line-height:1.65;">` +
+            (b.place ? `<div>Place: ${esc(b.place)}</div>` : "") +
+            (b.date ? `<div>Date: ${esc(b.date)}</div>` : "") +
+            `</td>` +
+            `<td valign="bottom" align="right" style="text-align:right;font-weight:bold;font-size:17px;line-height:1.7;">${esc(b.label || "Counsel")}</td>` +
+            `</tr></table>`;
+        case "signblock": {
+          const raw = b.v || "";
+          if (raw.includes("\t") || /\s{4,}/.test(raw)) {
+            const parts = raw.split(/\t|\s{4,}/);
+            const leftPart = parts[0] || "";
+            const rightPart = parts[1] || "";
+            return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:44px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
+              `<td valign="bottom" align="left" style="font-weight:bold;font-size:17px;line-height:1.7;">${esc(leftPart.trim())}</td>` +
+              `<td valign="bottom" align="right" style="text-align:right;font-weight:bold;font-size:17px;line-height:1.7;">${esc(rightPart.trim())}</td>` +
+              `</tr></table>`;
+          }
+          return `<div style="margin-top:40px;margin-bottom:8px;text-align:right;line-height:1.75;font-size:16.5px;white-space:pre-line;page-break-inside:avoid;">${esc(raw)}</div>`;
+        }
         case "space":
-          return `<div style="height:8px;">&nbsp;</div>`;
+          return `<div style="height:12px;">&nbsp;</div>`;
         case "pre":
-          return `<pre style="font-family:'Courier New',monospace;font-size:11px;white-space:pre-wrap;margin:10px 0;">${esc(b.v)}</pre>`;
+          return `<pre style="font-family:'Courier New',monospace;font-size:13.5px;line-height:1.5;white-space:pre-wrap;margin:12px 0;padding:8px;background:#f9f9f9;border:1px solid #ddd;">${esc(b.v)}</pre>`;
         default:
           return "";
       }
@@ -770,25 +818,16 @@ function renderBlocks(blocks, { folded = false } = {}) {
  * Full printable/Word document for page 1 plus an optional page 2
  * (the folded backing sheet).
  *
- * The two pages live in separate WordSection divs with their own @page
- * rules, separated by an explicit break paragraph — this is the
- * structure Microsoft Word itself emits for a document with a page
- * break, and it is the only one Word honours reliably. A bare
- * `page-break-before` on a div or table is silently dropped by Word,
- * which is why everything used to land on one page. Browsers honour
- * the same break paragraph, so Print / Save-as-PDF matches.
+ * Page 1 and Page 2 are wrapped in WordSection divs.
+ * In browser Print / PDF, div.WordSection2 uses page-break-before: always
+ * and break-before: page to cleanly place Page 2 on sheet 2 without inserting
+ * empty artifact paragraphs.
+ * For Microsoft Word (.doc export), an mso section break is provided so
+ * Word creates a clean Section Break with distinct margins for the Docket.
  */
 export function buildDocumentHtml(page1, page2, title) {
   const section1 = renderBlocks(page1);
   const section2 = page2 ? foldedPageFragment(page2) : "";
-  // Exactly one break element. A paragraph is the one construct both
-  // Word (maps to the "page break before" paragraph property) and
-  // browsers honour; Word drops the property on divs and tables, and
-  // browsers drop it on the <br> marker Word prefers. Two markers
-  // stacked together would leave a blank page in between.
-  const pageBreak = page2
-    ? `<p style="page-break-before:always;mso-break-type:page-break;font-size:1pt;line-height:1pt;margin:0;">&nbsp;</p>`
-    : "";
 
   return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -799,20 +838,38 @@ export function buildDocumentHtml(page1, page2, title) {
 <title>${esc(title)}</title>
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
 <style>
-@page WordSection1 { size: 21.0cm 29.7cm; margin: 2.5cm 2.5cm 2.5cm 3.2cm; mso-page-orientation: portrait; }
-div.WordSection1 { page: WordSection1; }
-@page WordSection2 { size: 21.0cm 29.7cm; margin: 2.0cm 2.0cm 2.0cm 2.0cm; mso-page-orientation: portrait; }
-div.WordSection2 { page: WordSection2; }
-body { font-family: 'Times New Roman', serif; font-size: 13.5px; line-height: 1.55; color: #1a1a1a; margin: 0; }
-@media screen { body { max-width: 720px; margin: 40px auto; } }
+@page { size: A4 portrait; margin: 0; }
+@page WordSection1 { size: 21.0cm 29.7cm; margin: 3.2cm 2.0cm 2.0cm 2.8cm; mso-page-orientation: portrait; }
+div.WordSection1 { page: WordSection1; box-sizing: border-box; }
+@page WordSection2 { size: 21.0cm 29.7cm; margin: 1.8cm 1.5cm 1.8cm 1.5cm; mso-page-orientation: portrait; }
+div.WordSection2 { page: WordSection2; page-break-before: always; break-before: page; box-sizing: border-box; }
+body { 
+  font-family: 'Times New Roman', 'Liberation Serif', serif; 
+  font-size: 17px; 
+  line-height: 1.85; 
+  color: #111111; 
+  margin: 0; 
+  padding: 0;
+}
+@media screen { 
+  body { max-width: 780px; margin: 30px auto; padding: 24px; } 
+}
+@media print {
+  body { margin: 0; }
+  div.WordSection2 { page-break-before: always; break-before: page; }
+}
 </style>
 </head>
 <body>
 <div class="WordSection1">
 ${section1}
 </div>
-${pageBreak}
-${page2 ? `<div class="WordSection2">\n${section2}\n</div>` : ""}
+${page2 ? `<!--[if mso]>
+<br clear="all" style="page-break-before:always;mso-break-type:section-break" />
+<![endif]-->
+<div class="WordSection2">
+${section2}
+</div>` : ""}
 </body>
 </html>`;
 }
@@ -831,15 +888,25 @@ export function blocksToHtml(blocks, title) {
  * Word's HTML renderer ignores flexbox and absolute positioning but
  * handles tables well, so the fold survives both browser Print and the
  * .doc download. The page break that puts this on its own sheet is
- * added by buildDocumentHtml, not here.
+ * handled cleanly on div.WordSection2.
  */
 export function foldedPageFragment(blocks) {
-  return `<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-family:'Times New Roman',serif;font-size:13px;">
+  const mainBlocks = blocks.filter((b) => b.t !== "signblock");
+  const signBlocks = blocks.filter((b) => b.t === "signblock");
+
+  return `<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;height:100%;min-height:24cm;border-collapse:collapse;font-family:'Times New Roman',serif;font-size:16.5px;">
 <tr>
-<td width="53%" valign="top" style="width:53%;">&nbsp;</td>
-<td width="2%" valign="top" style="width:2%;border-left:1.5px dashed #999999;">&nbsp;</td>
-<td width="45%" valign="top" style="width:45%;padding:40px 10px 40px 14px;">
-${renderBlocks(blocks, { folded: true })}
+<td width="48%" valign="top" style="width:48%;">&nbsp;</td>
+<td width="2%" valign="top" style="width:2%;border-left:1.5px dashed #888888;">&nbsp;</td>
+<td width="50%" valign="top" style="width:50%;padding:24px 10px 20px 18px;vertical-align:top;">
+  <div style="min-height:22cm;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;">
+    <div>
+      ${renderBlocks(mainBlocks, { folded: true })}
+    </div>
+    <div style="margin-top:auto;padding-top:32px;">
+      ${renderBlocks(signBlocks, { folded: true })}
+    </div>
+  </div>
 </td>
 </tr>
 </table>`;

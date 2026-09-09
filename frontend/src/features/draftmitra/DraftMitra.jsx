@@ -247,18 +247,18 @@ export default function DraftMitra() {
     const uniqueFieldIds = Array.from(new Set(matches.map((m) => m.replace(/[{}]/g, ""))));
     const fields = uniqueFieldIds.length > 0
       ? uniqueFieldIds.map((fId) => ({
-          id: fId,
-          label: fId.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()),
-        }))
+        id: fId,
+        label: fId.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase()),
+      }))
       : [
-          { id: "court", label: "Court Name" },
-          { id: "caseNo", label: "Case / Crime Number" },
-          { id: "client", label: "Petitioner / Client Name" },
-          { id: "opponent", label: "Respondent Name" },
-          { id: "section", label: "Section & Act" },
-          { id: "facts", label: "Statement of Facts" },
-          { id: "advocate", label: "Advocate Name" },
-        ];
+        { id: "court", label: "Court Name" },
+        { id: "caseNo", label: "Case / Crime Number" },
+        { id: "client", label: "Petitioner / Client Name" },
+        { id: "opponent", label: "Respondent Name" },
+        { id: "section", label: "Section & Act" },
+        { id: "facts", label: "Statement of Facts" },
+        { id: "advocate", label: "Advocate Name" },
+      ];
 
     const payload = {
       id,
@@ -428,10 +428,6 @@ export default function DraftMitra() {
     iframe.style.height = "0";
     iframe.style.border = "0";
     document.body.appendChild(iframe);
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(html);
-    doc.close();
     const cleanup = () => {
       if (iframe.parentNode) document.body.removeChild(iframe);
     };
@@ -444,6 +440,10 @@ export default function DraftMitra() {
       }
       setTimeout(cleanup, 1500);
     };
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
   };
 
   const handleDownloadWord = () => {
@@ -980,33 +980,107 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab,
 }
 
 function RenderBlock({ block, folded }) {
+  if (block.t === "small") {
+    return <div style={{ textAlign: "center", fontSize: 11.5, color: "#666", margin: "2px 0 6px" }}>{block.v}</div>;
+  }
+  if (block.t === "titleTop") {
+    return <div style={{ textAlign: "center", fontWeight: 700, fontSize: 16, textDecoration: "underline", letterSpacing: 2, margin: "0 0 12px", textTransform: "uppercase" }}>{block.v}</div>;
+  }
   if (block.t === "center") {
-    return <div style={{ textAlign: "center", fontWeight: 700, margin: "6px 0", letterSpacing: 0.3 }}>{block.v}</div>;
+    return <div style={{ textAlign: "center", fontWeight: 700, margin: "8px 0", letterSpacing: 0.3, whiteSpace: "pre-line", fontSize: 14.5 }}>{block.v}</div>;
   }
   if (block.t === "title") {
-    return <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15, margin: "14px 0 10px", textTransform: "uppercase", letterSpacing: 0.5 }}>{block.v}</div>;
+    return <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15.5, textDecoration: "underline", margin: "16px 0 12px", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "pre-line" }}>{block.v}</div>;
   }
-  if (block.t === "vs") {
-    return <div style={{ textAlign: "center", fontStyle: "italic", margin: "8px 0", color: "#666" }}>— vs —</div>;
+  if (block.t === "versus" || block.t === "vs") {
+    return <div style={{ textAlign: "center", fontStyle: "italic", margin: "6px 0", color: "#666", fontSize: 13.5 }}>— Versus —</div>;
   }
   if (block.t === "party") {
-    return (
-      <div style={{ margin: "4px 0", paddingLeft: 12 }}>
+    return folded ? (
+      <div style={{ margin: "6px 0", lineHeight: 1.5 }}>
         <strong>{block.v}</strong>
-        {block.role && <div style={{ fontSize: 12.5, fontStyle: "italic", color: "#555" }}>...{block.role}</div>}
+        {block.role && <div style={{ fontSize: 12.5, fontStyle: "italic", color: "#555" }}>...{block.role.replace(/^\.\.\./, "")}</div>}
       </div>
+    ) : (
+      <div style={{ margin: "4px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <strong style={{ whiteSpace: "pre-line" }}>{block.v}</strong>
+        {block.role && <div style={{ fontSize: 13, fontStyle: "italic", color: "#555", whiteSpace: "nowrap" }}>...{block.role.replace(/^\.\.\./, "")}</div>}
+      </div>
+    );
+  }
+  if (block.t === "left") {
+    return <div style={{ margin: "4px 0", whiteSpace: "pre-line" }}>{block.v}</div>;
+  }
+  if (block.t === "right") {
+    return <div style={{ textAlign: "right", margin: "4px 0", whiteSpace: "pre-line" }}>{block.v}</div>;
+  }
+  if (block.t === "num") {
+    return (
+      <p style={{ margin: "10px 0", textAlign: "justify", textIndent: 24, lineHeight: 1.75 }}>
+        <strong>{block.n}.</strong>&nbsp;&nbsp;{block.v}
+      </p>
     );
   }
   if (block.t === "para") {
-    return <p style={{ margin: "8px 0", textAlign: "justify", textIndent: 30, lineHeight: 1.6 }}>{block.v}</p>;
+    return <p style={{ margin: "10px 0", textAlign: "justify", textIndent: folded ? 0 : 28, lineHeight: 1.75 }}>{block.v}</p>;
   }
   if (block.t === "prayer") {
     return (
-      <div style={{ margin: "14px 0", padding: "10px 14px", background: "rgba(0,0,0,0.02)", borderLeft: "3px solid #b8935e" }}>
+      <div style={{ margin: "16px 0", padding: "12px 16px", background: "rgba(0,0,0,0.02)", borderLeft: "3.5px solid #b8935e" }}>
         <div style={{ fontWeight: 700, marginBottom: 4 }}>PRAYER:</div>
-        <p style={{ margin: 0, textAlign: "justify", lineHeight: 1.6 }}>{block.v}</p>
+        <p style={{ margin: 0, textAlign: "justify", lineHeight: 1.75 }}>{block.v}</p>
       </div>
     );
+  }
+  if (block.t === "table") {
+    const rows = block.rows || [];
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #222", margin: "14px 0", fontSize: 13 }}>
+        <thead>
+          <tr style={{ background: "#f2f2f2" }}>
+            <th style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "center", width: "8%" }}>S. No.</th>
+            <th style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "left", width: "22%" }}>Date of Filing</th>
+            <th style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "left", width: "22%" }}>Date of Doc</th>
+            <th style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "left", width: "30%" }}>Description of Documents</th>
+            <th style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "left", width: "18%" }}>Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "center" }}>{r.sno}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 4px" }}>{r.filedDate}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 4px" }}>{r.docDate}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 4px" }}>{r.desc}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 4px" }}>{r.remarks}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  if (block.t === "signdual") {
+    return (
+      <div style={{ marginTop: 36, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontWeight: 700, fontSize: 14 }}>
+        <div>{block.left || "Accused"}</div>
+        <div style={{ textAlign: "right" }}>{block.right || "Counsel for Accused"}</div>
+      </div>
+    );
+  }
+  if (block.t === "signblock") {
+    const raw = block.v || "";
+    if (raw.includes("\t") || /\s{4,}/.test(raw)) {
+      const parts = raw.split(/\t|\s{4,}/);
+      const leftPart = parts[0] || "";
+      const rightPart = parts[1] || "";
+      return (
+        <div style={{ marginTop: 36, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontWeight: 700, fontSize: 14 }}>
+          <div>{leftPart.trim()}</div>
+          <div style={{ textAlign: "right" }}>{rightPart.trim()}</div>
+        </div>
+      );
+    }
+    return <div style={{ marginTop: 32, textAlign: "right", whiteSpace: "pre-line", lineHeight: 1.6, fontSize: 14 }}>{raw}</div>;
   }
   if (block.t === "sign") {
     return (
@@ -1023,7 +1097,13 @@ function RenderBlock({ block, folded }) {
       </div>
     );
   }
-  return <div style={{ margin: "6px 0" }}>{block.v}</div>;
+  if (block.t === "space") {
+    return <div style={{ height: 10 }} />;
+  }
+  if (block.t === "pre") {
+    return <pre style={{ fontFamily: "'Courier New', monospace", fontSize: 12, lineHeight: 1.4, whiteSpace: "pre-wrap", margin: "10px 0", padding: 8, background: "#f9f9f9", border: "1px solid #ddd" }}>{block.v}</pre>;
+  }
+  return <div style={{ margin: "6px 0", whiteSpace: "pre-line" }}>{block.v}</div>;
 }
 
 function Modal({ children, onClose, title, wide }) {
@@ -1226,13 +1306,13 @@ const styles = {
 
   previewPane: { minWidth: 0 },
   pageLabel: { fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: "var(--muted)", marginBottom: 7, textTransform: "uppercase" },
-  paper: { background: "#FBF8F1", borderRadius: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 10px 30px var(--card-shadow)", position: "relative", padding: "44px 36px 44px 60px", minHeight: 560, transition: "box-shadow 0.3s ease" },
+  paper: { background: "#FBF8F1", borderRadius: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 10px 30px var(--card-shadow)", position: "relative", padding: "54px 36px 44px 60px", minHeight: 600, transition: "box-shadow 0.3s ease" },
   paperRedLine: { position: "absolute", left: 36, top: 0, bottom: 0, width: 1.5, background: "var(--line-red)", opacity: 0.6 },
-  paperContent: { fontFamily: "'Source Serif 4', serif", fontSize: 14, lineHeight: 1.65, color: "#241f1a" },
+  paperContent: { fontFamily: "'Source Serif 4', serif", fontSize: 14.5, lineHeight: 1.75, color: "#241f1a" },
   foldLine: { position: "absolute", left: "50%", top: 0, bottom: 0, width: 0, borderLeft: "1.5px dashed #B8AA8A" },
-  foldRow: { display: "flex", minHeight: 460 },
-  foldSpacer: { flex: "0 0 53%" },
-  foldContent: { flex: "0 0 44%", minWidth: 0, fontFamily: "'Source Serif 4', serif", fontSize: 13.5, lineHeight: 1.6, color: "#241f1a" },
+  foldRow: { display: "flex", minHeight: 520 },
+  foldSpacer: { flex: "0 0 50%" },
+  foldContent: { flex: "0 0 48%", minWidth: 0, fontFamily: "'Source Serif 4', serif", fontSize: 14, lineHeight: 1.7, color: "#241f1a", display: "flex", flexDirection: "column", justifyContent: "space-between" },
 
   toast: { position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--toast-bg)", color: "var(--toast-fg)", padding: "11px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 9, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" },
   modalOverlay: { position: "fixed", inset: 0, background: "var(--overlay)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
