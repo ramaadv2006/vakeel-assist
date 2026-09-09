@@ -741,9 +741,9 @@ function renderBlocks(blocks, { folded = false } = {}) {
           return folded
             ? `<div style="margin:12px 0;line-height:1.6;white-space:pre-line;"><strong style="font-size:16.5px;">${esc(b.v)}</strong><br/><span style="font-size:14.5px;color:#333;font-style:italic;">${esc(b.role)}</span></div>`
             : `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:8px 0 10px;"><tr>` +
-              `<td valign="top" style="white-space:pre-line;line-height:1.7;font-weight:bold;font-size:17px;">${esc(b.v)}</td>` +
-              `<td valign="top" align="right" style="text-align:right;color:#333;white-space:nowrap;line-height:1.7;font-style:italic;padding-left:14px;font-size:16px;">...${esc(b.role ? b.role.replace(/^\.\.\./, "") : "")}</td>` +
-              `</tr></table>`;
+            `<td valign="top" style="white-space:pre-line;line-height:1.7;font-weight:bold;font-size:17px;">${esc(b.v)}</td>` +
+            `<td valign="top" align="right" style="text-align:right;color:#333;white-space:nowrap;line-height:1.7;font-style:italic;padding-left:14px;font-size:16px;">...${esc(b.role ? b.role.replace(/^\.\.\./, "") : "")}</td>` +
+            `</tr></table>`;
         case "versus":
           return `<p style="text-align:center;font-style:italic;margin:10px 0;font-size:16px;color:#444;">— Versus —</p>`;
         case "title":
