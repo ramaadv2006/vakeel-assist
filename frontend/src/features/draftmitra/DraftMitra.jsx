@@ -8,7 +8,7 @@ import {
 
 import {
   TEMPLATES, F, blocksToPlainText, buildDocumentHtml, renderBlocks, foldedPageFragment,
-  paramsFromCustomTemplate, generateFromCustomTemplate,
+  paramsFromCustomTemplate, generateFromCustomTemplate, partitionBlocks,
 } from "./templates";
 import { generateAndDownloadPdf } from "./pdfGenerator";
 import { storageGet, storageSet, storageDelete, storageList } from "./storage";
@@ -882,6 +882,9 @@ function Library({
 }
 
 function Editor({ template, data, setField, page1Blocks, page2Blocks, hasCover, mobileTab, setMobileTab, onPrint, onCopy, onSaveClick, onDrafts, onBack }) {
+  const page1Parts = useMemo(() => partitionBlocks(page1Blocks), [page1Blocks]);
+  const page2Parts = useMemo(() => (page2Blocks ? partitionBlocks(page2Blocks) : null), [page2Blocks]);
+
   return (
     <main style={styles.editorMain}>
       <div style={styles.editorHead}>
@@ -988,10 +991,19 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, hasCover, 
                 <div style={styles.pageLabel}>PAGE 2 — MAIN PETITION</div>
                 <div style={styles.paper} className="paper">
                   <div style={styles.paperRedLine} />
-                  <div style={styles.paperContent}>
-                    {page2Blocks.map((b, i) => (
-                      <RenderBlock key={i} block={b} />
-                    ))}
+                  <div style={styles.petitionWrapper}>
+                    <div style={styles.paperContent}>
+                      {page2Parts.main.map((b, i) => (
+                        <RenderBlock key={i} block={b} />
+                      ))}
+                    </div>
+                    {page2Parts.footer.length > 0 && (
+                      <div style={styles.petitionFooter}>
+                        {page2Parts.footer.map((b, i) => (
+                          <RenderBlock key={i} block={b} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1002,10 +1014,19 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, hasCover, 
               <div style={styles.pageLabel}>PAGE 1 — MAIN PETITION</div>
               <div style={styles.paper} className="paper">
                 <div style={styles.paperRedLine} />
-                <div style={styles.paperContent}>
-                  {page1Blocks.map((b, i) => (
-                    <RenderBlock key={i} block={b} />
-                  ))}
+                <div style={styles.petitionWrapper}>
+                  <div style={styles.paperContent}>
+                    {page1Parts.main.map((b, i) => (
+                      <RenderBlock key={i} block={b} />
+                    ))}
+                  </div>
+                  {page1Parts.footer.length > 0 && (
+                    <div style={styles.petitionFooter}>
+                      {page1Parts.footer.map((b, i) => (
+                        <RenderBlock key={i} block={b} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </>
@@ -1117,7 +1138,7 @@ function RenderBlock({ block, folded }) {
         </div>
       );
     }
-    return <div style={{ marginTop: 32, textAlign: "right", whiteSpace: "pre-line", lineHeight: 1.6, fontSize: 14 }}>{raw}</div>;
+    return <div style={{ marginTop: 20, textAlign: "right", whiteSpace: "pre-line", lineHeight: 1.6, fontSize: 14 }}>{raw}</div>;
   }
   if (block.t === "sign") {
     return (
@@ -1350,6 +1371,8 @@ const styles = {
   foldRow: { display: "flex", minHeight: 520 },
   foldSpacer: { flex: "0 0 50%" },
   foldContent: { flex: "0 0 48%", minWidth: 0, fontFamily: "'Source Serif 4', serif", fontSize: 14, lineHeight: 1.7, color: "#241f1a", display: "flex", flexDirection: "column", justifyContent: "space-between" },
+  petitionWrapper: { minHeight: 520, display: "flex", flexDirection: "column", justifyContent: "space-between" },
+  petitionFooter: { marginTop: "auto", paddingTop: 32 },
 
   toast: { position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--toast-bg)", color: "var(--toast-fg)", padding: "11px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 9, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" },
   modalOverlay: { position: "fixed", inset: 0, background: "var(--overlay)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },

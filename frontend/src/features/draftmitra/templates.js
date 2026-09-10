@@ -114,22 +114,17 @@ export const TEMPLATES = [
 
       return [
         { t: "center", v: "APPLICATION FOR COPIES" },
-        { t: "space" },
         { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
         { t: "left", v: `No.: ${d.caseNo || "____"}` },
-        { t: "space" },
         { t: "party", v: d.client || "________________", role: `${d.clientRole}` },
         { t: "versus" },
         { t: "party", v: d.opponent || "________________", role: `${d.opponentRole}` },
         { t: "space" },
         { t: "left", v: "To\nThe Judge of the said Court" },
-        { t: "space" },
         { t: "left", v: `Application for certified copies filed on behalf of ${d.filedBy || "Accused"}:` },
         { t: "para", v: `It is requested that the Certified Copies of the documents here under mentioned may be furnished to the ${d.furnishedTo || "Counsel for Accused"}:` },
         { t: "table", rows },
-        { t: "space" },
         { t: "signblock", v: `Counsel for ${d.filedBy || "Accused"}` },
-        { t: "space" },
         { t: "left", v: "Date of Hearing:\nDate of disposal:" },
       ];
     },
@@ -756,34 +751,34 @@ export function renderBlocks(blocks, { folded = false } = {}) {
           return `<div style="margin:18px 0;padding:12px 16px;background:#fafafa;border-left:3.5px solid #b8935e;"><p style="font-weight:bold;margin:0 0 6px;font-size:17px;text-decoration:underline;">PRAYER:</p><p style="margin:0;text-align:${align};line-height:1.85;text-indent:20px;font-size:17px;white-space:pre-line;">${esc(b.v)}</p></div>`;
         case "table": {
           const rows = b.rows || [];
-          return `<table width="100%" cellpadding="6" cellspacing="0" style="width:100%;border-collapse:collapse;border:1.5px solid #222;margin:16px 0;font-size:15px;">
+          return `<table width="100%" cellpadding="5" cellspacing="0" style="width:100%;border-collapse:collapse;border:1.5px solid #222;margin:12px 0;font-size:14.5px;">
 <thead>
 <tr style="background:#f2f2f2;">
-<th style="border:1px solid #222;padding:8px 6px;text-align:center;width:8%;">S. No.</th>
-<th style="border:1px solid #222;padding:8px 6px;text-align:left;width:22%;">Date of Filing</th>
-<th style="border:1px solid #222;padding:8px 6px;text-align:left;width:22%;">Date of Document</th>
-<th style="border:1px solid #222;padding:8px 6px;text-align:left;width:30%;">Description of Documents</th>
-<th style="border:1px solid #222;padding:8px 6px;text-align:left;width:18%;">Remarks</th>
+<th style="border:1px solid #222;padding:6px 5px;text-align:center;width:8%;">S. No.</th>
+<th style="border:1px solid #222;padding:6px 5px;text-align:left;width:22%;">Date of Filing</th>
+<th style="border:1px solid #222;padding:6px 5px;text-align:left;width:22%;">Date of Document</th>
+<th style="border:1px solid #222;padding:6px 5px;text-align:left;width:30%;">Description of Documents</th>
+<th style="border:1px solid #222;padding:6px 5px;text-align:left;width:18%;">Remarks</th>
 </tr>
 </thead>
 <tbody>
 ${rows.map((r) => `<tr>
-<td style="border:1px solid #222;padding:7px 6px;text-align:center;">${esc(r.sno)}</td>
-<td style="border:1px solid #222;padding:7px 6px;">${esc(r.filedDate)}</td>
-<td style="border:1px solid #222;padding:7px 6px;">${esc(r.docDate)}</td>
-<td style="border:1px solid #222;padding:7px 6px;">${esc(r.desc)}</td>
-<td style="border:1px solid #222;padding:7px 6px;">${esc(r.remarks)}</td>
+<td style="border:1px solid #222;padding:5px 6px;text-align:center;">${esc(r.sno)}</td>
+<td style="border:1px solid #222;padding:5px 6px;">${esc(r.filedDate)}</td>
+<td style="border:1px solid #222;padding:5px 6px;">${esc(r.docDate)}</td>
+<td style="border:1px solid #222;padding:5px 6px;">${esc(r.desc)}</td>
+<td style="border:1px solid #222;padding:5px 6px;">${esc(r.remarks)}</td>
 </tr>`).join("")}
 </tbody>
 </table>`;
         }
         case "signdual":
-          return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:44px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
+          return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:24px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
             `<td valign="bottom" align="left" style="font-weight:bold;font-size:17px;line-height:1.7;">${esc(b.left || "Accused")}</td>` +
             `<td valign="bottom" align="right" style="text-align:right;font-weight:bold;font-size:17px;line-height:1.7;">${esc(b.right || "Counsel for Accused")}</td>` +
             `</tr></table>`;
         case "sign":
-          return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:40px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
+          return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:24px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
             `<td valign="bottom" align="left" style="font-size:16px;line-height:1.65;">` +
             (b.place ? `<div>Place: ${esc(b.place)}</div>` : "") +
             (b.date ? `<div>Date: ${esc(b.date)}</div>` : "") +
@@ -796,15 +791,15 @@ ${rows.map((r) => `<tr>
             const parts = raw.split(/\t|\s{4,}/);
             const leftPart = parts[0] || "";
             const rightPart = parts[1] || "";
-            return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:44px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
+            return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:24px;margin-bottom:8px;page-break-inside:avoid;"><tr>` +
               `<td valign="bottom" align="left" style="font-weight:bold;font-size:17px;line-height:1.7;">${esc(leftPart.trim())}</td>` +
               `<td valign="bottom" align="right" style="text-align:right;font-weight:bold;font-size:17px;line-height:1.7;">${esc(rightPart.trim())}</td>` +
               `</tr></table>`;
           }
-          return `<div style="margin-top:40px;margin-bottom:8px;text-align:right;line-height:1.75;font-size:16.5px;white-space:pre-line;page-break-inside:avoid;">${esc(raw)}</div>`;
+          return `<div style="margin-top:20px;margin-bottom:6px;text-align:right;line-height:1.75;font-size:16.5px;white-space:pre-line;page-break-inside:avoid;">${esc(raw)}</div>`;
         }
         case "space":
-          return `<div style="height:12px;">&nbsp;</div>`;
+          return `<div style="height:10px;">&nbsp;</div>`;
         case "pre":
           return `<pre style="font-family:'Courier New',monospace;font-size:13.5px;line-height:1.5;white-space:pre-wrap;margin:12px 0;padding:8px;background:#f9f9f9;border:1px solid #ddd;">${esc(b.v)}</pre>`;
         default:
@@ -812,6 +807,65 @@ ${rows.map((r) => `<tr>
       }
     })
     .join("\n");
+}
+
+export function partitionBlocks(blocks) {
+  if (!blocks || blocks.length === 0) return { main: [], footer: [] };
+
+  // Find index where signature/closing starts
+  let signIdx = -1;
+  for (let i = 0; i < blocks.length; i++) {
+    if (blocks[i].t === "signblock" || blocks[i].t === "signdual" || blocks[i].t === "sign") {
+      signIdx = i;
+      break;
+    }
+  }
+
+  if (signIdx === -1) {
+    return { main: blocks, footer: [] };
+  }
+
+  // Include preceding Date/Place or Acceptance block if right before signature
+  let footerStart = signIdx;
+  if (footerStart > 0) {
+    const prev = blocks[footerStart - 1];
+    if (
+      (prev.t === "left" && /Date|Place|Identified/i.test(prev.v)) ||
+      (prev.t === "right" && /Date|Place/i.test(prev.v)) ||
+      (prev.t === "para" && /^Accepted/i.test(prev.v))
+    ) {
+      footerStart = footerStart - 1;
+    }
+  }
+
+  // Strip any trailing space blocks from main section before footer
+  let mainEnd = footerStart;
+  while (mainEnd > 0 && blocks[mainEnd - 1].t === "space") {
+    mainEnd--;
+  }
+
+  return {
+    main: blocks.slice(0, mainEnd),
+    footer: blocks.slice(footerStart),
+  };
+}
+
+/**
+ * Main petition page as an HTML fragment: covers throughout the page
+ * with court header, parties, averments, and prayer in the upper section,
+ * and advocate / party signatures & hearing dates anchored at the bottom.
+ */
+export function petitionPageFragment(blocks) {
+  const { main, footer } = partitionBlocks(blocks);
+  return `<div class="petition-page-wrapper" style="min-height:24.5cm;display:flex;flex-direction:column;justify-content:space-between;box-sizing:border-box;">
+  <div class="petition-main-body" style="flex:1 0 auto;">
+    ${renderBlocks(main)}
+  </div>
+  ${footer.length > 0 ? `
+  <div class="petition-footer-zone" style="margin-top:auto;padding-top:28px;">
+    ${renderBlocks(footer)}
+  </div>` : ""}
+</div>`;
 }
 
 /**
@@ -828,8 +882,8 @@ ${rows.map((r) => `<tr>
 export function buildDocumentHtml(page1, page2, title) {
   const hasTwoPages = Boolean(page2 && page2.length > 0);
   // When there are two pages, Page 1 is the folded backing sheet (docket) and Page 2 is the main petition
-  const section1 = hasTwoPages ? foldedPageFragment(page1) : renderBlocks(page1);
-  const section2 = hasTwoPages ? renderBlocks(page2) : "";
+  const section1 = hasTwoPages ? foldedPageFragment(page1) : petitionPageFragment(page1);
+  const section2 = hasTwoPages ? petitionPageFragment(page2) : "";
 
   return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -842,18 +896,18 @@ export function buildDocumentHtml(page1, page2, title) {
 <style>
 @page { size: A4 portrait; margin: 0; }
 ${hasTwoPages ? `
-@page WordSection1 { size: 21.0cm 29.7cm; margin: 1.8cm 1.5cm 1.8cm 1.5cm; mso-page-orientation: portrait; }
-div.WordSection1 { page: WordSection1; box-sizing: border-box; }
-@page WordSection2 { size: 21.0cm 29.7cm; margin: 3.2cm 2.0cm 2.0cm 2.8cm; mso-page-orientation: portrait; }
-div.WordSection2 { page: WordSection2; page-break-before: always; break-before: page; box-sizing: border-box; }
+@page WordSection1 { size: 21.0cm 29.7cm; margin: 0; mso-page-orientation: portrait; }
+div.WordSection1 { page: WordSection1; box-sizing: border-box; padding: 1.8cm 1.5cm 1.8cm 1.5cm; }
+@page WordSection2 { size: 21.0cm 29.7cm; margin: 0; mso-page-orientation: portrait; }
+div.WordSection2 { page: WordSection2; page-break-before: always; break-before: page; box-sizing: border-box; padding: 2.2cm 2.0cm 1.4cm 2.8cm; }
 ` : `
-@page WordSection1 { size: 21.0cm 29.7cm; margin: 3.2cm 2.0cm 2.0cm 2.8cm; mso-page-orientation: portrait; }
-div.WordSection1 { page: WordSection1; box-sizing: border-box; }
+@page WordSection1 { size: 21.0cm 29.7cm; margin: 0; mso-page-orientation: portrait; }
+div.WordSection1 { page: WordSection1; box-sizing: border-box; padding: 2.2cm 2.0cm 1.4cm 2.8cm; }
 `}
 body { 
   font-family: 'Times New Roman', 'Liberation Serif', serif; 
   font-size: 17px; 
-  line-height: 1.85; 
+  line-height: 1.9; 
   color: #111111; 
   margin: 0; 
   padding: 0;
@@ -864,6 +918,7 @@ body {
 @media print {
   body { margin: 0; }
   div.WordSection2 { page-break-before: always; break-before: page; }
+  .petition-page-wrapper { min-height: 24.5cm !important; }
 }
 </style>
 </head>

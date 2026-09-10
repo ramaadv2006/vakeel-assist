@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { partitionBlocks } from "./templates";
 
 function cleanText(str) {
   if (!str) return "";
@@ -150,6 +151,8 @@ export function generateAndDownloadPdf(page1Blocks, page2Blocks, fileName = "Leg
   }
 
   function renderPetition(blocks) {
+    const { main, footer } = partitionBlocks(blocks);
+
     const p1MarginLeft = 28;
     const p1MarginRight = 20;
     const p1MarginTop = 32;
@@ -173,7 +176,7 @@ export function generateAndDownloadPdf(page1Blocks, page2Blocks, fileName = "Leg
       }
     }
 
-    for (const b of blocks) {
+    function renderBlock(b) {
       switch (b.t) {
         case "small": {
           doc.setFont("times", "normal");
@@ -531,6 +534,19 @@ export function generateAndDownloadPdf(page1Blocks, page2Blocks, fileName = "Leg
           currentY += 2;
           break;
         }
+      }
+    }
+
+    for (const b of main) {
+      renderBlock(b);
+    }
+
+    if (footer.length > 0) {
+      if (currentY < 235) {
+        currentY = Math.max(currentY + 12, 235);
+      }
+      for (const b of footer) {
+        renderBlock(b);
       }
     }
   }

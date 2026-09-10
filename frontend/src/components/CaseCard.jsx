@@ -235,8 +235,8 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
         >
           WhatsApp
         </button>
-        <Link to={`/history/${caseData.id}`} className="btn-icon-text btn-edit" title="View hearing date history for this case">History</Link>
-        <Link to={`/edit/${caseData.id}`} className="btn-icon-text btn-edit">Edit</Link>
+        <Link to={`/history/${caseData.id}`} className="btn-icon-text btn-edit" title="View hearing date history for this case">Hearing History</Link>
+        <Link to={`/edit/${caseData.id}`} className="btn-icon-text btn-edit">Edit Case</Link>
         {caseData.status !== 'Active' && onReopen && (
           <button
             type="button"
