@@ -22,10 +22,15 @@ export default function Header() {
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   
   const navRef = useRef(null);
   const toggleBtnRef = useRef(null);
   const profileRef = useRef(null);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [advocate?.avatar_url]);
 
   useEffect(() => {
     setNavOpen(false);
@@ -132,11 +137,12 @@ export default function Header() {
               aria-expanded={profileMenuOpen}
               title="Account Settings"
             >
-              {advocate.avatar_url ? (
+              {advocate.avatar_url && !avatarError ? (
                 <img
                   src={advocate.avatar_url}
                   alt="Avatar"
                   className="header-user-avatar"
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
                 <Icon name="user" style={{ width: 16, height: 16 }} />

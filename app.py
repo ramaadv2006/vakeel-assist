@@ -21,6 +21,7 @@ import io
 import os
 import threading
 import time
+import base64
 from types import SimpleNamespace
 
 try:
@@ -526,6 +527,18 @@ def check_hearing_conflict(conn, advocate_id, court_name, hearing_date, exclude_
 def advocate_public(row):
     if not row:
         return None
+    profile_img = row.get("profile_image")
+    avatar_url = None
+    if profile_img:
+        if profile_img.startswith("data:image/") or profile_img.startswith("http://") or profile_img.startswith("https://"):
+            avatar_url = profile_img
+        else:
+            filepath = os.path.join(UPLOAD_FOLDER, profile_img)
+            if os.path.isfile(filepath):
+                avatar_url = f"/static/uploads/avatars/{profile_img}"
+            else:
+                avatar_url = None
+
     return {
         "id": row["id"],
         "name": row["name"],
@@ -541,8 +554,8 @@ def advocate_public(row):
         "specialization": row.get("specialization"),
         "reminder_method": row.get("reminder_method") or "none",
         "reminder_days_before": row.get("reminder_days_before") or 1,
-        "profile_image": row.get("profile_image"),
-        "avatar_url": f"/static/uploads/avatars/{row['profile_image']}" if row.get("profile_image") else None,
+        "profile_image": profile_img,
+        "avatar_url": avatar_url,
         "created_at": row.get("created_at"),
     }
 
@@ -896,17 +909,43 @@ def upload_avatar():
     except Exception:
         return jsonify({"error": "Corrupted or invalid image file content."}), 400
 
+    # Resize and optimize thumbnail (max 256x256) to store persistently in database
+    try:
+        img = PILImage.open(file.stream)
+        img.thumbnail((256, 256), PILImage.Resampling.LANCZOS)
+
+        buf = io.BytesIO()
+        if ext in ("png", "webp"):
+            img.save(buf, format="PNG", optimize=True)
+            mime_type = "image/png"
+        else:
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            img.save(buf, format="JPEG", quality=85, optimize=True)
+            mime_type = "image/jpeg"
+
+        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        data_uri = f"data:{mime_type};base64,{b64}"
+    except Exception as proc_err:
+        app.logger.error(f"Image processing error: {proc_err}")
+        return jsonify({"error": "Could not process image."}), 400
+
+    # Also save to local disk if possible as backup/cache
+    try:
+        filename = f"avatar_{g.advocate_id}_{int(datetime.now().timestamp())}.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.seek(0)
+        file.save(filepath)
+    except Exception:
+        pass
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT profile_image FROM advocates WHERE id=%s", (g.advocate_id,))
     adv_rec = cur.fetchone()
     current_image = adv_rec.get("profile_image") if adv_rec else None
 
-    filename = f"avatar_{g.advocate_id}_{int(datetime.now().timestamp())}.{ext}"
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file.save(filepath)
-
-    if current_image and current_image != filename:
+    if current_image and not current_image.startswith("data:image/"):
         old_path = os.path.join(UPLOAD_FOLDER, current_image)
         if os.path.exists(old_path):
             try:
@@ -914,7 +953,7 @@ def upload_avatar():
             except Exception:
                 pass
 
-    cur.execute("UPDATE advocates SET profile_image=%s WHERE id=%s", (filename, g.advocate_id))
+    cur.execute("UPDATE advocates SET profile_image=%s WHERE id=%s", (data_uri, g.advocate_id))
     conn.commit()
 
     cur.execute("SELECT * FROM advocates WHERE id=%s", (g.advocate_id,))
@@ -922,7 +961,7 @@ def upload_avatar():
     cur.close()
     conn.close()
 
-    return jsonify({"advocate": advocate_public(advocate)})
+    return jsonify({"advocate": advocate_public(advocate), "message": "Profile photo updated successfully!"})
 
 
 
@@ -935,12 +974,13 @@ def delete_avatar():
     advocate = cur.fetchone()
     if advocate and advocate.get("profile_image"):
         old_image = advocate["profile_image"]
-        old_path = os.path.join(UPLOAD_FOLDER, old_image)
-        if os.path.exists(old_path):
-            try:
-                os.remove(old_path)
-            except Exception:
-                pass
+        if old_image and not old_image.startswith("data:image/"):
+            old_path = os.path.join(UPLOAD_FOLDER, old_image)
+            if os.path.exists(old_path):
+                try:
+                    os.remove(old_path)
+                except Exception:
+                    pass
         cur.execute("UPDATE advocates SET profile_image=NULL WHERE id=%s", (g.advocate_id,))
         conn.commit()
 

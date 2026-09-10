@@ -24,14 +24,20 @@ export default function Settings() {
     reminder_days_before: advocate.reminder_days_before || 1,
   });
   const [preview, setPreview] = useState(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [phoneError, setPhoneError] = useState(false);
   const [shake, setShake] = useState(false);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [preview, advocate?.avatar_url]);
 
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setAvatarError(false);
     const reader = new FileReader();
     reader.onload = (ev) => setPreview(ev.target.result);
     reader.readAsDataURL(file);
@@ -95,8 +101,13 @@ export default function Settings() {
             background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="User Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          {avatarUrl && !avatarError ? (
+            <img
+              src={avatarUrl}
+              alt="User Avatar"
+              onError={() => setAvatarError(true)}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           ) : (
             <span style={{ fontSize: 40, fontWeight: 700, color: 'var(--accent-hover)', textTransform: 'uppercase', fontFamily: "'Lora', serif" }}>
               {advocate.name ? advocate.name[0] : 'A'}
