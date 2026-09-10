@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
@@ -11,7 +12,13 @@ function ClientCard({ client, index }) {
   const staggerCls = index < 4 ? 'staggered-entry' : `reveal-up${inView ? ' in-view' : ''}`;
 
   return (
-    <div ref={revealRef} className={`card-form ${staggerCls} client-card`} style={{ padding: 20 }}>
+    <motion.div
+      ref={revealRef}
+      className={`card-form ${staggerCls} client-card`}
+      style={{ padding: 20 }}
+      whileHover={{ y: -2, boxShadow: '0 8px 24px -6px rgba(10, 29, 55, 0.12)' }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h3 className="client-name" style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)' }}>
@@ -36,44 +43,83 @@ function ClientCard({ client, index }) {
         <div style={{ display: 'flex', gap: 8 }}>
           {client.phone && (
             <>
-              <a href={`tel:${client.phone}`} className="btn-icon-text btn-ecourts" title="Call client phone">Call Client</a>
-              <a href={`https://wa.me/${client.phone}`} target="_blank" rel="noopener noreferrer" className="btn-icon-text btn-whatsapp" title="Send WhatsApp Message">WhatsApp</a>
+              <motion.a
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                href={`tel:${client.phone}`}
+                className="btn-icon-text btn-ecourts"
+                title="Call client phone"
+              >
+                Call Client
+              </motion.a>
+              <motion.a
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                href={`https://wa.me/${client.phone}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-icon-text btn-whatsapp"
+                title="Send WhatsApp Message"
+              >
+                WhatsApp
+              </motion.a>
             </>
           )}
-          <button type="button" className="btn-icon-text btn-client-toggle" onClick={() => setOpen((v) => !v)}>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            type="button"
+            className="btn-icon-text btn-client-toggle"
+            onClick={() => setOpen((v) => !v)}
+          >
             {open ? 'Hide Cases' : 'Show Cases'}
-          </button>
+          </motion.button>
         </div>
       </div>
 
-      {open && (
-        <div style={{ marginTop: 18, borderTop: '1px dashed var(--border-card)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <h4 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-main)', marginBottom: 4 }}>
-            Associated Active Files
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {client.cases.map((c) => (
-              <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg-app)', border: '1px solid var(--border-card)', borderRadius: 'var(--radius-sm)', flexWrap: 'wrap', gap: 10 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-dark)' }}>
-                    {c.case_number}
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginLeft: 6 }}>({c.court_name})</span>
-                  </div>
-                  <div style={{ fontSize: 12.5, color: 'var(--text-main)', marginTop: 2 }}>
-                    Next Hearing: <strong style={{ color: 'var(--primary-light)' }}>{c.next_hearing_date}</strong>
-                    {c.case_type && <> {' | '}Type: <strong>{c.case_type}</strong></>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <Link to={`/history/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 12, padding: '5px 12px' }}>History</Link>
-                  <Link to={`/edit/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 12, padding: '5px 12px' }}>Edit</Link>
-                </div>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{ marginTop: 18, borderTop: '1px dashed var(--border-card)', paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <h4 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-main)', marginBottom: 4 }}>
+                Associated Active Files
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {client.cases.map((c) => (
+                  <motion.div
+                    key={c.id}
+                    whileHover={{ x: 3, borderColor: 'var(--accent)' }}
+                    transition={{ type: 'spring', stiffness: 450, damping: 30 }}
+                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg-app)', border: '1px solid var(--border-card)', borderRadius: 'var(--radius-sm)', flexWrap: 'wrap', gap: 10 }}
+                  >
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-dark)' }}>
+                        {c.case_number}
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gray-500)', marginLeft: 6 }}>({c.court_name})</span>
+                      </div>
+                      <div style={{ fontSize: 12.5, color: 'var(--text-main)', marginTop: 2 }}>
+                        Next Hearing: <strong style={{ color: 'var(--primary-light)' }}>{c.next_hearing_date}</strong>
+                        {c.case_type && <> {' | '}Type: <strong>{c.case_type}</strong></>}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <Link to={`/history/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 12, padding: '5px 12px' }}>History</Link>
+                      <Link to={`/edit/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 12, padding: '5px 12px' }}>Edit</Link>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
@@ -46,7 +47,14 @@ function HubCase({ group, onChanged }) {
   if (openCount === 0) return null;
 
   return (
-    <div ref={revealRef} className={`card-form reveal-up hub-case-section${inView ? ' in-view' : ''}`} style={{ padding: '20px 24px' }}>
+    <motion.div
+      layout
+      ref={revealRef}
+      className={`card-form reveal-up hub-case-section${inView ? ' in-view' : ''}`}
+      style={{ padding: '20px 24px' }}
+      whileHover={{ y: -2, boxShadow: '0 8px 24px -6px rgba(10, 29, 55, 0.12)' }}
+      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)' }}>
@@ -64,21 +72,40 @@ function HubCase({ group, onChanged }) {
             <span className="meta-item" style={{ fontWeight: 700, color: 'var(--accent-hover)' }}>{openCount} open</span>
           </div>
         </div>
-        <Link to={`/edit/${group.case_id}`} className="btn-icon-text btn-edit">Edit Case</Link>
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+          <Link to={`/edit/${group.case_id}`} className="btn-icon-text btn-edit">Edit Case</Link>
+        </motion.div>
       </div>
 
       <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px dashed var(--border-card)', paddingTop: 12 }}>
-        {tasks.map((task) => (
-          <div key={task.task_id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', gap: 8 }}>
-            <div className="checkbox-group" style={{ gap: 8 }}>
-              <input type="checkbox" checked={!!task.is_completed} onChange={() => toggle(task.task_id)} id={`hub-task-${task.task_id}`} />
-              <label htmlFor={`hub-task-${task.task_id}`} style={{ fontSize: 13, textDecoration: task.is_completed ? 'line-through' : 'none', opacity: task.is_completed ? 0.5 : 1 }}>
-                {task.title}
-              </label>
-            </div>
-            <button type="button" onClick={() => remove(task.task_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '0 4px' }}>&times;</button>
-          </div>
-        ))}
+        <AnimatePresence initial={false}>
+          {tasks.map((task) => (
+            <motion.div
+              key={task.task_id}
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', gap: 8, overflow: 'hidden' }}
+            >
+              <div className="checkbox-group" style={{ gap: 8 }}>
+                <input type="checkbox" checked={!!task.is_completed} onChange={() => toggle(task.task_id)} id={`hub-task-${task.task_id}`} />
+                <label htmlFor={`hub-task-${task.task_id}`} style={{ fontSize: 13, textDecoration: task.is_completed ? 'line-through' : 'none', opacity: task.is_completed ? 0.5 : 1 }}>
+                  {task.title}
+                </label>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.2, color: 'var(--danger)' }}
+                whileTap={{ scale: 0.9 }}
+                type="button"
+                onClick={() => remove(task.task_id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, padding: '0 4px' }}
+              >
+                &times;
+              </motion.button>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
@@ -90,9 +117,19 @@ function HubCase({ group, onChanged }) {
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
           style={{ flex: 1, padding: '6px 10px', fontSize: 12, height: 30 }}
         />
-        <button type="button" className="btn-submit" disabled={busy} onClick={addTask} style={{ padding: '0 14px', fontSize: 12, height: 30, lineHeight: '30px', margin: 0 }}>Add</button>
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          type="button"
+          className="btn-submit"
+          disabled={busy}
+          onClick={addTask}
+          style={{ padding: '0 14px', fontSize: 12, height: 30, lineHeight: '30px', margin: 0 }}
+        >
+          Add
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

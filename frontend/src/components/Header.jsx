@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import Icon from './Icon';
@@ -79,13 +80,15 @@ export default function Header() {
     <header className="header-main">
       {/* 1. Left: Brand & Title */}
       <div className="header-brand">
-        <Link to="/" className="header-brand-link">
-          <img src="/logo.jpeg" alt="Logo" className="header-logo-img" />
-          <h1>Advo <span>Buddy</span></h1>
-        </Link>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <Link to="/" className="header-brand-link">
+            <img src="/logo.jpeg" alt="Logo" className="header-logo-img" />
+            <h1>Advo <span>Buddy</span></h1>
+          </Link>
+        </motion.div>
         {advocate && (
           <span className="advo-badge-pill">
-            ⚖️ Advocate
+            ⚖️ Advocate 😊
           </span>
         )}
       </div>
@@ -93,40 +96,66 @@ export default function Header() {
       {/* 2. Center: Core Navigation Links */}
       {advocate && (
         <nav className={`nav-links${navOpen ? ' open' : ''}`} id="nav-links" ref={navRef}>
-          {ADVOCATE_LINKS.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`nav-link${location.pathname === link.to ? ' active' : ''}`}
-            >
-              <Icon name={link.icon} />
-              <span>{link.label}</span>
-            </Link>
-          ))}
+          {ADVOCATE_LINKS.map((link) => {
+            const isActive = location.pathname === link.to;
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`nav-link${isActive ? ' active' : ''}`}
+                style={{ position: 'relative' }}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="activeNavIndicator"
+                    className="nav-link-indicator"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'var(--accent-bg)',
+                      border: '1px solid var(--accent-border)',
+                      borderRadius: 'var(--radius-sm)',
+                      zIndex: 0,
+                    }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name={link.icon} />
+                  <span>{link.label}</span>
+                </span>
+              </Link>
+            );
+          })}
         </nav>
       )}
 
       {/* 3. Right: Action Controls & User Popover */}
       <div className="header-controls">
         {advocate && (
-          <Link to="/add" className="btn-add-nav">
-            <span className="btn-add-text">+ Add Case</span>
-            <span className="btn-add-short">+ Case</span>
-          </Link>
+          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            <Link to="/add" className="btn-add-nav">
+              <span className="btn-add-text">+ Add Case</span>
+              <span className="btn-add-short">+ Case</span>
+            </Link>
+          </motion.div>
         )}
 
-        <button
+        <motion.button
           className="theme-toggle"
           id="theme-toggle-btn"
           title="Toggle Light/Dark Mode"
           onClick={toggleTheme}
           type="button"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92, rotate: 15 }}
+          transition={{ duration: 0.15 }}
         >
           <svg viewBox="0 0 24 24" width="18" height="18">
             <path className="sun-icon" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"></path>
             <path className="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"></path>
           </svg>
-        </button>
+        </motion.button>
 
         {advocate && (
           <div className="header-profile-container" ref={profileRef}>
@@ -153,47 +182,55 @@ export default function Header() {
               <Icon name="chevronDown" className="header-user-chevron" style={{ width: 12, height: 12, opacity: 0.7 }} />
             </button>
 
-            {profileMenuOpen && (
-              <div className="header-profile-dropdown">
-                <div className="header-dropdown-header">
-                  <div className="header-dropdown-name">{advocate.name || 'Counsel'}</div>
-                  <div className="header-dropdown-email">{advocate.email}</div>
-                  <div style={{ marginTop: 6 }}>
-                    <span
-                      style={{
-                        fontSize: '0.7rem',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: 10,
-                        background: 'rgba(212, 160, 23, 0.2)',
-                        color: '#fce7b0',
-                        border: '1px solid rgba(212, 160, 23, 0.4)',
-                      }}
-                    >
-                      ⚖️ Practicing Advocate
-                    </span>
+            <AnimatePresence>
+              {profileMenuOpen && (
+                <motion.div
+                  className="header-profile-dropdown"
+                  initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.96 }}
+                  transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <div className="header-dropdown-header">
+                    <div className="header-dropdown-name">{advocate.name || 'Counsel'}</div>
+                    <div className="header-dropdown-email">{advocate.email}</div>
+                    <div style={{ marginTop: 6 }}>
+                      <span
+                        style={{
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          padding: '2px 8px',
+                          borderRadius: 10,
+                          background: 'rgba(229, 184, 105, 0.18)',
+                          color: 'var(--accent)',
+                          border: '1px solid rgba(229, 184, 105, 0.4)',
+                        }}
+                      >
+                        ⚖️ Practicing Advocate
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Link to="/settings" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
-                    <Icon name="settings" style={{ width: 15, height: 15 }} />
-                    <span>Settings & Profile</span>
-                  </Link>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Link to="/settings" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
+                      <Icon name="settings" style={{ width: 15, height: 15 }} />
+                      <span>Settings & Profile</span>
+                    </Link>
 
-                  <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }}></div>
+                    <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.08)', margin: '4px 0' }}></div>
 
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="header-dropdown-item danger"
-                  >
-                    <Icon name="back" style={{ width: 15, height: 15, transform: 'rotate(180deg)' }} />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            )}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="header-dropdown-item danger"
+                    >
+                      <Icon name="back" style={{ width: 15, height: 15, transform: 'rotate(180deg)' }} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )}
 

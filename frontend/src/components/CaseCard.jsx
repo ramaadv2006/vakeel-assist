@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api/client';
 import Icon from './Icon';
 
@@ -132,159 +133,218 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
     return () => { cancelled = true; };
   }, [caseData.id]);
 
-  const taskCount = tasks === null ? null : `${tasks.filter((t) => t.is_completed === 1).length}/${tasks.length}`;
-
+  const completedCount = tasks ? tasks.filter((t) => t.is_completed === 1).length : 0;
+  const totalTasks = tasks ? tasks.length : 0;
+  const taskProgress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
   const pendingFee = (caseData.total_fee || 0) - (caseData.fee_paid || 0);
 
   return (
-    <div className={`case-card ${cssClass}`} data-date={caseData.next_hearing_date}>
-      <div className="case-info">
-        <div className="client">{caseData.client_name}</div>
-        <div className="meta">
-          <span className="meta-item" title="Case Number">
-            <Icon name="case" />
-            {caseData.case_number}
-          </span>
-          <span className="meta-divider">|</span>
-          <span className="meta-item" title="Court Name">
-            <Icon name="court" />
-            {caseData.court_name}
-          </span>
+    <motion.div
+      className={`case-card ${cssClass}`}
+      data-date={caseData.next_hearing_date}
+      whileHover={{ y: -3, boxShadow: 'var(--shadow-md)' }}
+      transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+    >
+      <div className="case-card-header">
+        <div className="case-title-row">
+          <span className="client">{caseData.client_name}</span>
           {caseData.case_type && (
-            <>
-              <span className="meta-divider">|</span>
-              <span className="meta-item" title="Case Type"><strong>{caseData.case_type}</strong></span>
-            </>
+            <span className="case-type-tag">{caseData.case_type}</span>
           )}
-          <span className="meta-divider">|</span>
-          <span className="meta-item" title="Hearing Date" style={{ color: 'var(--primary-light)', fontWeight: 600 }}>
+        </div>
+
+        <div className="case-badge-container">
+          <span className={`badge ${cssClass}`}>{badgeText}</span>
+          {caseData.is_stale && (
+            <span className="badge badge-stale" title={`No new hearing history update in ${caseData.days_since_update} days`}>
+              ⚠️ Stale ({caseData.days_since_update}d)
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="case-info">
+        <div className="meta-chips-container">
+          <div className="meta-chip" title="Case Number">
+            <Icon name="case" />
+            <span>{caseData.case_number}</span>
+          </div>
+
+          <div className="meta-chip" title="Court Name">
+            <Icon name="court" />
+            <span>{caseData.court_name}</span>
+          </div>
+
+          <div className="meta-chip date-chip" title="Next Hearing Date">
             <Icon name="calendar" />
-            {caseData.next_hearing_date}
-          </span>
+            <strong>{caseData.next_hearing_date}</strong>
+          </div>
+
+          {caseData.court_hall && (
+            <div className="meta-chip" title="Court Hall">
+              <span>Hall: <strong>{caseData.court_hall}</strong></span>
+            </div>
+          )}
+
+          {caseData.item_number && (
+            <div className="meta-chip" title="Item Number">
+              <span>Item No: <strong>{caseData.item_number}</strong></span>
+            </div>
+          )}
+
+          {caseData.case_stage && (
+            <div className="meta-chip stage-chip" title="Case Stage">
+              <span>Stage: <strong>{caseData.case_stage}</strong></span>
+            </div>
+          )}
+
           {caseData.client_phone && (
-            <>
-              <span className="meta-divider">|</span>
-              <span className="meta-item" title="Client Phone">
-                <Icon name="phone" />
-                {caseData.client_phone}
-              </span>
-            </>
+            <div className="meta-chip" title="Client Phone">
+              <Icon name="phone" />
+              <span>{caseData.client_phone}</span>
+            </div>
           )}
+
           {pendingFee > 0 && (
-            <>
-              <span className="meta-divider">|</span>
-              <span className="meta-item" title="Pending Balance" style={{ color: 'var(--danger)', fontWeight: 600 }}>
-                Pending: ₹{pendingFee.toLocaleString('en-IN')}
-              </span>
-            </>
+            <div className="meta-chip fee-chip" title="Pending Fee Balance">
+              <span>Pending: <strong>₹{pendingFee.toLocaleString('en-IN')}</strong></span>
+            </div>
+          )}
+
+          {caseData.judge_name && (
+            <div className="meta-chip" title="Presiding Judge">
+              <span>Judge: <em>{caseData.judge_name}</em></span>
+            </div>
+          )}
+
+          {caseData.opposing_counsel && (
+            <div className="meta-chip" title="Opposing Counsel">
+              <span>Opp: <em>{caseData.opposing_counsel}</em></span>
+            </div>
           )}
         </div>
 
-        {(caseData.court_hall || caseData.item_number || caseData.case_stage) && (
-          <div className="meta" style={{ marginTop: 6, opacity: 0.95, color: 'var(--text-dark)' }}>
-            {caseData.court_hall && (
-              <span className="meta-item" title="Court Hall"><strong>Hall:</strong> {caseData.court_hall}</span>
-            )}
-            {caseData.court_hall && (caseData.item_number || caseData.case_stage) && <span className="meta-divider">|</span>}
-            {caseData.item_number && (
-              <span className="meta-item" title="Item Number"><strong>Item No:</strong> {caseData.item_number}</span>
-            )}
-            {caseData.item_number && caseData.case_stage && <span className="meta-divider">|</span>}
-            {caseData.case_stage && (
-              <span className="meta-item" title="Case Stage">
-                <strong>Stage:</strong> <span style={{ color: 'var(--accent-hover)', fontWeight: 600 }}>{caseData.case_stage}</span>
-              </span>
-            )}
+        {caseData.notes && (
+          <div className="case-notes">
+            <strong>Notes:</strong> {caseData.notes}
           </div>
         )}
 
-        {(caseData.judge_name || caseData.opposing_counsel) && (
-          <div className="meta" style={{ marginTop: 6, opacity: 0.85 }}>
-            {caseData.judge_name && (
-              <span className="meta-item" title="Presiding Judge"><strong>Judge:</strong> {caseData.judge_name}</span>
-            )}
-            {caseData.judge_name && caseData.opposing_counsel && <span className="meta-divider">|</span>}
-            {caseData.opposing_counsel && (
-              <span className="meta-item" title="Opposing Counsel">
-                <strong>Opponent:</strong> {caseData.opposing_counsel}
-                {caseData.opposing_counsel_phone && ` (${caseData.opposing_counsel_phone})`}
-              </span>
+        <div className="card-checklist-section">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setDrawerOpen((v) => !v)}
+              className="btn-checklist-toggle"
+            >
+              <Icon
+                name="chevronDown"
+                style={{
+                  width: 14,
+                  height: 14,
+                  transform: drawerOpen ? 'rotate(180deg)' : 'rotate(0)',
+                  transition: 'transform 0.25s ease',
+                }}
+              />
+              {drawerOpen ? 'Hide' : 'Show'} Pre-Hearing Checklist ({tasks === null ? '...' : `${completedCount}/${totalTasks}`})
+            </button>
+
+            {totalTasks > 0 && (
+              <div className="checklist-progress-bar-container" title={`${completedCount} of ${totalTasks} tasks completed (${taskProgress}%)`}>
+                <div
+                  className="checklist-progress-fill"
+                  style={{ width: `${taskProgress}%` }}
+                />
+              </div>
             )}
           </div>
-        )}
-      </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-        <span className={`badge ${cssClass}`}>{badgeText}</span>
-        {caseData.is_stale && (
-          <span className="badge badge-stale" title={`No new hearing history update in ${caseData.days_since_update} days`}>
-            ⚠️ Stale ({caseData.days_since_update}d)
-          </span>
-        )}
-      </div>
-
-      <div className="actions">
-        <a href="https://services.ecourts.gov.in/ecourtindia_v6/?p=casestatus/index" target="_blank" rel="noopener noreferrer" className="btn-icon-text btn-ecourts" title="Opens eCourts official site">
-          Verify ↗
-        </a>
-        <button
-          type="button"
-          className="btn-icon-text btn-whatsapp"
-          onClick={() => shareOnWhatsApp(caseData)}
-          title="Share hearing details on WhatsApp"
-        >
-          WhatsApp
-        </button>
-        <Link to={`/history/${caseData.id}`} className="btn-icon-text btn-edit" title="View hearing date history for this case">Hearing History</Link>
-        <Link to={`/edit/${caseData.id}`} className="btn-icon-text btn-edit">Edit Case</Link>
-        {caseData.status !== 'Active' && onReopen && (
-          <button
-            type="button"
-            className="btn-icon-text btn-restore"
-            onClick={() => { if (window.confirm(caseData.status === 'Deleted' ? 'Restore this case and set status back to Active?' : 'Reopen this case and set status back to Active?')) onReopen(caseData.id); }}
-            title="Move this case back to Active"
-          >
-            {caseData.status === 'Deleted' ? 'Restore' : 'Reopen'}
-          </button>
-        )}
-        {onDelete && (
-          <button
-            type="button"
-            className="btn-icon-text btn-delete"
-            onClick={() => {
-              const isDeletedStatus = caseData.status === 'Deleted';
-              const msg = isDeletedStatus
-                ? 'Are you sure you want to permanently delete this case? This action cannot be undone.'
-                : 'Are you sure you want to delete this case? It will be moved to the deleted archive / trash.';
-              if (window.confirm(msg)) onDelete(caseData.id);
-            }}
-          >
-            {caseData.status === 'Deleted' ? 'Delete Permanently' : 'Delete'}
-          </button>
-        )}
-      </div>
-
-      {caseData.notes && (
-        <div className="case-notes">
-          <strong>Notes:</strong> {caseData.notes}
+          <AnimatePresence>
+            {drawerOpen && (
+              <motion.div
+                style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden' }}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <TasksDrawer caseId={caseData.id} tasks={tasks} setTasks={setTasks} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      )}
-
-      <div className="card-checklist-section" style={{ gridColumn: '1 / -1', marginTop: 10, borderTop: '1px dashed var(--border-card)', paddingTop: 8 }}>
-        <button
-          type="button"
-          onClick={() => setDrawerOpen((v) => !v)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent-hover)', fontSize: 12.5, fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}
-        >
-          <Icon name="chevronDown" style={{ width: 14, height: 14, transform: drawerOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.25s' }} />
-          {drawerOpen ? 'Hide' : 'Show'} Pre-Hearing Checklist ({taskCount === null ? '...' : taskCount})
-        </button>
-        {drawerOpen && (
-          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <TasksDrawer caseId={caseData.id} tasks={tasks} setTasks={setTasks} />
-          </div>
-        )}
       </div>
-    </div>
+
+      <div className="case-card-footer">
+        <div className="card-footer-left">
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            type="button"
+            className="btn-icon-text btn-whatsapp"
+            onClick={() => shareOnWhatsApp(caseData)}
+            title="Share hearing details on WhatsApp"
+          >
+            <Icon name="phone" style={{ width: 13, height: 13 }} />
+            <span>WhatsApp</span>
+          </motion.button>
+
+          <a
+            href="https://services.ecourts.gov.in/ecourtindia_v6/?p=casestatus/index"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-icon-text btn-ecourts"
+            title="Opens eCourts official site"
+          >
+            Verify ↗
+          </a>
+        </div>
+
+        <div className="card-footer-right">
+          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            <Link to={`/history/${caseData.id}`} className="btn-icon-text btn-edit" title="View hearing date history for this case">
+              History
+            </Link>
+          </motion.div>
+
+          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            <Link to={`/edit/${caseData.id}`} className="btn-icon-text btn-edit">
+              Edit
+            </Link>
+          </motion.div>
+
+          {caseData.status !== 'Active' && onReopen && (
+            <button
+              type="button"
+              className="btn-icon-text btn-restore"
+              onClick={() => {
+                if (window.confirm(caseData.status === 'Deleted' ? 'Restore this case and set status back to Active?' : 'Reopen this case and set status back to Active?')) {
+                  onReopen(caseData.id);
+                }
+              }}
+              title="Move this case back to Active"
+            >
+              {caseData.status === 'Deleted' ? 'Restore' : 'Reopen'}
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              type="button"
+              className="btn-icon-text btn-delete"
+              onClick={() => {
+                const isDeletedStatus = caseData.status === 'Deleted';
+                const msg = isDeletedStatus
+                  ? 'Are you sure you want to permanently delete this case? This action cannot be undone.'
+                  : 'Are you sure you want to delete this case? It will be moved to the deleted archive / trash.';
+                if (window.confirm(msg)) onDelete(caseData.id);
+              }}
+            >
+              {caseData.status === 'Deleted' ? 'Delete Permanently' : 'Delete'}
+            </button>
+          )}
+        </div>
+      </div>
+    </motion.div>
   );
 }
