@@ -112,9 +112,7 @@ export default function Settings() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 14 }}>
-          <label
-            style={{ background: 'var(--accent-bg)', color: 'var(--accent-hover)', border: '1px solid var(--accent)', padding: '8px 16px', borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          >
+          <label className="btn-change-photo">
             <Icon name="camera" />
             Change Photo
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />

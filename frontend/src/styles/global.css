@@ -1106,12 +1106,24 @@ body.dark .badge.archived {
 
 .btn-ecourts:hover {
     background-color: var(--accent);
-    color: white;
+    color: var(--primary);
+}
+
+body.dark .btn-ecourts {
+    background-color: rgba(184, 147, 94, 0.14);
+    color: var(--accent);
+    border-color: var(--accent-border);
+}
+
+body.dark .btn-ecourts:hover {
+    background-color: var(--accent);
+    color: var(--primary);
 }
 
 .btn-edit {
     background-color: var(--gray-100);
     color: var(--gray-600);
+    border: 1px solid transparent;
 }
 
 .btn-edit:active {
@@ -1125,11 +1137,14 @@ body.dark .badge.archived {
 
 body.dark .btn-edit {
     background-color: var(--gray-200);
-    color: var(--gray-300);
+    color: var(--text-dark);
+    border: 1px solid var(--border-card);
 }
 
 body.dark .btn-edit:hover {
     background-color: var(--gray-300);
+    color: #ffffff;
+    border-color: var(--accent);
 }
 
 .btn-delete {
@@ -2930,8 +2945,16 @@ body.dark .floating-group label {
 /* Active View Toggle button */
 .active-view {
     background-color: var(--accent) !important;
-    color: white !important;
+    color: #0b1526 !important;
     border-color: var(--accent-hover) !important;
+    font-weight: 700 !important;
+}
+
+body.dark .active-view {
+    background-color: var(--accent) !important;
+    color: #0b1526 !important;
+    border-color: var(--accent) !important;
+    font-weight: 700 !important;
 }
 
 /* Calendar Layout Grid styles */
@@ -3239,6 +3262,12 @@ body.dark .calendar-day.selected-day .calendar-event-dot {
     background: var(--primary);
     color: white;
     border-color: var(--primary);
+}
+
+body.dark .template-btn.active {
+    background: var(--primary-light);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 .template-btn span.subtitle,
@@ -3745,6 +3774,11 @@ body.dark .searchable-select-option.selected {
     transform: translateY(-1px);
 }
 
+body.dark .chip-btn:hover {
+    color: var(--accent) !important;
+    background: rgba(184, 147, 94, 0.14) !important;
+}
+
 .brief-link-row {
     transition: all 0.2s ease;
 }
@@ -3775,6 +3809,67 @@ body.dark .searchable-select-option.selected {
     color: var(--accent-hover) !important;
     background: var(--accent-bg) !important;
     transform: translateY(-1px);
+}
+
+body.dark .btn-role-switch:hover {
+    color: var(--accent) !important;
+    background: rgba(184, 147, 94, 0.14) !important;
+}
+
+/* Dedicated Helper Classes for Components */
+.btn-client-toggle {
+    cursor: pointer;
+    background: var(--primary);
+    color: #ffffff;
+    border: 1px solid transparent;
+}
+
+.btn-client-toggle:hover {
+    background: var(--primary-light);
+    color: #ffffff;
+}
+
+body.dark .btn-client-toggle {
+    background: var(--primary-light);
+    color: var(--accent);
+    border: 1px solid var(--border-card);
+}
+
+body.dark .btn-client-toggle:hover {
+    background: var(--accent);
+    color: var(--primary);
+    border-color: var(--accent);
+}
+
+.btn-change-photo {
+    background: var(--accent-bg);
+    color: var(--accent-hover);
+    border: 1px solid var(--accent);
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: var(--transition);
+}
+
+.btn-change-photo:hover {
+    background: var(--accent);
+    color: var(--primary);
+}
+
+body.dark .btn-change-photo {
+    background: rgba(184, 147, 94, 0.14);
+    color: var(--accent);
+    border-color: var(--accent-border);
+}
+
+body.dark .btn-change-photo:hover {
+    background: var(--accent);
+    color: var(--primary);
 }
 
 /* FIRAC Section Styling */

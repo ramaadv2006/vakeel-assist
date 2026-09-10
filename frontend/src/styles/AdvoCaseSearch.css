@@ -187,6 +187,13 @@ body.dark .btn-ecourts-danger,
   transform: translateY(-1px);
 }
 
+body.dark .btn-ecourts-danger:hover,
+[data-theme='dark'] .btn-ecourts-danger:hover {
+  background: rgba(239, 68, 68, 0.35);
+  color: #ffffff;
+  border-color: #f87171;
+}
+
 /* Hero Batch Import CTA Button */
 .btn-import-cta {
   padding: 11px 24px;

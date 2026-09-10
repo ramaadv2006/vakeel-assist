@@ -40,7 +40,7 @@ function ClientCard({ client, index }) {
               <a href={`https://wa.me/${client.phone}`} target="_blank" rel="noopener noreferrer" className="btn-icon-text btn-edit" title="Send WhatsApp Message">WhatsApp</a>
             </>
           )}
-          <button type="button" className="btn-icon-text" style={{ cursor: 'pointer', background: 'var(--primary)', color: 'white' }} onClick={() => setOpen((v) => !v)}>
+          <button type="button" className="btn-icon-text btn-client-toggle" onClick={() => setOpen((v) => !v)}>
             {open ? 'Hide Cases' : 'Show Cases'}
           </button>
         </div>

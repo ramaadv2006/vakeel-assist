@@ -122,6 +122,12 @@
   background: var(--bg-card);
 }
 
+body.dark .legal-btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--bg-card);
+}
+
 .legal-btn-primary {
   display: inline-flex;
   align-items: center;
@@ -141,6 +147,11 @@
 .legal-btn-primary:hover {
   background: var(--accent-hover);
   color: #ffffff;
+}
+
+body.dark .legal-btn-primary:hover {
+  background: var(--accent-hover);
+  color: #0b1526;
 }
 
 .legal-theme-btn {
