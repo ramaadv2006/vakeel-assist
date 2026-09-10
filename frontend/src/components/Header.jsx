@@ -71,15 +71,15 @@ export default function Header() {
   };
 
   return (
-    <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+    <header className="header-main">
       {/* 1. Left: Brand & Title */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/logo.jpeg" alt="Logo" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover' }} />
+      <div className="header-brand">
+        <Link to="/" className="header-brand-link">
+          <img src="/logo.jpeg" alt="Logo" className="header-logo-img" />
           <h1>Advo <span>Buddy</span></h1>
         </Link>
         {advocate && (
-          <span className="advo-badge-pill" style={{ background: 'rgba(212, 160, 23, 0.12)', color: 'var(--accent)', border: '1px solid rgba(212, 160, 23, 0.3)', padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+          <span className="advo-badge-pill">
             ⚖️ Advocate
           </span>
         )}
@@ -102,10 +102,11 @@ export default function Header() {
       )}
 
       {/* 3. Right: Action Controls & User Popover */}
-      <div className="header-controls" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+      <div className="header-controls">
         {advocate && (
-          <Link to="/add" className="btn-add-nav" style={{ textDecoration: 'none' }}>
-            + Add Case
+          <Link to="/add" className="btn-add-nav">
+            <span className="btn-add-text">+ Add Case</span>
+            <span className="btn-add-short">+ Case</span>
           </Link>
         )}
 
@@ -135,15 +136,15 @@ export default function Header() {
                 <img
                   src={advocate.avatar_url}
                   alt="Avatar"
-                  style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }}
+                  className="header-user-avatar"
                 />
               ) : (
                 <Icon name="user" style={{ width: 16, height: 16 }} />
               )}
-              <span style={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span className="header-user-name">
                 {advocate.name || 'Advocate'}
               </span>
-              <Icon name="chevronDown" style={{ width: 12, height: 12, opacity: 0.7 }} />
+              <Icon name="chevronDown" className="header-user-chevron" style={{ width: 12, height: 12, opacity: 0.7 }} />
             </button>
 
             {profileMenuOpen && (

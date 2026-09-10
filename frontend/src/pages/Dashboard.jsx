@@ -116,7 +116,7 @@ export default function Dashboard() {
           <Icon name="search" />
           <input type="text" placeholder="Search cases by client, case no, court, notes..." value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div className="dashboard-action-buttons">
           <Link to="/case-search" className="btn-export" title="Search and import cases from eCourts" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="court" /> eCourts Import
           </Link>
