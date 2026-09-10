@@ -229,8 +229,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
         </a>
         <button
           type="button"
-          className="btn-icon-text"
-          style={{ background: '#25D366', color: 'white', border: 'none', fontWeight: 600, cursor: 'pointer' }}
+          className="btn-icon-text btn-whatsapp"
           onClick={() => shareOnWhatsApp(caseData)}
           title="Share hearing details on WhatsApp"
         >
@@ -241,7 +240,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
         {caseData.status !== 'Active' && onReopen && (
           <button
             type="button"
-            className="btn-icon-text btn-edit"
+            className="btn-icon-text btn-restore"
             onClick={() => { if (window.confirm(caseData.status === 'Deleted' ? 'Restore this case and set status back to Active?' : 'Reopen this case and set status back to Active?')) onReopen(caseData.id); }}
             title="Move this case back to Active"
           >

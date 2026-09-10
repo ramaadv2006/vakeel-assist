@@ -51,7 +51,7 @@ function LedgerCard({ caseData, index }) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12, borderTop: '1px dashed var(--border-card)', paddingTop: 8, gap: 12 }}>
-        <Link to={`/edit/${caseData.id}#billing-section`} className="btn-icon-text btn-edit" style={{ fontSize: 12, padding: '6px 12px' }}>
+        <Link to={`/edit/${caseData.id}#billing-section`} className="btn-icon-text btn-edit" style={{ fontSize: 13, padding: '7px 16px' }}>
           <Icon name="edit" />
           Update Ledger
         </Link>

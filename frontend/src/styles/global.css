@@ -1073,20 +1073,26 @@ body.dark .badge.archived {
 .actions {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .btn-icon-text {
     font-size: var(--text-sm);
     font-weight: 600;
     text-decoration: none;
-    padding: 8px 14px;
+    padding: 7px 14px;
     border-radius: var(--radius-full);
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     transition: var(--transition);
     border: 1px solid transparent;
+    user-select: none;
+    white-space: nowrap;
+    cursor: pointer;
+    line-height: 1.2;
 }
 
 .btn-icon-text:hover {
@@ -1098,32 +1104,72 @@ body.dark .badge.archived {
     transform: scale(0.97);
 }
 
+/* 1. eCourts Action Button */
 .btn-ecourts {
     background-color: var(--accent-bg);
     color: var(--accent-hover);
-    border-color: var(--accent-border);
+    border: 1px solid var(--accent-border);
 }
 
 .btn-ecourts:hover {
     background-color: var(--accent);
     color: var(--primary);
+    border-color: var(--accent);
 }
 
-body.dark .btn-ecourts {
-    background-color: rgba(184, 147, 94, 0.14);
-    color: var(--accent);
-    border-color: var(--accent-border);
+body.dark .btn-ecourts,
+[data-theme='dark'] .btn-ecourts {
+    background-color: rgba(184, 147, 94, 0.15) !important;
+    color: #e6c35c !important;
+    border: 1px solid rgba(212, 175, 55, 0.45) !important;
 }
 
-body.dark .btn-ecourts:hover {
-    background-color: var(--accent);
-    color: var(--primary);
+body.dark .btn-ecourts:hover,
+[data-theme='dark'] .btn-ecourts:hover {
+    background-color: #d4af37 !important;
+    color: #0b1526 !important;
+    border-color: #d4af37 !important;
+    box-shadow: 0 3px 12px rgba(212, 175, 55, 0.35);
 }
 
+/* 2. WhatsApp Official Green Button */
+.btn-whatsapp {
+    background-color: #25D366 !important;
+    color: #ffffff !important;
+    border: 1px solid #20ba5a !important;
+    font-weight: 600;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
+}
+
+.btn-whatsapp:hover {
+    background-color: #20ba5a !important;
+    color: #ffffff !important;
+    border-color: #1aa34e !important;
+    box-shadow: 0 3px 12px rgba(37, 211, 102, 0.4);
+}
+
+body.dark .btn-whatsapp,
+[data-theme='dark'] .btn-whatsapp {
+    background-color: #25D366 !important;
+    color: #0b1526 !important;
+    border: 1px solid #25D366 !important;
+    font-weight: 700;
+    text-shadow: none;
+}
+
+body.dark .btn-whatsapp:hover,
+[data-theme='dark'] .btn-whatsapp:hover {
+    background-color: #2ee672 !important;
+    color: #0b1526 !important;
+    border-color: #2ee672 !important;
+    box-shadow: 0 4px 14px rgba(37, 211, 102, 0.45);
+}
+
+/* 3. General Edit / History / Secondary Button */
 .btn-edit {
     background-color: var(--gray-100);
-    color: var(--gray-600);
-    border: 1px solid transparent;
+    color: var(--gray-700);
+    border: 1px solid var(--gray-300);
 }
 
 .btn-edit:active {
@@ -1133,23 +1179,57 @@ body.dark .btn-ecourts:hover {
 .btn-edit:hover {
     background-color: var(--gray-200);
     color: var(--primary-light);
+    border-color: var(--gray-400);
 }
 
-body.dark .btn-edit {
-    background-color: var(--gray-200);
-    color: var(--text-dark);
-    border: 1px solid var(--border-card);
+body.dark .btn-edit,
+[data-theme='dark'] .btn-edit {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border: 1px solid #3b4d68 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-body.dark .btn-edit:hover {
-    background-color: var(--gray-300);
+body.dark .btn-edit:hover,
+[data-theme='dark'] .btn-edit:hover {
+    background-color: var(--accent) !important;
+    color: #0b1526 !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 3px 12px rgba(184, 147, 94, 0.35);
+}
+
+/* 4. Restore / Reopen Button */
+.btn-restore {
+    background-color: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(21, 127, 74, 0.25);
+}
+
+.btn-restore:hover {
+    background-color: var(--success);
     color: #ffffff;
-    border-color: var(--accent);
 }
 
+body.dark .btn-restore,
+[data-theme='dark'] .btn-restore {
+    background-color: rgba(78, 201, 138, 0.16) !important;
+    color: #4ec98a !important;
+    border: 1px solid rgba(78, 201, 138, 0.4) !important;
+}
+
+body.dark .btn-restore:hover,
+[data-theme='dark'] .btn-restore:hover {
+    background-color: #4ec98a !important;
+    color: #0b1526 !important;
+    border-color: #4ec98a !important;
+    box-shadow: 0 3px 12px rgba(78, 201, 138, 0.35);
+}
+
+/* 5. Delete Action Button */
 .btn-delete {
     background-color: var(--danger-bg);
     color: var(--danger);
+    border: 1px solid rgba(179, 38, 30, 0.2);
 }
 
 .btn-delete:hover {
@@ -1161,14 +1241,19 @@ body.dark .btn-edit:hover {
     transform: scale(0.97);
 }
 
-body.dark .btn-delete {
-    background-color: rgba(179, 38, 30, 0.16);
+body.dark .btn-delete,
+[data-theme='dark'] .btn-delete {
+    background-color: rgba(240, 115, 106, 0.16) !important;
+    color: #f87171 !important;
+    border: 1px solid rgba(240, 115, 106, 0.35) !important;
 }
 
-body.dark .btn-delete:hover {
-    background-color: var(--danger);
-    color: var(--primary);
-    /* --danger is a light tint in dark mode; ink reads, white doesn't */
+body.dark .btn-delete:hover,
+[data-theme='dark'] .btn-delete:hover {
+    background-color: #f0736a !important;
+    color: #0b1526 !important;
+    border-color: #f0736a !important;
+    box-shadow: 0 3px 12px rgba(240, 115, 106, 0.35);
 }
 
 /* Empty State */

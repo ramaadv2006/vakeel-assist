@@ -37,7 +37,7 @@ function ClientCard({ client, index }) {
           {client.phone && (
             <>
               <a href={`tel:${client.phone}`} className="btn-icon-text btn-ecourts" title="Call client phone">Call Client</a>
-              <a href={`https://wa.me/${client.phone}`} target="_blank" rel="noopener noreferrer" className="btn-icon-text btn-edit" title="Send WhatsApp Message">WhatsApp</a>
+              <a href={`https://wa.me/${client.phone}`} target="_blank" rel="noopener noreferrer" className="btn-icon-text btn-whatsapp" title="Send WhatsApp Message">WhatsApp</a>
             </>
           )}
           <button type="button" className="btn-icon-text btn-client-toggle" onClick={() => setOpen((v) => !v)}>
@@ -64,9 +64,9 @@ function ClientCard({ client, index }) {
                     {c.case_type && <> {' | '}Type: <strong>{c.case_type}</strong></>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <Link to={`/history/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 11, padding: '4px 8px' }}>History</Link>
-                  <Link to={`/edit/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 11, padding: '4px 8px' }}>Edit</Link>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Link to={`/history/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 12, padding: '5px 12px' }}>History</Link>
+                  <Link to={`/edit/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 12, padding: '5px 12px' }}>Edit</Link>
                 </div>
               </div>
             ))}
