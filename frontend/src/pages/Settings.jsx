@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useFlash } from '../context/FlashContext';
 import Icon from '../components/Icon';
+import Skeleton from '../components/Skeleton';
 
 const REMINDER_DAYS = [1, 2, 3, 5, 7];
 
@@ -13,20 +14,36 @@ export default function Settings() {
   const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
-    name: advocate.name || '',
-    email: advocate.email || '',
-    phone: advocate.phone || '',
+    name: advocate?.name || '',
+    email: advocate?.email || '',
+    phone: advocate?.phone || '',
     role: 'advocate',
-    bar_council_number: advocate.bar_council_number || '',
-    office_address: advocate.office_address || '',
-    specialization: advocate.specialization || '',
-    reminder_method: advocate.reminder_method || 'none',
-    reminder_days_before: advocate.reminder_days_before || 1,
+    bar_council_number: advocate?.bar_council_number || '',
+    office_address: advocate?.office_address || '',
+    specialization: advocate?.specialization || '',
+    reminder_method: advocate?.reminder_method || 'none',
+    reminder_days_before: advocate?.reminder_days_before || 1,
   });
   const [preview, setPreview] = useState(null);
   const [avatarError, setAvatarError] = useState(false);
   const [phoneError, setPhoneError] = useState(false);
   const [shake, setShake] = useState(false);
+
+  useEffect(() => {
+    if (advocate) {
+      setForm({
+        name: advocate.name || '',
+        email: advocate.email || '',
+        phone: advocate.phone || '',
+        role: advocate.role || 'advocate',
+        bar_council_number: advocate.bar_council_number || '',
+        office_address: advocate.office_address || '',
+        specialization: advocate.specialization || '',
+        reminder_method: advocate.reminder_method || 'none',
+        reminder_days_before: advocate.reminder_days_before || 1,
+      });
+    }
+  }, [advocate]);
 
   useEffect(() => {
     setAvatarError(false);
@@ -79,7 +96,15 @@ export default function Settings() {
     }
   };
 
-  const avatarUrl = preview || advocate.avatar_url;
+  if (!advocate) {
+    return (
+      <div className="form-container" style={{ maxWidth: 780 }}>
+        <Skeleton count={2} rows={3} widths={['40%', '80%']} />
+      </div>
+    );
+  }
+
+  const avatarUrl = preview || advocate?.avatar_url;
 
   return (
     <div className="form-container" style={{ maxWidth: 780 }}>
@@ -110,16 +135,16 @@ export default function Settings() {
             />
           ) : (
             <span style={{ fontSize: 40, fontWeight: 700, color: 'var(--accent-hover)', textTransform: 'uppercase', fontFamily: "'Lora', serif" }}>
-              {advocate.name ? advocate.name[0] : 'A'}
+              {advocate?.name ? advocate.name[0] : 'A'}
             </span>
           )}
         </div>
 
         <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)' }}>
-          {advocate.name}
+          {advocate?.name || 'Advocate'}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-main)', marginTop: 2 }}>
-          {advocate.bar_council_number ? <>Enrollment No: <strong>{advocate.bar_council_number}</strong></> : 'Advocate & Legal Counsel'}
+          {advocate?.bar_council_number ? <>Enrollment No: <strong>{advocate.bar_council_number}</strong></> : 'Advocate & Legal Counsel'}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 14 }}>
@@ -128,7 +153,7 @@ export default function Settings() {
             Change Photo
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
           </label>
-          {advocate.avatar_url && (
+          {advocate?.avatar_url && (
             <button type="button" onClick={handleRemoveAvatar} style={{ background: 'none', border: '1px solid var(--border-card)', color: 'var(--danger)', padding: '8px 14px', borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               Remove
             </button>
