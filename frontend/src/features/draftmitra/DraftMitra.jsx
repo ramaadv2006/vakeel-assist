@@ -7,9 +7,10 @@ import {
 } from "lucide-react";
 
 import {
-  TEMPLATES, F, blocksToPlainText, buildDocumentHtml,
+  TEMPLATES, F, blocksToPlainText, buildDocumentHtml, renderBlocks, foldedPageFragment,
   paramsFromCustomTemplate, generateFromCustomTemplate,
 } from "./templates";
+import { generateAndDownloadPdf } from "./pdfGenerator";
 import { storageGet, storageSet, storageDelete, storageList } from "./storage";
 import { importDraftWithAI } from "./aiImport";
 import { useAuth } from "../../context/AuthContext";
@@ -419,7 +420,12 @@ export default function DraftMitra() {
   );
 
   const handlePrint = () => {
-    const html = pagesToHtml(page1Blocks, page2Blocks, activeTemplate?.name || "Draft");
+    const rawTitle = activeTemplate?.name || "Draft";
+    const clientName = (data.client || data.accused || data.petitioner || "").trim();
+    const safeClient = clientName ? `_${clientName.replace(/[^a-zA-Z0-9_-]/g, "_")}` : "";
+    const docTitle = `${rawTitle.replace(/[^a-zA-Z0-9_-]/g, "_")}${safeClient}`;
+
+    const html = pagesToHtml(page1Blocks, page2Blocks, docTitle);
     const iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
     iframe.style.right = "0";
@@ -435,10 +441,11 @@ export default function DraftMitra() {
       try {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
-      } catch {
-        flashToast("Could not open print dialog — try the Word download instead");
+      } catch (e) {
+        console.error("Print error:", e);
+        flashToast("Could not open print dialog");
       }
-      setTimeout(cleanup, 1500);
+      setTimeout(cleanup, 2000);
     };
     const doc = iframe.contentWindow.document;
     doc.open();
@@ -446,6 +453,7 @@ export default function DraftMitra() {
     doc.close();
   };
 
+  /* Word format downloading option (commented out)
   const handleDownloadWord = () => {
     const html = pagesToHtml(page1Blocks, page2Blocks, activeTemplate?.name || "Draft");
     const blob = new Blob(["\ufeff", html], { type: "application/msword" });
@@ -459,6 +467,7 @@ export default function DraftMitra() {
     URL.revokeObjectURL(url);
     flashToast("Word file downloaded");
   };
+  */
 
   const handleCopy = async () => {
     const text =
@@ -539,7 +548,6 @@ export default function DraftMitra() {
           mobileTab={mobileTab}
           setMobileTab={setMobileTab}
           onPrint={handlePrint}
-          onDownload={handleDownloadWord}
           onCopy={handleCopy}
           onSaveClick={() => setShowSaveBox(true)}
           onDrafts={() => setShowDrafts(true)}
@@ -863,7 +871,7 @@ function Library({
   );
 }
 
-function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab, setMobileTab, onPrint, onDownload, onCopy, onSaveClick, onDrafts, onBack }) {
+function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab, setMobileTab, onPrint, onCopy, onSaveClick, onDrafts, onBack }) {
   return (
     <main style={styles.editorMain}>
       <div style={styles.editorHead}>
@@ -894,9 +902,11 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab,
           <button style={styles.btnGhost} onClick={onCopy} title="Copy plain text">
             <Copy size={15} /> <span>Copy</span>
           </button>
-          <button style={styles.btnGhost} onClick={onDownload} title="Export to Microsoft Word">
+          {/* Word format downloading option (commented out as requested)
+          <button style={styles.btnGhost} onClick={onDownloadWord} title="Export to Microsoft Word">
             <Download size={15} /> <span>Word</span>
           </button>
+          */}
           <button style={styles.btnPrimaryGold} onClick={onPrint} title="Print or save as PDF">
             <Printer size={15} /> <span>Print / PDF</span>
           </button>
@@ -941,7 +951,7 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab,
 
           <div style={styles.hintBox}>
             <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1, color: "var(--gold-ink)" }} />
-            <span>Changes reflect live in the official court paper view on the right. Export cleanly to Word or Print anytime.</span>
+            <span>Changes reflect live in the official court paper view on the right. Export cleanly to PDF or Print anytime.</span>
           </div>
         </div>
 

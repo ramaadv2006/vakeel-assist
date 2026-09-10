@@ -722,7 +722,7 @@ const esc = (s) =>
  * renderer ignores flex, which would drop the role right beside the
  * name instead of aligning it to the right margin.
  */
-function renderBlocks(blocks, { folded = false } = {}) {
+export function renderBlocks(blocks, { folded = false } = {}) {
   const align = folded ? "left" : "justify";
   return blocks
     .map((b) => {
