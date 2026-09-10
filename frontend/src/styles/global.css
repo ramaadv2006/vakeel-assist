@@ -597,6 +597,7 @@ header h1 span {
 .btn-add-nav {
     background-color: var(--accent);
     color: var(--primary) !important;
+    text-decoration: none !important;
     padding: 9px 16px;
     white-space: nowrap;
     border-radius: var(--radius-full);
@@ -608,6 +609,7 @@ header h1 span {
 }
 
 .btn-add-nav:hover {
+    text-decoration: none !important;
     background-color: #c9a670;
     color: var(--primary) !important;
     transform: translateY(-2px);
@@ -615,6 +617,7 @@ header h1 span {
 }
 
 .btn-add-nav:active {
+    text-decoration: none !important;
     transform: scale(0.97);
 }
 

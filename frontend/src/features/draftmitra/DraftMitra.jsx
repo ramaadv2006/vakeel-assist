@@ -413,11 +413,15 @@ export default function DraftMitra() {
 
   const setField = (id, val) => setData((d) => ({ ...d, [id]: val }));
 
-  const page1Blocks = useMemo(() => (activeTemplate ? activeTemplate.generate(data) : []), [activeTemplate, data]);
-  const page2Blocks = useMemo(
+  const coverBlocks = useMemo(
     () => (activeTemplate && activeTemplate.generateCover ? activeTemplate.generateCover(data) : null),
     [activeTemplate, data]
   );
+  const petitionBlocks = useMemo(() => (activeTemplate ? activeTemplate.generate(data) : []), [activeTemplate, data]);
+
+  // When a backing sheet/docket exists, Page 1 has the Folded Backing Sheet (Docket) and Page 2 has the Main Petition
+  const page1Blocks = useMemo(() => (coverBlocks ? coverBlocks : petitionBlocks), [coverBlocks, petitionBlocks]);
+  const page2Blocks = useMemo(() => (coverBlocks ? petitionBlocks : null), [coverBlocks, petitionBlocks]);
 
   const handlePrint = () => {
     const rawTitle = activeTemplate?.name || "Draft";
@@ -470,9 +474,14 @@ export default function DraftMitra() {
   */
 
   const handleCopy = async () => {
-    const text =
-      blocksToPlainText(page1Blocks) +
-      (page2Blocks ? `\n\n----- PAGE 2 — BACKING SHEET -----\n\n${blocksToPlainText(page2Blocks)}` : "");
+    let text = "";
+    if (page2Blocks) {
+      text =
+        `----- PAGE 1 — FOLDED BACKING SHEET (DOCKET) -----\n\n${blocksToPlainText(page1Blocks)}\n\n` +
+        `----- PAGE 2 — MAIN PETITION -----\n\n${blocksToPlainText(page2Blocks)}`;
+    } else {
+      text = blocksToPlainText(page1Blocks);
+    }
     try {
       await navigator.clipboard.writeText(text);
       flashToast("Copied text to clipboard");
@@ -545,6 +554,7 @@ export default function DraftMitra() {
           setField={setField}
           page1Blocks={page1Blocks}
           page2Blocks={page2Blocks}
+          hasCover={Boolean(coverBlocks)}
           mobileTab={mobileTab}
           setMobileTab={setMobileTab}
           onPrint={handlePrint}
@@ -871,7 +881,7 @@ function Library({
   );
 }
 
-function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab, setMobileTab, onPrint, onCopy, onSaveClick, onDrafts, onBack }) {
+function Editor({ template, data, setField, page1Blocks, page2Blocks, hasCover, mobileTab, setMobileTab, onPrint, onCopy, onSaveClick, onDrafts, onBack }) {
   return (
     <main style={styles.editorMain}>
       <div style={styles.editorHead}>
@@ -956,32 +966,49 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, mobileTab,
         </div>
 
         <div style={styles.previewPane} className={`preview-pane ${mobileTab === "preview" ? "mobile-active" : ""}`}>
-          <div style={styles.pageLabel}>PAGE 1 — MAIN PETITION</div>
-          <div style={styles.paper} className="paper">
-            <div style={styles.paperRedLine} />
-            <div style={styles.paperContent}>
-              {page1Blocks.map((b, i) => (
-                <RenderBlock key={i} block={b} />
-              ))}
-            </div>
-          </div>
-
-          {page2Blocks && (
-            <div style={{ marginTop: 28 }}>
-              <div style={styles.pageLabel}>PAGE 2 — FOLDED BACKING SHEET (DOCKET)</div>
+          {hasCover ? (
+            <>
+              {/* PAGE 1: Folded Backing Sheet (Docket) */}
+              <div style={styles.pageLabel}>PAGE 1 — FOLDED BACKING SHEET (DOCKET)</div>
               <div style={styles.paper} className="paper">
                 <div style={styles.paperRedLine} />
                 <div style={styles.foldLine} />
                 <div style={styles.foldRow}>
                   <div style={styles.foldSpacer} />
                   <div style={styles.foldContent}>
-                    {page2Blocks.map((b, i) => (
+                    {page1Blocks.map((b, i) => (
                       <RenderBlock key={i} block={b} folded />
                     ))}
                   </div>
                 </div>
               </div>
-            </div>
+
+              {/* PAGE 2: Main Petition */}
+              <div style={{ marginTop: 28 }}>
+                <div style={styles.pageLabel}>PAGE 2 — MAIN PETITION</div>
+                <div style={styles.paper} className="paper">
+                  <div style={styles.paperRedLine} />
+                  <div style={styles.paperContent}>
+                    {page2Blocks.map((b, i) => (
+                      <RenderBlock key={i} block={b} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Single page draft without backing sheet */}
+              <div style={styles.pageLabel}>PAGE 1 — MAIN PETITION</div>
+              <div style={styles.paper} className="paper">
+                <div style={styles.paperRedLine} />
+                <div style={styles.paperContent}>
+                  {page1Blocks.map((b, i) => (
+                    <RenderBlock key={i} block={b} />
+                  ))}
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

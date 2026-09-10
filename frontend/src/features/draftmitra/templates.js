@@ -129,11 +129,11 @@ export const TEMPLATES = [
         { t: "table", rows },
         { t: "space" },
         { t: "signblock", v: `Counsel for ${d.filedBy || "Accused"}` },
+        { t: "space" },
+        { t: "left", v: "Date of Hearing:\nDate of disposal:" },
       ];
     },
     generateCover: (d) => [
-      { t: "left", v: "Date of Hearing:\nDate of disposal:" },
-      { t: "space" },
       { t: "center", v: `IN THE COURT OF THE ${up(d.court)}` },
       { t: "left", v: `No. ${d.caseNo || "____"}` },
       { t: "space" },
@@ -826,8 +826,10 @@ ${rows.map((r) => `<tr>
  * Word creates a clean Section Break with distinct margins for the Docket.
  */
 export function buildDocumentHtml(page1, page2, title) {
-  const section1 = renderBlocks(page1);
-  const section2 = page2 ? foldedPageFragment(page2) : "";
+  const hasTwoPages = Boolean(page2 && page2.length > 0);
+  // When there are two pages, Page 1 is the folded backing sheet (docket) and Page 2 is the main petition
+  const section1 = hasTwoPages ? foldedPageFragment(page1) : renderBlocks(page1);
+  const section2 = hasTwoPages ? renderBlocks(page2) : "";
 
   return `<!DOCTYPE html>
 <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
@@ -839,10 +841,15 @@ export function buildDocumentHtml(page1, page2, title) {
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->
 <style>
 @page { size: A4 portrait; margin: 0; }
+${hasTwoPages ? `
+@page WordSection1 { size: 21.0cm 29.7cm; margin: 1.8cm 1.5cm 1.8cm 1.5cm; mso-page-orientation: portrait; }
+div.WordSection1 { page: WordSection1; box-sizing: border-box; }
+@page WordSection2 { size: 21.0cm 29.7cm; margin: 3.2cm 2.0cm 2.0cm 2.8cm; mso-page-orientation: portrait; }
+div.WordSection2 { page: WordSection2; page-break-before: always; break-before: page; box-sizing: border-box; }
+` : `
 @page WordSection1 { size: 21.0cm 29.7cm; margin: 3.2cm 2.0cm 2.0cm 2.8cm; mso-page-orientation: portrait; }
 div.WordSection1 { page: WordSection1; box-sizing: border-box; }
-@page WordSection2 { size: 21.0cm 29.7cm; margin: 1.8cm 1.5cm 1.8cm 1.5cm; mso-page-orientation: portrait; }
-div.WordSection2 { page: WordSection2; page-break-before: always; break-before: page; box-sizing: border-box; }
+`}
 body { 
   font-family: 'Times New Roman', 'Liberation Serif', serif; 
   font-size: 17px; 
@@ -864,7 +871,7 @@ body {
 <div class="WordSection1">
 ${section1}
 </div>
-${page2 ? `<!--[if mso]>
+${hasTwoPages ? `<!--[if mso]>
 <br clear="all" style="page-break-before:always;mso-break-type:section-break" />
 <![endif]-->
 <div class="WordSection2">
