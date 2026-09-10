@@ -178,8 +178,8 @@ export default function AuthShell({ children }) {
           {/* Central Statement */}
           <div className="auth-hero-statement">
             <h1 className="auth-hero-heading">
-              <span className="auth-hero-white">Justice is</span>
-              <span className="auth-hero-gold">in the details.</span>
+              <span className="auth-hero-white">Where advocates meet</span>
+              <span className="auth-hero-gold">smarter legal technology.</span>
             </h1>
 
             <div className="auth-hero-separator" aria-hidden="true">
