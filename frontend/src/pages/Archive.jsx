@@ -46,7 +46,7 @@ export default function Archive() {
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
           <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Archive</span>

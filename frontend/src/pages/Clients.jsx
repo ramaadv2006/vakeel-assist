@@ -61,7 +61,7 @@ function ClientCard({ client, index }) {
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 700,
-              fontSize: 16,
+              fontSize: 18,
               letterSpacing: 0.5,
               boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
               flexShrink: 0,
@@ -71,10 +71,10 @@ function ClientCard({ client, index }) {
           </div>
 
           <div>
-            <h3 className="client-name" style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', margin: 0, lineHeight: 1.25 }}>
+            <h3 className="client-name" style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)', margin: 0, lineHeight: 1.25 }}>
               {client.name}
             </h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5, fontSize: 13, color: 'var(--text-main)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 5, fontSize: 15, color: 'var(--text-main)' }}>
               {client.phone ? (
                 <span className="client-phone" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 500 }}>
                   <Icon name="phone" style={{ width: 13, height: 13, color: 'var(--accent)' }} />
@@ -87,7 +87,7 @@ function ClientCard({ client, index }) {
               <span
                 style={{
                   fontWeight: 700,
-                  fontSize: 11.5,
+                  fontSize: 13.5,
                   padding: '2px 8px',
                   borderRadius: 12,
                   background: 'var(--accent-bg)',
@@ -110,7 +110,7 @@ function ClientCard({ client, index }) {
                 href={`tel:${client.phone}`}
                 className="btn-icon-text btn-ecourts"
                 title="Call client phone"
-                style={{ padding: '7px 14px', fontSize: 12.5 }}
+                style={{ padding: '7px 14px', fontSize: 14.5 }}
               >
                 <Icon name="phone" style={{ width: 13, height: 13 }} />
                 <span>Call</span>
@@ -123,7 +123,7 @@ function ClientCard({ client, index }) {
                 rel="noopener noreferrer"
                 className="btn-icon-text btn-whatsapp"
                 title="Send WhatsApp Message"
-                style={{ padding: '7px 14px', fontSize: 12.5 }}
+                style={{ padding: '7px 14px', fontSize: 14.5 }}
               >
                 <span>WhatsApp</span>
               </motion.a>
@@ -135,7 +135,7 @@ function ClientCard({ client, index }) {
             type="button"
             className={`btn-icon-text ${open ? 'btn-export' : 'btn-submit'}`}
             onClick={() => setOpen((v) => !v)}
-            style={{ padding: '7px 16px', fontSize: 12.5, margin: 0 }}
+            style={{ padding: '7px 16px', fontSize: 14.5, margin: 0 }}
           >
             {open ? 'Hide Cases' : `View Cases`}
           </motion.button>
@@ -153,10 +153,10 @@ function ClientCard({ client, index }) {
           >
             <div style={{ marginTop: 18, borderTop: '1px solid var(--border-card)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-muted)' }}>
+                <span style={{ fontSize: 13.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-muted)' }}>
                   Active Matters for {client.name}
                 </span>
-                <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{client.cases.length} court file{client.cases.length === 1 ? '' : 's'}</span>
+                <span style={{ fontSize: 13.5, color: 'var(--text-muted)' }}>{client.cases.length} court file{client.cases.length === 1 ? '' : 's'}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {client.cases.map((c) => (
@@ -177,21 +177,21 @@ function ClientCard({ client, index }) {
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 14.5, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontWeight: 700, fontSize: 16.5, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span>{c.case_number}</span>
-                        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-muted)' }}>• {c.court_name}</span>
+                        <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-muted)' }}>• {c.court_name}</span>
                       </div>
-                      <div style={{ fontSize: 12.5, color: 'var(--text-main)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ fontSize: 14.5, color: 'var(--text-main)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span>Next Hearing: <strong style={{ color: 'var(--accent-hover)' }}>{c.next_hearing_date}</strong></span>
                         {c.case_type && <span>| Type: <strong>{c.case_type}</strong></span>}
                         {c.case_stage && <span>| Stage: <strong>{c.case_stage}</strong></span>}
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <Link to={`/history/${c.id}`} className="btn-icon-text btn-export" style={{ fontSize: 12, padding: '5px 12px' }}>
+                      <Link to={`/history/${c.id}`} className="btn-icon-text btn-export" style={{ fontSize: 14, padding: '5px 12px' }}>
                         History
                       </Link>
-                      <Link to={`/edit/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 12, padding: '5px 12px' }}>
+                      <Link to={`/edit/${c.id}`} className="btn-icon-text btn-edit" style={{ fontSize: 14, padding: '5px 12px' }}>
                         Edit
                       </Link>
                     </div>
@@ -237,7 +237,7 @@ export default function Clients() {
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
           <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Clients</span>

@@ -37,7 +37,7 @@ export default function CaseHistory() {
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
           <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Hearing History</span>
@@ -132,18 +132,18 @@ export default function CaseHistory() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontFamily: "'Lora', serif", fontSize: 17, fontWeight: 700, color: 'var(--text-dark)' }}>
+                        <span style={{ fontFamily: "'Lora', serif", fontSize: 19, fontWeight: 700, color: 'var(--text-dark)' }}>
                           {entry.hearing_date}
                         </span>
                         <span
                           className={`badge ${isLast ? 'today' : 'upcoming'}`}
-                          style={{ fontSize: 10.5, padding: '2px 8px' }}
+                          style={{ fontSize: 12.5, padding: '2px 8px' }}
                         >
                           {isLast ? 'Current Schedule' : 'Past Listing'}
                         </span>
                       </div>
 
-                      <div className="meta" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--text-muted)' }}>
+                      <div className="meta" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14.5, color: 'var(--text-muted)' }}>
                         <Clock size={12} />
                         <span>Recorded on {entry.added_at}</span>
                       </div>
@@ -158,7 +158,7 @@ export default function CaseHistory() {
                         borderRadius: 'var(--radius-sm)',
                         background: 'var(--bg-app)',
                         borderLeft: '3px solid var(--accent)',
-                        fontSize: 13,
+                        fontSize: 15,
                         color: 'var(--text-main)',
                       }}
                     >

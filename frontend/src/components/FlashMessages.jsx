@@ -23,7 +23,7 @@ function FlashItem({ flash, onRemove }) {
       <Icon name={ICONS[flash.category] || 'info'} />
       {flash.message}
       <span
-        style={{ marginLeft: 'auto', cursor: 'pointer', fontSize: 18, fontWeight: 'bold', opacity: 0.7, paddingLeft: 12 }}
+        style={{ marginLeft: 'auto', cursor: 'pointer', fontSize: 20, fontWeight: 'bold', opacity: 0.7, paddingLeft: 12 }}
         onClick={() => setDismissing(true)}
       >
         &times;

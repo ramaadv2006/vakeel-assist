@@ -122,7 +122,7 @@ export default function Settings() {
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
           <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Settings</span>
@@ -150,21 +150,21 @@ export default function Settings() {
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
-            <span style={{ fontSize: 40, fontWeight: 700, color: 'var(--accent-hover)', textTransform: 'uppercase', fontFamily: "'Lora', serif" }}>
+            <span style={{ fontSize: 42, fontWeight: 700, color: 'var(--accent-hover)', textTransform: 'uppercase', fontFamily: "'Lora', serif" }}>
               {advocate?.name ? advocate.name[0] : 'A'}
             </span>
           )}
         </div>
 
-        <div style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: 'var(--text-dark)' }}>
+        <div style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 700, color: 'var(--text-dark)' }}>
           {advocate?.name || 'Advocate'}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-main)', marginTop: 4 }}>
+        <div style={{ fontSize: 15, color: 'var(--text-main)', marginTop: 4 }}>
           {advocate?.bar_council_number ? <>Enrollment No: <strong>{advocate.bar_council_number}</strong></> : 'Advocate & Legal Counsel'}
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--primary)', fontSize: 14, fontWeight: 600 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} />
             <span>Verified Chambers Counsel</span>
           </div>
@@ -177,7 +177,7 @@ export default function Settings() {
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
           </label>
           {advocate?.avatar_url && (
-            <button type="button" onClick={handleRemoveAvatar} style={{ background: 'none', border: '1px solid var(--border-card)', color: 'var(--danger)', padding: '8px 14px', borderRadius: 'var(--radius-sm)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <button type="button" onClick={handleRemoveAvatar} style={{ background: 'none', border: '1px solid var(--border-card)', color: 'var(--danger)', padding: '8px 14px', borderRadius: 'var(--radius-sm)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
               Remove
             </button>
           )}
@@ -185,7 +185,7 @@ export default function Settings() {
       </div>
 
       <form className={`card-form staggered-entry${shake ? ' shake-error' : ''}`} onSubmit={handleSubmit} noValidate>
-        <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="user" style={{ color: 'var(--accent)' }} />
           Personal & Professional Info
         </div>
@@ -224,7 +224,7 @@ export default function Settings() {
         </div>
 
         <div style={{ margin: '10px 0 0 0', borderBottom: '1px dashed var(--border-card)', paddingBottom: 10 }}>
-          <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="bell" style={{ color: 'var(--accent)' }} />
             Notification & Alert Preferences
           </div>
@@ -232,7 +232,7 @@ export default function Settings() {
 
         {/* Visual Channel Selector */}
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>
+          <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>
             Alert Delivery Channel
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
@@ -258,8 +258,8 @@ export default function Settings() {
                   }}
                 >
                   <Icon name={ch.icon} style={{ width: 18, height: 18, stroke: isActive ? 'var(--accent)' : 'var(--text-muted)' }} />
-                  <span style={{ fontWeight: 600, fontSize: 13 }}>{ch.label}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ch.desc}</span>
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>{ch.label}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>{ch.desc}</span>
                 </button>
               );
             })}
@@ -290,11 +290,11 @@ export default function Settings() {
 
       {/* Legal & Compliance Section */}
       <div className="card-form staggered-entry" style={{ marginTop: 24, padding: 20 }}>
-        <div style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <Icon name="court" style={{ color: 'var(--accent)' }} />
           Legal &amp; Data Protection Compliance
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text-main)', lineHeight: 1.5, margin: '0 0 14px 0' }}>
+        <p style={{ fontSize: 15, color: 'var(--text-main)', lineHeight: 1.5, margin: '0 0 14px 0' }}>
           Your data is processed in accordance with the <em>Digital Personal Data Protection Act, 2023</em> and Bar Council ethical standards. All chamber files, briefs, and client records are encrypted and strictly isolated to your account.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -306,7 +306,7 @@ export default function Settings() {
               gap: 6,
               padding: '7px 12px',
               borderRadius: 'var(--radius-sm)',
-              fontSize: 12.5,
+              fontSize: 14.5,
               fontWeight: 600,
               textDecoration: 'none',
               color: 'var(--text-dark)',
@@ -325,7 +325,7 @@ export default function Settings() {
               gap: 6,
               padding: '7px 12px',
               borderRadius: 'var(--radius-sm)',
-              fontSize: 12.5,
+              fontSize: 14.5,
               fontWeight: 600,
               textDecoration: 'none',
               color: 'var(--text-dark)',
@@ -344,7 +344,7 @@ export default function Settings() {
               gap: 6,
               padding: '7px 12px',
               borderRadius: 'var(--radius-sm)',
-              fontSize: 12.5,
+              fontSize: 14.5,
               fontWeight: 600,
               textDecoration: 'none',
               color: 'var(--text-dark)',
@@ -363,7 +363,7 @@ export default function Settings() {
               gap: 6,
               padding: '7px 12px',
               borderRadius: 'var(--radius-sm)',
-              fontSize: 12.5,
+              fontSize: 14.5,
               fontWeight: 600,
               textDecoration: 'none',
               color: 'var(--text-dark)',
@@ -382,7 +382,7 @@ export default function Settings() {
               gap: 6,
               padding: '7px 12px',
               borderRadius: 'var(--radius-sm)',
-              fontSize: 12.5,
+              fontSize: 14.5,
               fontWeight: 600,
               textDecoration: 'none',
               color: 'var(--text-dark)',

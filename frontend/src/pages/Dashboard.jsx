@@ -433,7 +433,7 @@ export default function Dashboard() {
                 &larr; Prev Month
               </button>
 
-              <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
+              <h2 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
                 {MONTH_NAMES[calMonth]} {calYear}
               </h2>
 
@@ -453,7 +453,7 @@ export default function Dashboard() {
                   key={d}
                   style={{
                     fontWeight: 700,
-                    fontSize: 12,
+                    fontSize: 14,
                     textTransform: 'uppercase',
                     letterSpacing: '0.8px',
                     color: 'var(--text-main)',
@@ -493,12 +493,12 @@ export default function Dashboard() {
             </div>
 
             {filterDate && (
-              <div style={{ display: 'flex', marginTop: 18, padding: '12px 18px', background: 'var(--accent-bg)', borderLeft: '3px solid var(--accent)', borderRadius: 'var(--radius-sm)', fontSize: 13.5, color: 'var(--text-main)', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', marginTop: 18, padding: '12px 18px', background: 'var(--accent-bg)', borderLeft: '3px solid var(--accent)', borderRadius: 'var(--radius-sm)', fontSize: 15.5, color: 'var(--text-main)', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>Showing hearings listed on: <strong>{filterDate}</strong></span>
                 <button
                   onClick={() => setFilterDate(null)}
                   type="button"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 700, fontSize: 13 }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 700, fontSize: 15 }}
                 >
                   ✕ Show All Dates
                 </button>
@@ -611,10 +611,10 @@ export default function Dashboard() {
           <div style={{ width: 56, height: 56, margin: '0 auto 16px', borderRadius: '50%', background: 'var(--accent-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
             <Scale size={28} />
           </div>
-          <h3 style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)', marginBottom: 6 }}>
+          <h3 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: 'var(--text-dark)', marginBottom: 6 }}>
             {query ? 'No matching court files found' : 'Docket is all clear'}
           </h3>
-          <p style={{ color: 'var(--text-main)', fontSize: 14, maxWidth: 440, margin: '0 auto 20px' }}>
+          <p style={{ color: 'var(--text-main)', fontSize: 16, maxWidth: 440, margin: '0 auto 20px' }}>
             {query
               ? `No cases matched your search query "${query}". Try adjusting keywords or clearing the filter.`
               : 'There are no active cases in this section. Add a new case file to track schedules and hearings.'}

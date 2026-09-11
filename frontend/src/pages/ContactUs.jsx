@@ -149,7 +149,7 @@ export default function ContactUs() {
             <div className="contact-hours-badge">
               <h4>Support Hours</h4>
               <p>Monday to Saturday, 10:00 AM – 6:00 PM IST</p>
-              <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-main)', lineHeight: 1.5 }}>
+              <div style={{ marginTop: 8, fontSize: 15, color: 'var(--text-main)', lineHeight: 1.5 }}>
                 We typically respond within <strong>24 to 48 hours</strong>. For urgent hearing reminders or login issues, please flag your message as <em>&ldquo;Urgent&rdquo;</em>.
               </div>
             </div>
@@ -174,7 +174,7 @@ export default function ContactUs() {
                   <Icon name="check" style={{ width: 26, height: 26 }} />
                 </div>
                 <h4 style={{ fontFamily: 'Lora, serif', fontSize: '1.2rem', color: 'var(--text-dark)', margin: '0 0 8px 0' }}>Message Dispatched</h4>
-                <p style={{ fontSize: 14, color: 'var(--text-main)' }}>Your email client has been prepared. You can also message us directly on WhatsApp at <strong>+91 93853 90115</strong>.</p>
+                <p style={{ fontSize: 16, color: 'var(--text-main)' }}>Your email client has been prepared. You can also message us directly on WhatsApp at <strong>+91 93853 90115</strong>.</p>
                 <button
                   type="button"
                   onClick={() => setSubmitted(false)}
@@ -188,7 +188,7 @@ export default function ContactUs() {
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
+                    <label style={{ display: 'block', fontSize: 15, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
                       Full Name *
                     </label>
                     <input
@@ -197,11 +197,11 @@ export default function ContactUs() {
                       placeholder="Advocate Name"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 14 }}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 16 }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
+                    <label style={{ display: 'block', fontSize: 15, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
                       Email Address *
                     </label>
                     <input
@@ -210,14 +210,14 @@ export default function ContactUs() {
                       placeholder="counsel@chambers.in"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 14 }}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 16 }}
                     />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
+                    <label style={{ display: 'block', fontSize: 15, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
                       Phone Number (Optional)
                     </label>
                     <input
@@ -225,11 +225,11 @@ export default function ContactUs() {
                       placeholder="e.g. +91 9876543210"
                       value={form.phone}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 14 }}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 16 }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
+                    <label style={{ display: 'block', fontSize: 15, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
                       Subject *
                     </label>
                     <input
@@ -238,7 +238,7 @@ export default function ContactUs() {
                       placeholder="e.g. Hearing Reminders Setup"
                       value={form.subject}
                       onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 14 }}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 16 }}
                     />
                   </div>
                 </div>
@@ -251,13 +251,13 @@ export default function ContactUs() {
                     onChange={(e) => setForm({ ...form, isUrgent: e.target.checked })}
                     style={{ width: 16, height: 16, accentColor: 'var(--accent)' }}
                   />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-dark)' }}>
+                  <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-dark)' }}>
                     Mark as Urgent (Priority for upcoming hearing or account lockout)
                   </span>
                 </label>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
+                  <label style={{ display: 'block', fontSize: 15, fontWeight: 600, marginBottom: 6, color: 'var(--text-dark)' }}>
                     Message Details *
                   </label>
                   <textarea
@@ -266,14 +266,14 @@ export default function ContactUs() {
                     placeholder="Describe your question, feature suggestion, or account issue..."
                     value={form.message}
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 14, resize: 'vertical' }}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-dark)', fontSize: 16, resize: 'vertical' }}
                   />
                 </div>
 
                 <button
                   type="submit"
                   className="legal-btn-primary"
-                  style={{ justifyContent: 'center', padding: '12px 20px', fontSize: 15 }}
+                  style={{ justifyContent: 'center', padding: '12px 20px', fontSize: 17 }}
                 >
                   <Icon name="phone" style={{ width: 16, height: 16 }} />
                   <span>Send Support Request</span>

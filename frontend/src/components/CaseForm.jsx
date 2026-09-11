@@ -93,7 +93,7 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
     <form className={`card-form staggered-entry${shakeForm ? ' shake-error' : ''}`} onSubmit={handleSubmit} noValidate ref={formRef} id="billing-section" style={{ display: 'flex', flexDirection: 'column', gap: 22, padding: '24px 28px', borderRadius: 'var(--radius-lg)' }}>
       {/* 1. Client & Case Identity */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, borderBottom: '1px solid var(--border-card)', paddingBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, fontSize: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, fontSize: 16 }}>
           <span>📋</span>
           <span style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>Client & Case File Identity</span>
         </div>
@@ -165,7 +165,7 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
 
       {/* 2. Hearing & Court Schedule */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, borderBottom: '1px solid var(--border-card)', paddingBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, fontSize: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, fontSize: 16 }}>
           <span>🏛️</span>
           <span style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>Court Hearing Schedule & Bench</span>
         </div>
@@ -210,7 +210,7 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
 
       {/* 3. Fee Ledger */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, borderBottom: '1px solid var(--border-card)', paddingBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, fontSize: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, fontSize: 16 }}>
           <span>💰</span>
           <span style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>Professional Fees & Expenses (INR)</span>
         </div>
@@ -233,7 +233,7 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
 
       {/* 4. Notes & Notifications */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, fontSize: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent)', fontWeight: 700, fontSize: 16 }}>
           <span>📝</span>
           <span style={{ textTransform: 'uppercase', letterSpacing: 0.6 }}>Matter Notes & Client Notifications</span>
         </div>
@@ -267,7 +267,7 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
         )}
       </div>
 
-      <button type="submit" className="btn-submit" style={{ marginTop: 12, padding: '14px 28px', fontSize: 15, fontWeight: 700, letterSpacing: 0.5 }}>
+      <button type="submit" className="btn-submit" style={{ marginTop: 12, padding: '14px 28px', fontSize: 17, fontWeight: 700, letterSpacing: 0.5 }}>
         {submitLabel}
       </button>
     </form>

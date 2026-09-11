@@ -75,9 +75,9 @@ export function TasksDrawer({ caseId, tasks, setTasks }) {
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
-          style={{ flex: 1, padding: '6px 10px', fontSize: 12, height: 28 }}
+          style={{ flex: 1, padding: '6px 10px', fontSize: 14, height: 28 }}
         />
-        <button type="button" className="btn-submit" disabled={busy} onClick={addTask} style={{ padding: '0 10px', fontSize: 11, height: 28, lineHeight: '28px' }}>
+        <button type="button" className="btn-submit" disabled={busy} onClick={addTask} style={{ padding: '0 10px', fontSize: 13, height: 28, lineHeight: '28px' }}>
           Add
         </button>
       </div>
@@ -99,7 +99,7 @@ export function TasksDrawer({ caseId, tasks, setTasks }) {
                 <input type="checkbox" checked={task.is_completed === 1} onChange={() => toggleTask(task.id)} id={`card-task-${task.id}`} />
                 <label
                   htmlFor={`card-task-${task.id}`}
-                  style={{ fontSize: 12.5, textDecoration: task.is_completed === 1 ? 'line-through' : 'none', opacity: task.is_completed === 1 ? 0.5 : 1 }}
+                  style={{ fontSize: 14.5, textDecoration: task.is_completed === 1 ? 'line-through' : 'none', opacity: task.is_completed === 1 ? 0.5 : 1 }}
                 >
                   {task.title}
                 </label>
@@ -107,7 +107,7 @@ export function TasksDrawer({ caseId, tasks, setTasks }) {
               <button
                 type="button"
                 onClick={() => deleteTask(task.id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 16, lineHeight: 1, padding: '0 4px' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontSize: 18, lineHeight: 1, padding: '0 4px' }}
               >
                 &times;
               </button>
@@ -115,7 +115,7 @@ export function TasksDrawer({ caseId, tasks, setTasks }) {
           ))}
         </div>
       ) : (
-        <div style={{ color: 'var(--gray-400)', fontSize: 12, fontStyle: 'italic' }}>No tasks added yet.</div>
+        <div style={{ color: 'var(--gray-400)', fontSize: 14, fontStyle: 'italic' }}>No tasks added yet.</div>
       )}
     </>
   );

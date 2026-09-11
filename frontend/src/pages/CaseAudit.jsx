@@ -41,7 +41,7 @@ export default function CaseAudit() {
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
           <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Case Audit Trail</span>
@@ -133,32 +133,32 @@ export default function CaseAudit() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <FileEdit size={16} color="var(--accent)" />
                       <span>Modified Field: <strong style={{ color: 'var(--accent-hover)' }}>{titleCase(entry.field_changed)}</strong></span>
                     </div>
 
-                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontSize: 13 }}>
+                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontSize: 15 }}>
                       <div style={{ padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--danger-bg)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)' }}>
-                        <span style={{ fontSize: 11, textTransform: 'uppercase', fontWeight: 700, opacity: 0.7, marginRight: 6 }}>Old:</span>
+                        <span style={{ fontSize: 13, textTransform: 'uppercase', fontWeight: 700, opacity: 0.7, marginRight: 6 }}>Old:</span>
                         <span style={{ textDecoration: 'line-through' }}>{entry.old_value !== '' ? entry.old_value : '(empty)'}</span>
                       </div>
 
                       <ArrowRight size={14} color="var(--text-muted)" />
 
                       <div style={{ padding: '4px 10px', borderRadius: 'var(--radius-sm)', background: 'var(--success-bg)', border: '1px solid rgba(16, 185, 129, 0.2)', color: 'var(--success)' }}>
-                        <span style={{ fontSize: 11, textTransform: 'uppercase', fontWeight: 700, opacity: 0.7, marginRight: 6 }}>New:</span>
+                        <span style={{ fontSize: 13, textTransform: 'uppercase', fontWeight: 700, opacity: 0.7, marginRight: 6 }}>New:</span>
                         <strong>{entry.new_value !== '' ? entry.new_value : '(empty)'}</strong>
                       </div>
                     </div>
 
-                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-muted)' }}>
+                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: 'var(--text-muted)' }}>
                       <Clock size={12} />
                       <span>Timestamp: {entry.changed_at}</span>
                     </div>
                   </div>
 
-                  <span className="badge week" style={{ fontSize: 10.5, padding: '3px 8px' }}>
+                  <span className="badge week" style={{ fontSize: 12.5, padding: '3px 8px' }}>
                     Audit Log #{entry.id}
                   </span>
                 </div>

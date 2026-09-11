@@ -479,7 +479,7 @@ export default function Privacy() {
                 </div>
               </div>
 
-              <p style={{ marginTop: 20, fontSize: 13, color: 'var(--text-muted)' }}>
+              <p style={{ marginTop: 20, fontSize: 15, color: 'var(--text-muted)' }}>
                 If you have questions regarding this Privacy Policy, your client data, or wish to request deletion of your account and associated records, please reach out via our <Link to="/contact" style={{ color: 'var(--accent-hover)', textDecoration: 'underline' }}>Contact Us</Link> page.
               </p>
             </div>

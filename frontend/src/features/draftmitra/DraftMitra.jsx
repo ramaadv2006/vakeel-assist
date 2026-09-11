@@ -569,13 +569,13 @@ export default function DraftMitra() {
       {/* CREATE CUSTOM DRAFT MODAL */}
       {showCreateModal && (
         <Modal onClose={() => setShowCreateModal(false)} title="Create New Legal Draft / Petition" wide>
-          <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: 15, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
             Create a custom legal draft template. Use <code>{"{{variable}}"}</code> tags (e.g. <code>{"{{court}}"}</code>, <code>{"{{client}}"}</code>, <code>{"{{opponent}}"}</code>, <code>{"{{facts}}"}</code>, <code>{"{{prayer}}"}</code>) to automatically generate input fields!
           </p>
 
           {/* Quick Presets */}
           <div style={{ marginBottom: 14 }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
+            <span style={{ fontSize: 13.5, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", display: "block", marginBottom: 6 }}>
               Quick Starters:
             </span>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -630,7 +630,7 @@ export default function DraftMitra() {
             <label style={styles.label}>Draft Template Body *</label>
             <textarea
               className="draftmitra-modal-input"
-              style={{ ...styles.textarea, minHeight: 200, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5 }}
+              style={{ ...styles.textarea, minHeight: 200, fontFamily: "'IBM Plex Mono', monospace", fontSize: 14.5 }}
               placeholder="Type or paste draft body. Use {{client}}, {{opponent}}, {{court}}, {{caseNo}}, {{facts}}, {{prayer}} for auto-fields..."
               value={createContent}
               onChange={(e) => setCreateContent(e.target.value)}
@@ -649,7 +649,7 @@ export default function DraftMitra() {
       {/* SAVE DRAFT MODAL */}
       {showSaveBox && (
         <Modal onClose={() => setShowSaveBox(false)} title="Save this draft">
-          <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: 15, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
             Saved drafts stay securely in your browser storage. Enter a label to identify this case draft later.
           </p>
           <input
@@ -675,10 +675,10 @@ export default function DraftMitra() {
               <Loader2 size={18} className="spin" /> Loading saved drafts…
             </div>
           ) : savedDrafts.length === 0 ? (
-            <div style={{ padding: "32px 12px", textAlign: "center", color: "var(--muted)", fontSize: 14 }}>
+            <div style={{ padding: "32px 12px", textAlign: "center", color: "var(--muted)", fontSize: 16 }}>
               <FolderOpen size={36} color="var(--gold-ink)" style={{ opacity: 0.8, marginBottom: 10 }} />
               <div>No saved drafts yet.</div>
-              <div style={{ fontSize: 12.5, marginTop: 4 }}>Select any court template, fill in the details, and hit <b>Save</b> to store it here.</div>
+              <div style={{ fontSize: 14.5, marginTop: 4 }}>Select any court template, fill in the details, and hit <b>Save</b> to store it here.</div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 440, overflowY: "auto", paddingRight: 4 }}>
@@ -689,13 +689,13 @@ export default function DraftMitra() {
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div
                         style={{
-                          fontWeight: 600, fontSize: 14, color: "var(--ink)",
+                          fontWeight: 600, fontSize: 16, color: "var(--ink)",
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                         }}
                       >
                         {dr.title}
                       </div>
-                      <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 3, display: "flex", gap: 8, alignItems: "center" }}>
+                      <div style={{ fontSize: 14, color: "var(--muted)", marginTop: 3, display: "flex", gap: 8, alignItems: "center" }}>
                         <span style={{ fontWeight: 500, color: "var(--brand-ink)" }}>{tmpl?.name || dr.templateId}</span>
                         <span>•</span>
                         <span>{new Date(dr.savedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</span>
@@ -720,19 +720,19 @@ export default function DraftMitra() {
       {/* AI IMPORT MODAL */}
       {showImport && (
         <Modal onClose={() => !importing && setShowImport(false)} title="AI Draft Importer" wide>
-          <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+          <p style={{ fontSize: 15, color: "var(--muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
             Paste the raw text of any Indian court draft/petition below. Gemini AI automatically detects the variable case details (names, dates, case numbers, offences) and turns the rest into a reusable template.
           </p>
           <textarea
             className="draftmitra-modal-input"
-            style={{ ...styles.textarea, minHeight: 220, fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5 }}
+            style={{ ...styles.textarea, minHeight: 220, fontFamily: "'IBM Plex Mono', monospace", fontSize: 14.5 }}
             placeholder="Paste raw petition text here..."
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
             disabled={importing}
           />
           {importError && (
-            <div style={{ display: "flex", gap: 8, marginTop: 12, fontSize: 12.5, color: "var(--brand-ink)", background: "var(--brand-wash)", padding: "10px 12px", borderRadius: 8 }}>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, fontSize: 14.5, color: "var(--brand-ink)", background: "var(--brand-wash)", padding: "10px 12px", borderRadius: 8 }}>
               <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} /> {importError}
             </div>
           )}
@@ -778,7 +778,7 @@ function Library({
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: "var(--muted)" }}>
+        <div style={{ fontSize: 15, color: "var(--muted)" }}>
           <Link to="/" style={{ color: "var(--muted)", textDecoration: "none" }}>Dashboard</Link>
           <span style={{ margin: "0 8px", color: "var(--muted)" }}>/</span>
           <span style={{ color: "var(--gold-ink)", fontWeight: 600 }}>Legal Drafts Library</span>
@@ -864,8 +864,8 @@ function Library({
       {Object.keys(groups).length === 0 ? (
         <div style={styles.emptyState}>
           <AlertCircle size={32} color="var(--gold-ink)" style={{ marginBottom: 10 }} />
-          <div style={{ fontWeight: 600, fontSize: 16, color: "var(--ink)" }}>No matching templates found</div>
-          <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>Try clearing your search query, creating a new draft, or switching categories.</div>
+          <div style={{ fontWeight: 600, fontSize: 18, color: "var(--ink)" }}>No matching templates found</div>
+          <div style={{ fontSize: 15, color: "var(--muted)", marginTop: 4 }}>Try clearing your search query, creating a new draft, or switching categories.</div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 14 }}>
             <button style={styles.btnPrimaryGold} onClick={onCreateClick}>
               <Plus size={15} /> Create Custom Draft
@@ -964,8 +964,8 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, hasCover, 
       <div style={styles.editorGrid} className="editor-grid">
         <div style={styles.formPane} className={`form-pane ${mobileTab === "form" ? "mobile-active" : ""}`}>
           <div style={styles.formPaneHeader}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>Case & Party Particulars</span>
-            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{template.fields.length} Fields</span>
+            <span style={{ fontWeight: 700, fontSize: 16, color: "var(--ink)" }}>Case & Party Particulars</span>
+            <span style={{ fontSize: 13.5, color: "var(--muted)" }}>{template.fields.length} Fields</span>
           </div>
 
           <div style={styles.formGrid}>
@@ -1069,30 +1069,30 @@ function Editor({ template, data, setField, page1Blocks, page2Blocks, hasCover, 
 
 function RenderBlock({ block, folded }) {
   if (block.t === "small") {
-    return <div style={{ textAlign: "center", fontSize: 11.5, color: "#666", margin: "2px 0 6px" }}>{block.v}</div>;
+    return <div style={{ textAlign: "center", fontSize: 13.5, color: "#666", margin: "2px 0 6px" }}>{block.v}</div>;
   }
   if (block.t === "titleTop") {
-    return <div style={{ textAlign: "center", fontWeight: 700, fontSize: 16, textDecoration: "underline", letterSpacing: 2, margin: "0 0 12px", textTransform: "uppercase" }}>{block.v}</div>;
+    return <div style={{ textAlign: "center", fontWeight: 700, fontSize: 18, textDecoration: "underline", letterSpacing: 2, margin: "0 0 12px", textTransform: "uppercase" }}>{block.v}</div>;
   }
   if (block.t === "center") {
-    return <div style={{ textAlign: "center", fontWeight: 700, margin: "8px 0", letterSpacing: 0.3, whiteSpace: "pre-line", fontSize: 14.5 }}>{block.v}</div>;
+    return <div style={{ textAlign: "center", fontWeight: 700, margin: "8px 0", letterSpacing: 0.3, whiteSpace: "pre-line", fontSize: 16.5 }}>{block.v}</div>;
   }
   if (block.t === "title") {
-    return <div style={{ textAlign: "center", fontWeight: 700, fontSize: 15.5, textDecoration: "underline", margin: "16px 0 12px", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "pre-line" }}>{block.v}</div>;
+    return <div style={{ textAlign: "center", fontWeight: 700, fontSize: 17.5, textDecoration: "underline", margin: "16px 0 12px", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "pre-line" }}>{block.v}</div>;
   }
   if (block.t === "versus" || block.t === "vs") {
-    return <div style={{ textAlign: "center", fontStyle: "italic", margin: "6px 0", color: "#666", fontSize: 13.5 }}>— Versus —</div>;
+    return <div style={{ textAlign: "center", fontStyle: "italic", margin: "6px 0", color: "#666", fontSize: 15.5 }}>— Versus —</div>;
   }
   if (block.t === "party") {
     return folded ? (
       <div style={{ margin: "6px 0", lineHeight: 1.5 }}>
         <strong>{block.v}</strong>
-        {block.role && <div style={{ fontSize: 12.5, fontStyle: "italic", color: "#555" }}>...{block.role.replace(/^\.\.\./, "")}</div>}
+        {block.role && <div style={{ fontSize: 14.5, fontStyle: "italic", color: "#555" }}>...{block.role.replace(/^\.\.\./, "")}</div>}
       </div>
     ) : (
       <div style={{ margin: "4px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <strong style={{ whiteSpace: "pre-line" }}>{block.v}</strong>
-        {block.role && <div style={{ fontSize: 13, fontStyle: "italic", color: "#555", whiteSpace: "nowrap" }}>...{block.role.replace(/^\.\.\./, "")}</div>}
+        {block.role && <div style={{ fontSize: 15, fontStyle: "italic", color: "#555", whiteSpace: "nowrap" }}>...{block.role.replace(/^\.\.\./, "")}</div>}
       </div>
     );
   }
@@ -1123,7 +1123,7 @@ function RenderBlock({ block, folded }) {
   if (block.t === "table") {
     const rows = block.rows || [];
     return (
-      <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #222", margin: "14px 0", fontSize: 13 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #222", margin: "14px 0", fontSize: 15 }}>
         <thead>
           <tr style={{ background: "#f2f2f2" }}>
             <th style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "center", width: "8%" }}>S. No.</th>
@@ -1149,7 +1149,7 @@ function RenderBlock({ block, folded }) {
   }
   if (block.t === "signdual") {
     return (
-      <div style={{ marginTop: 36, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontWeight: 700, fontSize: 14 }}>
+      <div style={{ marginTop: 36, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontWeight: 700, fontSize: 16 }}>
         <div>{block.left || "Accused"}</div>
         <div style={{ textAlign: "right" }}>{block.right || "Counsel for Accused"}</div>
       </div>
@@ -1162,13 +1162,13 @@ function RenderBlock({ block, folded }) {
       const leftPart = parts[0] || "";
       const rightPart = parts[1] || "";
       return (
-        <div style={{ marginTop: 36, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontWeight: 700, fontSize: 14 }}>
+        <div style={{ marginTop: 36, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontWeight: 700, fontSize: 16 }}>
           <div>{leftPart.trim()}</div>
           <div style={{ textAlign: "right" }}>{rightPart.trim()}</div>
         </div>
       );
     }
-    return <div style={{ marginTop: 20, textAlign: "right", whiteSpace: "pre-line", lineHeight: 1.6, fontSize: 14 }}>{raw}</div>;
+    return <div style={{ marginTop: 20, textAlign: "right", whiteSpace: "pre-line", lineHeight: 1.6, fontSize: 16 }}>{raw}</div>;
   }
   if (block.t === "sign") {
     return (
@@ -1189,7 +1189,7 @@ function RenderBlock({ block, folded }) {
     return <div style={{ height: 10 }} />;
   }
   if (block.t === "pre") {
-    return <pre style={{ fontFamily: "'Courier New', monospace", fontSize: 12, lineHeight: 1.4, whiteSpace: "pre-wrap", margin: "10px 0", padding: 8, background: "#f9f9f9", border: "1px solid #ddd" }}>{block.v}</pre>;
+    return <pre style={{ fontFamily: "'Courier New', monospace", fontSize: 14, lineHeight: 1.4, whiteSpace: "pre-wrap", margin: "10px 0", padding: 8, background: "#f9f9f9", border: "1px solid #ddd" }}>{block.v}</pre>;
   }
   return <div style={{ margin: "6px 0", whiteSpace: "pre-line" }}>{block.v}</div>;
 }
@@ -1337,78 +1337,78 @@ const styles = {
   app: { minHeight: "100vh", background: "transparent", fontFamily: "'Inter', sans-serif", color: "var(--text)", transition: "background 0.3s ease" },
   libraryMain: { maxWidth: 1120, margin: "0 auto", padding: "16px 20px 60px" },
   libraryIntro: { marginBottom: 28 },
-  eyebrow: { fontSize: 11, fontWeight: 700, letterSpacing: 1.4, color: "var(--gold-ink)", textTransform: "uppercase" },
-  libTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 32, fontWeight: 700, margin: "6px 0 8px", color: "var(--ink)" },
-  libSub: { fontSize: 14, color: "var(--muted)", maxWidth: 660, lineHeight: 1.55 },
-  importTileBtn: { display: "flex", alignItems: "center", gap: 8, background: "var(--brand)", color: "var(--on-brand)", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px var(--brand-shadow)" },
-  btnGhostHeader: { display: "flex", alignItems: "center", gap: 8, background: "var(--paper-white)", color: "var(--ink)", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" },
-  btnPrimaryGold: { display: "inline-flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, #d4af37 0%, #b8860b 50%, #996515 100%)", color: "#0b1526", border: "1px solid rgba(212, 175, 55, 0.6)", borderRadius: 10, padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(184, 147, 94, 0.35)", transition: "all 0.2s" },
+  eyebrow: { fontSize: 13, fontWeight: 700, letterSpacing: 1.4, color: "var(--gold-ink)", textTransform: "uppercase" },
+  libTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 34, fontWeight: 700, margin: "6px 0 8px", color: "var(--ink)" },
+  libSub: { fontSize: 16, color: "var(--muted)", maxWidth: 660, lineHeight: 1.55 },
+  importTileBtn: { display: "flex", alignItems: "center", gap: 8, background: "var(--brand)", color: "var(--on-brand)", border: "none", borderRadius: 10, padding: "10px 16px", fontSize: 15, fontWeight: 600, cursor: "pointer", boxShadow: "0 4px 12px var(--brand-shadow)" },
+  btnGhostHeader: { display: "flex", alignItems: "center", gap: 8, background: "var(--paper-white)", color: "var(--ink)", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 16px", fontSize: 15, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" },
+  btnPrimaryGold: { display: "inline-flex", alignItems: "center", gap: 7, background: "linear-gradient(135deg, #d4af37 0%, #b8860b 50%, #996515 100%)", color: "#0b1526", border: "1px solid rgba(212, 175, 55, 0.6)", borderRadius: 10, padding: "10px 18px", fontSize: 15, fontWeight: 700, cursor: "pointer", boxShadow: "0 4px 14px rgba(184, 147, 94, 0.35)", transition: "all 0.2s" },
 
   filterSection: { marginTop: 22, display: "flex", flexDirection: "column", gap: 14 },
   searchBox: { position: "relative", width: "100%" },
   searchIcon: { position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" },
-  searchInput: { width: "100%", padding: "12px 38px 12px 42px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--paper-white)", color: "var(--text)", fontSize: 13.5, outline: "none", boxShadow: "0 2px 6px rgba(0,0,0,0.02)", transition: "all 0.2s" },
+  searchInput: { width: "100%", padding: "12px 38px 12px 42px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--paper-white)", color: "var(--text)", fontSize: 15.5, outline: "none", boxShadow: "0 2px 6px rgba(0,0,0,0.02)", transition: "all 0.2s" },
   clearSearchBtn: { position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", padding: 4, borderRadius: 4, display: "flex" },
 
   pillContainer: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
-  pill: { background: "var(--paper-white)", border: "1px solid var(--border)", color: "var(--muted)", borderRadius: 20, padding: "6px 14px", fontSize: 12.5, fontWeight: 500, cursor: "pointer", transition: "all 0.2s" },
-  pillActive: { background: "var(--brand)", border: "1px solid var(--brand)", color: "var(--on-brand)", borderRadius: 20, padding: "6px 14px", fontSize: 12.5, fontWeight: 600, cursor: "pointer" },
+  pill: { background: "var(--paper-white)", border: "1px solid var(--border)", color: "var(--muted)", borderRadius: 20, padding: "6px 14px", fontSize: 14.5, fontWeight: 500, cursor: "pointer", transition: "all 0.2s" },
+  pillActive: { background: "var(--brand)", border: "1px solid var(--brand)", color: "var(--on-brand)", borderRadius: 20, padding: "6px 14px", fontSize: 14.5, fontWeight: 600, cursor: "pointer" },
 
   groupHeader: { display: "flex", alignItems: "center", gap: 10, marginBottom: 12 },
-  groupLabel: { fontSize: 13, fontWeight: 700, color: "var(--ink)", letterSpacing: 0.3, textTransform: "uppercase" },
-  groupBadge: { fontSize: 11, fontWeight: 600, background: "var(--gold-wash)", color: "var(--gold-ink)", borderRadius: 12, padding: "2px 8px" },
+  groupLabel: { fontSize: 15, fontWeight: 700, color: "var(--ink)", letterSpacing: 0.3, textTransform: "uppercase" },
+  groupBadge: { fontSize: 13, fontWeight: 600, background: "var(--gold-wash)", color: "var(--gold-ink)", borderRadius: 12, padding: "2px 8px" },
 
   cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 14 },
   card: { display: "flex", alignItems: "center", gap: 14, background: "var(--paper-white)", border: "1.5px solid var(--border)", borderRadius: 12, padding: "16px", cursor: "pointer", textAlign: "left" },
   cardIcon: { width: 38, height: 38, borderRadius: 10, background: "var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.22s" },
-  cardTitle: { fontSize: 14.5, fontWeight: 600, color: "var(--ink)" },
-  cardSub: { fontSize: 12, color: "var(--muted)", marginTop: 2, lineHeight: 1.3 },
+  cardTitle: { fontSize: 16.5, fontWeight: 600, color: "var(--ink)" },
+  cardSub: { fontSize: 14, color: "var(--muted)", marginTop: 2, lineHeight: 1.3 },
 
-  customBadge: { display: "inline-flex", alignItems: "center", gap: 4, background: "var(--gold-wash)", color: "var(--gold-ink)", borderRadius: 6, padding: "2px 7px", fontSize: 10.5, fontWeight: 600 },
+  customBadge: { display: "inline-flex", alignItems: "center", gap: 4, background: "var(--gold-wash)", color: "var(--gold-ink)", borderRadius: 6, padding: "2px 7px", fontSize: 12.5, fontWeight: 600 },
 
   emptyState: { padding: "48px 24px", textAlign: "center", background: "var(--paper-white)", border: "1px dashed var(--border)", borderRadius: 14, margin: "20px 0" },
 
   editorMain: { maxWidth: 1240, margin: "0 auto", padding: "16px 20px 60px" },
   editorHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16, marginBottom: 18 },
-  backLink: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "var(--gold-ink)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: 0 },
-  editorTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 26, fontWeight: 700, margin: "4px 0 2px", color: "var(--ink)" },
-  editorSub: { fontSize: 13.5, color: "var(--muted)" },
+  backLink: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "var(--gold-ink)", fontSize: 15, fontWeight: 600, cursor: "pointer", padding: 0 },
+  editorTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 28, fontWeight: 700, margin: "4px 0 2px", color: "var(--ink)" },
+  editorSub: { fontSize: 15.5, color: "var(--muted)" },
   actionRow: { display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" },
-  btnPrimary: { display: "flex", alignItems: "center", gap: 7, background: "var(--brand)", color: "var(--on-brand)", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px var(--brand-shadow)" },
-  btnGhost: { display: "flex", alignItems: "center", gap: 7, background: "var(--paper-white)", color: "var(--ink)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "9px 15px", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" },
-  btnGhostSm: { display: "inline-flex", alignItems: "center", gap: 5, background: "var(--paper-white)", color: "var(--ink)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
-  btnDangerSm: { display: "inline-flex", alignItems: "center", gap: 5, background: "var(--danger-wash)", color: "var(--danger-ink)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "6px 10px", fontSize: 12.5, fontWeight: 500, cursor: "pointer" },
+  btnPrimary: { display: "flex", alignItems: "center", gap: 7, background: "var(--brand)", color: "var(--on-brand)", border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 15, fontWeight: 600, cursor: "pointer", boxShadow: "0 2px 8px var(--brand-shadow)" },
+  btnGhost: { display: "flex", alignItems: "center", gap: 7, background: "var(--paper-white)", color: "var(--ink)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "9px 15px", fontSize: 15, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" },
+  btnGhostSm: { display: "inline-flex", alignItems: "center", gap: 5, background: "var(--paper-white)", color: "var(--ink)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", fontSize: 14.5, fontWeight: 500, cursor: "pointer" },
+  btnDangerSm: { display: "inline-flex", alignItems: "center", gap: 5, background: "var(--danger-wash)", color: "var(--danger-ink)", border: "1px solid var(--danger-border)", borderRadius: 6, padding: "6px 10px", fontSize: 14.5, fontWeight: 500, cursor: "pointer" },
 
   mobileTabs: { gap: 8, marginBottom: 16 },
-  mtab: { flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid var(--border)", background: "var(--paper-white)", color: "var(--muted)", fontSize: 13, fontWeight: 600, cursor: "pointer" },
-  mtabActive: { flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid var(--brand)", background: "var(--brand)", color: "var(--on-brand)", fontSize: 13, fontWeight: 600, cursor: "pointer" },
+  mtab: { flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid var(--border)", background: "var(--paper-white)", color: "var(--muted)", fontSize: 15, fontWeight: 600, cursor: "pointer" },
+  mtabActive: { flex: 1, padding: "10px 0", borderRadius: 8, border: "1px solid var(--brand)", background: "var(--brand)", color: "var(--on-brand)", fontSize: 15, fontWeight: 600, cursor: "pointer" },
 
   editorGrid: { display: "grid", gridTemplateColumns: "400px 1fr", gap: 20, alignItems: "start" },
   formPane: { background: "var(--paper-white)", border: "1.5px solid var(--border)", borderRadius: 14, padding: 20, position: "sticky", top: 20, transition: "all 0.3s ease" },
   formPaneHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingBottom: 10, borderBottom: "1px solid var(--border)" },
   formGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 12px" },
-  label: { display: "block", fontSize: 11.5, fontWeight: 600, color: "var(--muted)", marginBottom: 6, letterSpacing: 0.2 },
-  input: { width: "100%", padding: "9.5px 12px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13.5, background: "var(--paper-white)", color: "var(--text)", outline: "none", transition: "all 0.2s" },
-  textarea: { width: "100%", padding: "9.5px 12px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 13.5, background: "var(--paper-white)", color: "var(--text)", outline: "none", resize: "vertical", fontFamily: "inherit", transition: "all 0.2s" },
-  hintBox: { marginTop: 18, display: "flex", gap: 9, fontSize: 12, lineHeight: 1.5, color: "var(--hint-text)", background: "var(--hint-bg)", border: "1px solid var(--hint-border)", borderRadius: 10, padding: "11px 13px" },
+  label: { display: "block", fontSize: 13.5, fontWeight: 600, color: "var(--muted)", marginBottom: 6, letterSpacing: 0.2 },
+  input: { width: "100%", padding: "9.5px 12px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 15.5, background: "var(--paper-white)", color: "var(--text)", outline: "none", transition: "all 0.2s" },
+  textarea: { width: "100%", padding: "9.5px 12px", borderRadius: 8, border: "1.5px solid var(--border)", fontSize: 15.5, background: "var(--paper-white)", color: "var(--text)", outline: "none", resize: "vertical", fontFamily: "inherit", transition: "all 0.2s" },
+  hintBox: { marginTop: 18, display: "flex", gap: 9, fontSize: 14, lineHeight: 1.5, color: "var(--hint-text)", background: "var(--hint-bg)", border: "1px solid var(--hint-border)", borderRadius: 10, padding: "11px 13px" },
 
   previewPane: { minWidth: 0 },
-  pageLabel: { fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: "var(--muted)", marginBottom: 7, textTransform: "uppercase" },
+  pageLabel: { fontSize: 13, fontWeight: 700, letterSpacing: 0.6, color: "var(--muted)", marginBottom: 7, textTransform: "uppercase" },
   paper: { background: "#FBF8F1", borderRadius: 6, boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 10px 30px var(--card-shadow)", position: "relative", padding: "54px 36px 44px 60px", minHeight: 600, transition: "box-shadow 0.3s ease" },
   paperRedLine: { position: "absolute", left: 36, top: 0, bottom: 0, width: 1.5, background: "var(--line-red)", opacity: 0.6 },
-  paperContent: { fontFamily: "'Source Serif 4', serif", fontSize: 14.5, lineHeight: 1.75, color: "#241f1a" },
+  paperContent: { fontFamily: "'Source Serif 4', serif", fontSize: 16.5, lineHeight: 1.75, color: "#241f1a" },
   foldLine: { position: "absolute", left: "50%", top: 0, bottom: 0, width: 0, borderLeft: "1.5px dashed #B8AA8A" },
   foldRow: { display: "flex", minHeight: 520 },
   foldSpacer: { flex: "0 0 50%" },
-  foldContent: { flex: "0 0 48%", minWidth: 0, fontFamily: "'Source Serif 4', serif", fontSize: 14, lineHeight: 1.7, color: "#241f1a", display: "flex", flexDirection: "column", justifyContent: "space-between" },
+  foldContent: { flex: "0 0 48%", minWidth: 0, fontFamily: "'Source Serif 4', serif", fontSize: 16, lineHeight: 1.7, color: "#241f1a", display: "flex", flexDirection: "column", justifyContent: "space-between" },
   petitionWrapper: { minHeight: 520, display: "flex", flexDirection: "column", justifyContent: "space-between" },
   petitionFooter: { marginTop: "auto", paddingTop: 32 },
 
-  toast: { position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--toast-bg)", color: "var(--toast-fg)", padding: "11px 18px", borderRadius: 10, fontSize: 13.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 9, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" },
+  toast: { position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--toast-bg)", color: "var(--toast-fg)", padding: "11px 18px", borderRadius: 10, fontSize: 15.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 9, zIndex: 60, boxShadow: "0 8px 24px rgba(0,0,0,0.25)" },
   modalOverlay: { position: "fixed", inset: 0, background: "var(--overlay)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 16 },
   modalBox: { background: "var(--paper-white)", border: "1.5px solid var(--border)", borderRadius: 14, padding: 22, width: "100%", boxShadow: "0 20px 50px rgba(0,0,0,0.3)", transition: "all 0.3s ease" },
   modalHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingBottom: 8, borderBottom: "1px solid var(--border)" },
-  modalTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 19, fontWeight: 700, color: "var(--ink)" },
+  modalTitle: { fontFamily: "'Source Serif 4', serif", fontSize: 21, fontWeight: 700, color: "var(--ink)" },
   iconBtn: { background: "transparent", border: "none", color: "var(--muted)", cursor: "pointer", padding: 6, borderRadius: 6, display: "flex", alignItems: "center", transition: "all 0.2s" },
   draftRow: { display: "flex", alignItems: "center", gap: 12, border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px", background: "var(--paper-white)", transition: "all 0.2s" },
 };

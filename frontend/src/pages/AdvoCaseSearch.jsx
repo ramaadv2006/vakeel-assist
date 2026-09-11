@@ -467,7 +467,7 @@ export default function AdvoCaseSearch() {
         {/* Top Breadcrumb / Return to Dashboard Navigation */}
         <div className="ecourts-hero-nav-bar">
           <Link to="/" className="btn-hero-back" title="Return to Main Dashboard">
-            <span style={{ fontSize: 14 }}>←</span>
+            <span style={{ fontSize: 16 }}>←</span>
             <span>Back to Dashboard</span>
           </Link>
           <div className="ecourts-hero-breadcrumb">
@@ -1162,7 +1162,7 @@ export default function AdvoCaseSearch() {
                               type="button"
                               onClick={() => setExpandedCase(c)}
                               className="btn-ecourts-secondary"
-                              style={{ padding: '5px 12px', fontSize: 12 }}
+                              style={{ padding: '5px 12px', fontSize: 14 }}
                             >
                               Inspect
                             </button>

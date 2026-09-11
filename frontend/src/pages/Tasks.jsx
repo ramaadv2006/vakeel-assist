@@ -73,12 +73,12 @@ function HubCase({ group, onChanged }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
         <div style={{ flex: 1, minWidth: 260 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h3 style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
+            <h3 style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
               {group.client_name}
             </h3>
             <span
               style={{
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 700,
                 padding: '2px 8px',
                 borderRadius: 12,
@@ -111,7 +111,7 @@ function HubCase({ group, onChanged }) {
           {/* Mini progress bar */}
           {tasks.length > 0 && (
             <div style={{ marginTop: 10, maxWidth: 280 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>
                 <span>Progress</span>
                 <span>{completedCount}/{tasks.length} Done ({progressPercent}%)</span>
               </div>
@@ -134,7 +134,7 @@ function HubCase({ group, onChanged }) {
           <Link
             to={`/edit/${group.case_id}`}
             className="btn-icon-text btn-export"
-            style={{ fontSize: 12.5, padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            style={{ fontSize: 14.5, padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <span>Open Case</span>
             <ArrowRight size={12} />
@@ -174,7 +174,7 @@ function HubCase({ group, onChanged }) {
                 <label
                   htmlFor={`hub-task-${task.task_id}`}
                   style={{
-                    fontSize: 13,
+                    fontSize: 15,
                     cursor: 'pointer',
                     textDecoration: task.is_completed ? 'line-through' : 'none',
                     opacity: task.is_completed ? 0.5 : 1,
@@ -224,7 +224,7 @@ function HubCase({ group, onChanged }) {
           style={{
             flex: 1,
             padding: '8px 12px',
-            fontSize: 12.5,
+            fontSize: 14.5,
             height: 36,
             borderRadius: 'var(--radius-sm)',
             border: '1px solid var(--border-card)',
@@ -240,7 +240,7 @@ function HubCase({ group, onChanged }) {
           onClick={addTask}
           style={{
             padding: '0 16px',
-            fontSize: 12.5,
+            fontSize: 14.5,
             height: 36,
             lineHeight: '36px',
             margin: 0,
@@ -312,7 +312,7 @@ export default function Tasks() {
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
           <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Tasks Hub</span>
@@ -355,10 +355,10 @@ export default function Tasks() {
       {data.case_groups.length === 0 && (
         <div className="empty-state staggered-entry">
           <CheckCircle2 size={48} color="var(--success)" style={{ opacity: 0.8 }} />
-          <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-dark)' }}>
+          <span style={{ fontWeight: 600, fontSize: 17, color: 'var(--text-dark)' }}>
             All Set — No Pending Action Items
           </span>
-          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: 15, color: 'var(--text-muted)' }}>
             Every active matter is fully checked off. You can add pre-hearing checklist items from any case card.
           </span>
         </div>

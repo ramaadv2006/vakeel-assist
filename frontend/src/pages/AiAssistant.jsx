@@ -117,7 +117,7 @@ export default function AiAssistant() {
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
           <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--accent)', fontWeight: 600 }}>AI Assistant</span>
@@ -279,7 +279,7 @@ export default function AiAssistant() {
                 <h3 style={{ margin: '0 0 6px', fontFamily: 'Lora, serif', color: 'var(--text-dark)' }}>
                   Upload Case File for AI Breakdown
                 </h3>
-                <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: 14 }}>
+                <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: 16 }}>
                   Upload a case document (PDF, DOCX, or TXT) to extract key parties, legal issues, applicable sections, risk assessment, and recommendations.
                 </p>
               </div>
@@ -296,10 +296,10 @@ export default function AiAssistant() {
                   <Icon name="case" style={{ width: 28, height: 28 }} />
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: 'var(--text-dark)' }}>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: 17, color: 'var(--text-dark)' }}>
                     Click or drag case document to select
                   </p>
-                  <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--gray-500)' }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 15, color: 'var(--gray-500)' }}>
                     Supports PDF, DOCX, TXT files up to 15MB
                   </p>
                 </div>
@@ -348,7 +348,7 @@ export default function AiAssistant() {
                   transition={{ duration: 0.35 }}
                   className="analysis-results-card"
                 >
-                  <h3 style={{ margin: 0, fontFamily: 'Lora, serif', color: 'var(--primary)', fontSize: 20 }}>
+                  <h3 style={{ margin: 0, fontFamily: 'Lora, serif', color: 'var(--primary)', fontSize: 22 }}>
                     Structured Case Analysis
                   </h3>
 

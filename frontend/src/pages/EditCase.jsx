@@ -82,7 +82,7 @@ export default function EditCase() {
       <CaseForm initialValues={initialValues} onSubmit={handleSubmit} submitLabel="Update Case File" showStatus />
 
       <div className="card-form staggered-entry" style={{ marginTop: 24 }}>
-        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 16, fontWeight: 700, color: 'var(--text-dark)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <h3 style={{ fontFamily: "'Inter', sans-serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Icon name="checklist" style={{ stroke: 'var(--accent)' }} />
           Pre-Hearing Sub-Tasks Checklist
         </h3>

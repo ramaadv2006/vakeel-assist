@@ -36,10 +36,10 @@ function LedgerCard({ caseData, index }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
         <div style={{ flex: 1, minWidth: 260 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h3 style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
+            <h3 style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
               {caseData.client_name}
             </h3>
-            <span className={`badge ${STATUS_BADGE[caseData.status] || 'warning'}`} style={{ fontSize: 11, padding: '2px 9px' }}>
+            <span className={`badge ${STATUS_BADGE[caseData.status] || 'warning'}`} style={{ fontSize: 13, padding: '2px 9px' }}>
               {caseData.status}
             </span>
           </div>
@@ -59,7 +59,7 @@ function LedgerCard({ caseData, index }) {
           {/* Payment Recovery Mini-Progress Bar */}
           {agreed > 0 && (
             <div style={{ marginTop: 12, maxWidth: 320 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, color: 'var(--text-muted)', marginBottom: 4 }}>
                 <span>Recovery: {paidPercent}%</span>
                 <span>₹{paid.toLocaleString('en-IN')} / ₹{agreed.toLocaleString('en-IN')}</span>
               </div>
@@ -81,23 +81,23 @@ function LedgerCard({ caseData, index }) {
         {/* Ledger Balance Highlights */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(70px, 1fr))', gap: 16, textAlign: 'right', minWidth: 300 }}>
           <div style={{ padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
-            <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.4 }}>Agreed</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-dark)', marginTop: 2 }}>₹{agreed.toLocaleString('en-IN')}</div>
+            <div style={{ fontSize: 12.5, textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.4 }}>Agreed</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-dark)', marginTop: 2 }}>₹{agreed.toLocaleString('en-IN')}</div>
           </div>
 
           <div style={{ padding: '8px 10px', background: 'var(--success-bg)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-            <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: 'var(--success)', fontWeight: 700, letterSpacing: 0.4 }}>Collected</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--success)', marginTop: 2 }}>₹{paid.toLocaleString('en-IN')}</div>
+            <div style={{ fontSize: 12.5, textTransform: 'uppercase', color: 'var(--success)', fontWeight: 700, letterSpacing: 0.4 }}>Collected</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--success)', marginTop: 2 }}>₹{paid.toLocaleString('en-IN')}</div>
           </div>
 
           <div style={{ padding: '8px 10px', background: pending > 0 ? 'var(--danger-bg)' : 'var(--bg-app)', borderRadius: 'var(--radius-sm)', border: pending > 0 ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid var(--border-card)' }}>
-            <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: pending > 0 ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.4 }}>Balance</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: pending > 0 ? 'var(--danger)' : 'var(--text-dark)', marginTop: 2 }}>₹{pending.toLocaleString('en-IN')}</div>
+            <div style={{ fontSize: 12.5, textTransform: 'uppercase', color: pending > 0 ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.4 }}>Balance</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: pending > 0 ? 'var(--danger)' : 'var(--text-dark)', marginTop: 2 }}>₹{pending.toLocaleString('en-IN')}</div>
           </div>
 
           <div style={{ padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
-            <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: 'var(--info)', fontWeight: 700, letterSpacing: 0.4 }}>Court Costs</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--info)', marginTop: 2 }}>₹{expenses.toLocaleString('en-IN')}</div>
+            <div style={{ fontSize: 12.5, textTransform: 'uppercase', color: 'var(--info)', fontWeight: 700, letterSpacing: 0.4 }}>Court Costs</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--info)', marginTop: 2 }}>₹{expenses.toLocaleString('en-IN')}</div>
           </div>
         </div>
       </div>
@@ -107,7 +107,7 @@ function LedgerCard({ caseData, index }) {
           <Link
             to={`/edit/${caseData.id}#billing-section`}
             className="btn-icon-text btn-edit"
-            style={{ fontSize: 12.5, padding: '6px 16px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            style={{ fontSize: 14.5, padding: '6px 16px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
             <Icon name="edit" style={{ width: 13, height: 13 }} />
             <span>Update Ledger</span>
@@ -156,7 +156,7 @@ export default function Billing() {
           <span>←</span>
           <span>Back to Dashboard</span>
         </Link>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+        <div style={{ fontSize: 15, color: 'var(--text-muted)' }}>
           <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
           <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
           <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Billing & Fees</span>
@@ -219,10 +219,10 @@ export default function Billing() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-dark)' }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-dark)' }}>
             Chambers Fee Realization Rate: <strong style={{ color: 'var(--success)' }}>{collectionRate}%</strong>
           </span>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>
             ₹{data.total_collected.toLocaleString('en-IN')} received of ₹{data.total_agreed.toLocaleString('en-IN')} total
           </span>
         </div>

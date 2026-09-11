@@ -133,7 +133,7 @@ export default function SearchableSelect({
               placeholder="Search or filter..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ fontSize: 13 }}
+              style={{ fontSize: 15 }}
             />
           </div>
 
@@ -145,7 +145,7 @@ export default function SearchableSelect({
                 onClick={() => handleSelect('')}
                 role="option"
                 aria-selected={!value}
-                style={{ fontSize: 13 }}
+                style={{ fontSize: 15 }}
               >
                 <span>{placeholder}</span>
                 {!value && <Icon name="check" className="check-icon" />}
@@ -162,7 +162,7 @@ export default function SearchableSelect({
                     onClick={() => handleSelect(opt.value)}
                     role="option"
                     aria-selected={isSelected}
-                    style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                    style={{ fontSize: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                   >
                     <span>{opt.label}</span>
                     {isSelected && <Icon name="check" className="check-icon" />}
@@ -170,7 +170,7 @@ export default function SearchableSelect({
                 );
               })
             ) : (
-              <div className="searchable-select-no-results" style={{ padding: 12, fontSize: 12.5, textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div className="searchable-select-no-results" style={{ padding: 12, fontSize: 14.5, textAlign: 'center', color: 'var(--text-muted)' }}>
                 No matching options found
               </div>
             )}

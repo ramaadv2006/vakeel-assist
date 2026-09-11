@@ -42,7 +42,7 @@
 .ai-header-title h2 {
   margin: 0;
   font-family: 'Lora', serif;
-  font-size: 26px;
+  font-size: 28px;
   color: var(--text-dark);
   display: flex;
   align-items: center;
@@ -52,7 +52,7 @@
 .ai-header-title p {
   margin: 4px 0 0;
   color: var(--gray-500);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .ai-nav-tabs {
@@ -74,7 +74,7 @@
   background: transparent;
   color: var(--gray-600);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -99,7 +99,7 @@
   color: var(--warning);
   padding: 14px 18px;
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -160,7 +160,7 @@ body.dark .ai-key-warning.is-error {
 .chat-bubble {
   padding: 14px 18px;
   border-radius: 16px;
-  font-size: 14.5px;
+  font-size: 16.5px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -185,7 +185,7 @@ body.dark .ai-key-warning.is-error {
 }
 
 .chat-sender-label {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--gray-500);
   font-weight: 500;
   padding: 0 4px;
@@ -197,7 +197,7 @@ body.dark .ai-key-warning.is-error {
   gap: 8px;
   font-style: italic;
   color: var(--gray-500);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .typing-dot {
@@ -228,7 +228,7 @@ body.dark .ai-key-warning.is-error {
   background: var(--accent-bg);
   border: 1px solid var(--accent-border);
   color: var(--primary);
-  font-size: 13px;
+  font-size: 15px;
   padding: 6px 12px;
   border-radius: 20px;
   cursor: pointer;
@@ -256,7 +256,7 @@ body.dark .ai-key-warning.is-error {
   border: 1.5px solid var(--gray-200);
   border-radius: var(--radius-md);
   padding: 12px 16px;
-  font-size: 14.5px;
+  font-size: 16.5px;
   font-family: inherit;
   resize: none;
   max-height: 120px;
@@ -278,7 +278,7 @@ body.dark .ai-key-warning.is-error {
   border-radius: var(--radius-md);
   padding: 12px 24px;
   font-weight: 600;
-  font-size: 14.5px;
+  font-size: 16.5px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -346,7 +346,7 @@ body.dark .ai-key-warning.is-error {
   padding: 10px 22px;
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -363,7 +363,7 @@ body.dark .ai-key-warning.is-error {
   border: 1px solid var(--border-card);
   padding: 8px 16px;
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--text-dark);
 }
@@ -392,7 +392,7 @@ body.dark .ai-key-warning.is-error {
 
 .analysis-section h4 {
   margin: 0 0 10px;
-  font-size: 15px;
+  font-size: 17px;
   color: var(--primary);
   font-family: 'Lora', serif;
   display: flex;
@@ -403,7 +403,7 @@ body.dark .ai-key-warning.is-error {
 .analysis-section p {
   margin: 0;
   color: var(--text-main);
-  font-size: 14.5px;
+  font-size: 16.5px;
   line-height: 1.6;
 }
 
@@ -411,7 +411,7 @@ body.dark .ai-key-warning.is-error {
   margin: 0;
   padding-left: 20px;
   color: var(--text-main);
-  font-size: 14.5px;
+  font-size: 16.5px;
   line-height: 1.65;
 }
 
@@ -435,7 +435,7 @@ body.dark .ai-key-warning.is-error {
 .disclaimer-footer {
   text-align: center;
   color: var(--gray-500);
-  font-size: 13px;
+  font-size: 15px;
   margin-top: 12px;
 }
 
@@ -533,7 +533,7 @@ body.dark .ai-send-btn:hover:not(:disabled) {
     flex: 1;
     justify-content: center;
     padding: 8px 12px;
-    font-size: 13px;
+    font-size: 15px;
   }
 
   .chat-input-wrapper {
@@ -541,13 +541,13 @@ body.dark .ai-send-btn:hover:not(:disabled) {
   }
 
   .chat-text-input {
-    font-size: 14px;
+    font-size: 16px;
     padding: 10px 14px;
   }
 
   .ai-send-btn {
     padding: 10px 16px;
-    font-size: 13px;
+    font-size: 15px;
   }
 }
 
