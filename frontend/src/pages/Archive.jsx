@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Trash2, CheckCircle2, PauseCircle } from 'lucide-react';
 import { api } from '../api/client';
 import { useFlash } from '../context/FlashContext';
 import CaseCard from '../components/CaseCard';
+import StatCard from '../components/StatCard';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
 import { useReveal } from '../hooks/useReveal';
@@ -54,6 +56,39 @@ export default function Archive() {
       <div className="form-header staggered-entry">
         <h2>Case Archive</h2>
         <p>Deleted, closed, and on-hold cases are kept here so you can review them and restore them later.</p>
+      </div>
+
+      {/* Summary KPI Grid */}
+      <div
+        className="stats-row staggered-entry"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gap: 16,
+          marginBottom: 28,
+        }}
+      >
+        <StatCard
+          label="Deleted Cases"
+          value={data.deleted_cases?.length || 0}
+          color="var(--danger)"
+          icon={<Trash2 size={18} />}
+          hint="Cases in trash"
+        />
+        <StatCard
+          label="Closed Briefs"
+          value={data.closed_cases?.length || 0}
+          color="var(--gray-500)"
+          icon={<CheckCircle2 size={18} />}
+          hint="Disposed matters"
+        />
+        <StatCard
+          label="On Hold Cases"
+          value={data.onhold_cases?.length || 0}
+          color="var(--accent)"
+          icon={<PauseCircle size={18} />}
+          hint="Paused proceedings"
+        />
       </div>
 
       {data.deleted_cases.length > 0 && (

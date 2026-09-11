@@ -196,11 +196,36 @@ body.dark .btn-ecourts-danger:hover,
 
 /* Hero Batch Import CTA Button */
 .btn-import-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   padding: 11px 24px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
+  letter-spacing: 0.2px;
   border-radius: 12px;
-  box-shadow: 0 6px 20px -2px rgba(184, 147, 94, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.5);
+  background: linear-gradient(135deg, #f5d77f 0%, #d4af37 50%, #b8860b 100%) !important;
+  color: #08101e !important;
+  border: 1px solid rgba(255, 223, 110, 0.85) !important;
+  box-shadow: 0 4px 18px rgba(184, 147, 94, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+  text-shadow: none !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn-import-cta:hover:not(:disabled) {
+  background: linear-gradient(135deg, #fae298 0%, #e0bd46 50%, #c49419 100%) !important;
+  box-shadow: 0 6px 24px rgba(184, 147, 94, 0.65), inset 0 1px 1px #fff !important;
+  transform: translateY(-2px);
+  border-color: #fff !important;
+}
+
+.btn-import-cta:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(184, 147, 94, 0.3) !important;
 }
 
 /* ==========================================================================
@@ -1166,9 +1191,17 @@ body.dark .ecourts-batch-select-all,
   gap: 20px;
 }
 
+.ecourts-cases-grid.single-case {
+  max-width: 660px;
+  margin: 0 auto;
+}
+
 @media (max-width: 768px) {
   .ecourts-cases-grid {
     grid-template-columns: 1fr;
+  }
+  .ecourts-cases-grid.single-case {
+    max-width: 100%;
   }
 }
 
@@ -1373,8 +1406,11 @@ body.dark .ecourts-diary-tag.in-diary {
   background: var(--bg-app, #f8fafc);
   border: 1px solid var(--border-card, #e2e8f0);
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 13px 15px;
   margin: 10px 0 14px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 body.dark .ecourts-parties-box,
@@ -1435,12 +1471,40 @@ body.dark .ecourts-party-name,
   color: var(--text-dark, #f5f7fa);
 }
 
-.ecourts-parties-vs {
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
+.ecourts-parties-vs-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 1px 0;
+}
+
+.ecourts-parties-vs-divider .vs-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-card, #e2e8f0);
+}
+
+body.dark .ecourts-parties-vs-divider .vs-line,
+[data-theme='dark'] .ecourts-parties-vs-divider .vs-line {
+  background: var(--border-card, #1e2a3e);
+}
+
+.ecourts-parties-vs-divider .vs-pill {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  padding: 1.5px 8px;
+  border-radius: 20px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-card, #e2e8f0);
   color: var(--text-muted, #94a3b8);
-  margin: 3px 0;
+}
+
+body.dark .ecourts-parties-vs-divider .vs-pill,
+[data-theme='dark'] .ecourts-parties-vs-divider .vs-pill {
+  background: var(--bg-card, #0e1524);
+  border-color: var(--border-card, #1e2a3e);
+  color: var(--text-muted, #7c8ba1);
 }
 
 /* Tamil / Indic Script Tag */
@@ -1478,6 +1542,24 @@ body.dark .ecourts-tamil-tag,
   gap: 10px;
 }
 
+.ecourts-meta-item.court-item {
+  align-items: flex-start;
+}
+
+.meta-label-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted, #64748b);
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.meta-label-group .meta-icon {
+  color: var(--accent, #b8935e);
+  opacity: 0.85;
+}
+
 .ecourts-meta-item .meta-label {
   color: var(--text-muted, #64748b);
   font-size: 12px;
@@ -1489,6 +1571,15 @@ body.dark .ecourts-tamil-tag,
   text-align: right;
 }
 
+.court-value {
+  max-width: 68%;
+  text-align: right;
+  line-height: 1.42;
+  font-size: 12px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
 body.dark .ecourts-meta-item .meta-value,
 [data-theme='dark'] .ecourts-meta-item .meta-value {
   color: var(--text-dark, #f5f7fa);
@@ -1496,23 +1587,27 @@ body.dark .ecourts-meta-item .meta-value,
 
 .hearing-badge {
   display: inline-block;
-  padding: 2px 8px;
+  padding: 2.5px 8px;
   border-radius: 6px;
   background: rgba(184, 147, 94, 0.12);
   color: var(--accent, #b8935e) !important;
   font-weight: 700 !important;
   border: 1px solid rgba(184, 147, 94, 0.25);
+  font-size: 12px;
 }
 
 /* Stage Milestone Tracker */
 .ecourts-stage-timeline {
-  margin: 12px 0 16px 0;
-  padding-top: 10px;
-  border-top: 1px dashed var(--border-card, #e2e8f0);
+  margin: 14px 0 16px 0;
+  padding: 12px 14px;
+  background: var(--bg-app, #f8fafc);
+  border: 1px solid var(--border-card, #e2e8f0);
+  border-radius: 12px;
 }
 
 body.dark .ecourts-stage-timeline,
 [data-theme='dark'] .ecourts-stage-timeline {
+  background: rgba(15, 23, 42, 0.45);
   border-color: var(--border-card, #1e2a3e);
 }
 
@@ -1522,64 +1617,123 @@ body.dark .ecourts-stage-timeline,
   align-items: center;
   font-size: 11.5px;
   color: var(--text-muted, #64748b);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
-.ecourts-stage-label strong {
-  color: var(--text-dark, #0b1526);
+.stage-title-text {
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
-body.dark .ecourts-stage-label strong,
-[data-theme='dark'] .ecourts-stage-label strong {
-  color: var(--text-dark, #f5f7fa);
+.stage-active-badge {
+  color: var(--accent, #b8935e);
+  font-weight: 700;
+  background: rgba(184, 147, 94, 0.12);
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(184, 147, 94, 0.25);
+  font-size: 11px;
+  letter-spacing: 0.2px;
+}
+
+body.dark .stage-active-badge,
+[data-theme='dark'] .stage-active-badge {
+  color: var(--accent, #f3d077);
+  background: rgba(184, 147, 94, 0.18);
+  border-color: rgba(184, 147, 94, 0.35);
 }
 
 .ecourts-milestone-bar {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 4px;
+  gap: 6px;
+  position: relative;
 }
 
 .ecourts-milestone-node {
   text-align: center;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
-.ecourts-milestone-node .node-dot {
-  display: block;
-  height: 4px;
-  border-radius: 2px;
+.ecourts-milestone-node .node-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
   background: var(--border-card, #cbd5e1);
-  margin-bottom: 4px;
-  transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body.dark .ecourts-milestone-node .node-dot {
-  background: var(--border-card, #1e2a3e);
+body.dark .ecourts-milestone-node .node-track,
+[data-theme='dark'] .ecourts-milestone-node .node-track {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.ecourts-milestone-node.is-completed .node-dot {
-  background: var(--accent, #b8935e);
+.ecourts-milestone-node.is-completed .node-track {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
 }
 
-.ecourts-milestone-node.is-current .node-dot {
+.ecourts-milestone-node.is-current .node-track {
+  background: linear-gradient(90deg, #f5d77f 0%, #d4af37 100%);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
+}
+
+.node-beacon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   background: #d4af37;
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.8);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.4);
+  animation: beaconPulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+@keyframes beaconPulse {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.4);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    box-shadow: 0 0 0 6px rgba(212, 175, 55, 0);
+  }
 }
 
 .ecourts-milestone-node .node-text {
-  font-size: 9.5px;
+  font-size: 10px;
   color: var(--text-muted, #64748b);
   font-weight: 600;
   display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: 0.2px;
+}
+
+.ecourts-milestone-node.is-completed .node-text {
+  color: var(--text-dark, #334155);
+}
+
+body.dark .ecourts-milestone-node.is-completed .node-text {
+  color: #cbd5e1;
 }
 
 .ecourts-milestone-node.is-current .node-text {
   color: var(--accent, #b8935e);
   font-weight: 700;
+}
+
+body.dark .ecourts-milestone-node.is-current .node-text {
+  color: #f3d077;
 }
 
 /* Card Actions Footer */

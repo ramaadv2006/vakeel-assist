@@ -22,7 +22,7 @@ export default function AddCase() {
   };
 
   return (
-    <div className="form-container">
+    <div className="form-container" style={{ maxWidth: 980 }}>
       <Link to="/" className="back-link staggered-entry">
         <Icon name="back" />
         Back to Dashboard

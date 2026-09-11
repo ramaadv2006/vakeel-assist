@@ -120,6 +120,7 @@ body.dark {
        high numbers become the readable text tints. 500/600 were left
        at their light-theme values, which put 2.5:1 body text on a dark
        card — every "muted" caption in the app was effectively unreadable. */
+    --gray-50: #0e1524;
     --gray-100: #131c2c;
     --gray-200: #1e2a3e;
     --gray-300: #2c3a52;
@@ -440,15 +441,30 @@ header::after {
 }
 
 .advo-badge-pill {
-    background: rgba(212, 160, 23, 0.12);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.18) 0%, rgba(212, 175, 55, 0.06) 100%);
     color: var(--accent);
-    border: 1px solid rgba(212, 160, 23, 0.3);
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.38);
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 10px rgba(212, 175, 55, 0.12);
     flex-shrink: 0;
+}
+
+.advo-badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulseGlow 2s infinite;
 }
 
 header h1 {
@@ -1960,7 +1976,7 @@ body.dark .skeleton-line {
 
 /* Form Styles */
 .form-container {
-    max-width: 580px;
+    max-width: 980px;
     width: 100%;
     margin: 0 auto;
     animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -1990,18 +2006,18 @@ body.dark .form-header p {
 
 .card-form {
     background: var(--bg-card);
-    padding: var(--space-7);
+    padding: 24px 28px;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--border-card);
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
-    transition: background-color 0.4s ease, border-color 0.4s ease;
+    gap: 16px;
+    transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.3s ease;
 }
 
 body.dark .card-form {
-    background: var(--bg-card);
+    background-color: var(--bg-card);
     border-color: var(--border-card);
 }
 
@@ -2014,13 +2030,31 @@ body.dark .card-form {
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-4);
+    gap: 16px 20px;
+    align-items: start;
+}
+
+.form-row.form-row-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px 16px;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .form-row,
+    .form-row.form-row-3 {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
 }
 
 label {
-    font-size: var(--text-sm);
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
     color: var(--primary-light);
+    line-height: 1.3;
+    letter-spacing: 0.1px;
+    display: inline-block;
 }
 
 body.dark label {
@@ -2031,14 +2065,26 @@ input:not(.auth-text-input),
 select,
 textarea {
     width: 100%;
-    padding: 10px 14px;
+    padding: 9px 14px;
+    min-height: 40px;
     border: 1.5px solid var(--border-card);
-    border-radius: var(--radius-sm);
+    border-radius: 8px;
     font-family: inherit;
-    font-size: var(--text-base);
+    font-size: 14px;
+    line-height: 1.4;
     color: var(--text-dark);
     background-color: var(--bg-card);
+    box-sizing: border-box;
     transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.4s ease;
+}
+
+textarea {
+    min-height: 72px;
+    padding: 10px 14px;
+}
+
+select {
+    min-height: 40px;
 }
 
 body.dark input:not(.auth-text-input),
@@ -3551,8 +3597,11 @@ body.dark .auth-fullscreen-root input:-webkit-autofill {
     }
 }
 
-/* Ambient Background Blobs with multi-layered glow */
-.ambient-blobs {
+/* ============================================================
+   AMBIENT BACKGROUND CANVAS & AURORA GLOWS
+   Subtle, luminous atmosphere without muddy/dark artifacts
+   ============================================================ */
+.ambient-canvas {
     position: fixed;
     top: 0;
     left: 0;
@@ -3563,46 +3612,67 @@ body.dark .auth-fullscreen-root input:-webkit-autofill {
     z-index: -1;
     overflow: hidden;
     pointer-events: none;
-    opacity: 0.7;
 }
 
-body.dark .ambient-blobs {
-    opacity: 0.4;
-}
-
-.blob {
+.ambient-glow {
     position: absolute;
     border-radius: 50%;
-    filter: blur(100px);
-    animation: blobMove 25s infinite alternate ease-in-out;
+    filter: blur(120px);
+    opacity: 0.6;
+    transition: opacity 0.5s ease;
 }
 
-.blob-1 {
-    width: 450px;
-    height: 450px;
-    background: radial-gradient(circle, rgba(184, 147, 94, 0.3) 0%, rgba(184, 147, 94, 0) 70%);
-    top: -150px;
-    left: -100px;
-    animation-delay: 0s;
+.ambient-glow-gold {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.12) 0%, rgba(212, 175, 55, 0.02) 60%, transparent 80%);
+    top: -160px;
+    left: 5%;
+    animation: auroraFloat1 28s infinite alternate ease-in-out;
 }
 
-.blob-2 {
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(22, 35, 61, 0.6) 0%, rgba(22, 35, 61, 0) 70%);
-    bottom: -150px;
-    right: -100px;
-    animation-delay: 6s;
+.ambient-glow-sapphire {
+    width: 680px;
+    height: 680px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(99, 102, 241, 0.02) 60%, transparent 80%);
+    top: 25%;
+    right: -120px;
+    animation: auroraFloat2 32s infinite alternate ease-in-out;
 }
 
-.blob-3 {
-    width: 380px;
-    height: 380px;
-    background: radial-gradient(circle, rgba(29, 78, 216, 0.18) 0%, rgba(29, 78, 216, 0) 75%);
-    top: 35%;
-    right: 12%;
-    animation: blobMove 18s infinite alternate ease-in-out;
-    animation-delay: 3s;
+.ambient-grid-overlay {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(11, 21, 38, 0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.8;
+}
+
+body.dark .ambient-glow-gold {
+    background: radial-gradient(circle, rgba(212, 175, 55, 0.10) 0%, rgba(212, 175, 55, 0.01) 60%, transparent 80%);
+    opacity: 0.5;
+}
+
+body.dark .ambient-glow-sapphire {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(30, 58, 138, 0.03) 60%, transparent 80%);
+    opacity: 0.55;
+}
+
+body.dark .ambient-grid-overlay {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    opacity: 0.5;
+}
+
+@keyframes auroraFloat1 {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(60px, 40px) scale(1.08); }
+    100% { transform: translate(-30px, 70px) scale(0.95); }
+}
+
+@keyframes auroraFloat2 {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(-50px, -30px) scale(1.05); }
+    100% { transform: translate(40px, -60px) scale(0.92); }
 }
 
 /* Theme Toggle SVG Morphs */
@@ -5045,4 +5115,4 @@ body.dark .btn-back-dashboard,
         justify-content: space-between;
         width: 100%;
     }
-}
+}

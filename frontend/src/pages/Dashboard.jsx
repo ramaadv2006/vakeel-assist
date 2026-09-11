@@ -200,7 +200,7 @@ export default function Dashboard() {
           </div>
 
           <h1 className="hero-greeting">
-            {greeting}, {advocate?.name ? `Advocate ${advocate.name}` : 'Advocate'} 😊
+            {greeting}, {advocate?.name ? `Advocate ${advocate.name}` : 'Advocate'}
           </h1>
 
           <p className="hero-briefing">
@@ -348,55 +348,38 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Category Filter Pills Ribbon */}
-        <div className="filter-tabs-strip">
-          <button
-            type="button"
-            className={`filter-tab${activeCategory === 'all' ? ' active' : ''}`}
-            onClick={() => setActiveCategory('all')}
-          >
-            <span>All Matters</span>
-            <span className="tab-count">{allCases.length}</span>
-          </button>
-
-          {data.overdue.length > 0 && (
-            <button
-              type="button"
-              className={`filter-tab tab-overdue${activeCategory === 'overdue' ? ' active' : ''}`}
-              onClick={() => setActiveCategory('overdue')}
-            >
-              <span className="tab-dot dot-overdue" />
-              <span>Overdue</span>
-              <span className="tab-count count-overdue">{data.overdue.length}</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            className={`filter-tab tab-today${activeCategory === 'today' ? ' active' : ''}`}
-            onClick={() => setActiveCategory('today')}
-          >
-            <span className="tab-dot dot-today" />
-            <span>Today</span>
-            <span className="tab-count">{data.today.length}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`filter-tab tab-week${activeCategory === 'week' ? ' active' : ''}`}
-            onClick={() => setActiveCategory('week')}
-          >
-            <span>This Week</span>
-            <span className="tab-count">{data.this_week.length}</span>
-          </button>
-
-          <button
-            type="button"
-            className={`filter-tab tab-upcoming${activeCategory === 'upcoming' ? ' active' : ''}`}
-            onClick={() => setActiveCategory('upcoming')}
-          >
-            <span>Upcoming</span>
-            <span className="tab-count">{data.upcoming.length}</span>
-          </button>
+        <div className="filter-tabs-strip" style={{ position: 'relative' }}>
+          {[
+            { id: 'all', label: 'All Matters', count: allCases.length },
+            ...(data.overdue.length > 0 ? [{ id: 'overdue', label: 'Overdue', count: data.overdue.length, dot: 'dot-overdue', isOverdue: true }] : []),
+            { id: 'today', label: 'Today', count: data.today.length, dot: 'dot-today' },
+            { id: 'week', label: 'This Week', count: data.this_week.length, dot: 'dot-week' },
+            { id: 'upcoming', label: 'Upcoming', count: data.upcoming.length, dot: 'dot-upcoming' },
+          ].map((tab) => {
+            const isActive = activeCategory === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={`filter-tab${tab.isOverdue ? ' tab-overdue' : ''}${isActive ? ' active' : ''}`}
+                onClick={() => setActiveCategory(tab.id)}
+                style={{ position: 'relative' }}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="activeFilterTabIndicator"
+                    className="filter-tab-active-bg"
+                    transition={{ type: 'spring', stiffness: 480, damping: 32 }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {tab.dot && <span className={`tab-dot ${tab.dot}`} />}
+                  <span>{tab.label}</span>
+                  <span className={`tab-count${tab.isOverdue ? ' count-overdue' : ''}`}>{tab.count}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </motion.div>
 

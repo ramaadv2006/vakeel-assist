@@ -88,7 +88,8 @@ export default function Header() {
         </motion.div>
         {advocate && (
           <span className="advo-badge-pill">
-            ⚖️ Advocate 😊
+            <span className="advo-badge-dot" />
+            <span>Chambers Counsel</span>
           </span>
         )}
       </div>
@@ -112,9 +113,10 @@ export default function Header() {
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      background: 'var(--accent-bg)',
-                      border: '1px solid var(--accent-border)',
-                      borderRadius: 'var(--radius-sm)',
+                      background: 'rgba(212, 175, 55, 0.16)',
+                      border: '1px solid rgba(212, 175, 55, 0.45)',
+                      borderRadius: 'var(--radius-full)',
+                      boxShadow: '0 0 16px rgba(212, 175, 55, 0.15)',
                       zIndex: 0,
                     }}
                     transition={{ type: 'spring', stiffness: 420, damping: 32 }}

@@ -1,10 +1,29 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Scale,
+  Clock,
+  CheckCircle2,
+  BookOpen,
+  Search,
+  LayoutGrid,
+  List,
+  Upload,
+  FileText,
+  Check,
+  Calendar,
+  AlertTriangle,
+  Copy,
+  ExternalLink,
+  Sparkles
+} from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useFlash } from '../context/FlashContext';
 import Icon from '../components/Icon';
-import { parseEcourtsExport } from '../utils/ecourtsParser';
+import StatCard from '../components/StatCard';
+import { parseEcourtsExport, SAMPLE_ECOURTS_EXPORT_TXT } from '../utils/ecourtsParser';
 import '../styles/AdvoCaseSearch.css';
 
 const STAGE_MILESTONES = ['Filing', 'Notice', 'Evidence', 'Arguments', 'Orders'];
@@ -15,9 +34,25 @@ function getStageStepIndex(stageName) {
   if (s.includes('filing') || s.includes('admission') || s.includes('registration')) return 0;
   if (s.includes('notice') || s.includes('summons') || s.includes('appearance') || s.includes('written statement')) return 1;
   if (s.includes('evidence') || s.includes('issues') || s.includes('examination') || s.includes('pw-') || s.includes('dw-')) return 2;
-  if (s.includes('argument') || s.includes('hearing') || s.includes('injunction')) return 3;
+  if (s.includes('argument') || s.includes('hearing') || s.includes('injunction') || s.includes('heard')) return 3;
   if (s.includes('order') || s.includes('judgment') || s.includes('pronouncement') || s.includes('disposed') || s.includes('acquitted')) return 4;
   return 2;
+}
+
+function formatCourtName(name, district) {
+  if (!name) return 'District Court';
+  const parts = name.split(',').map((s) => s.trim()).filter(Boolean);
+  const uniqueParts = [];
+  parts.forEach((p) => {
+    if (!uniqueParts.some((u) => u.toLowerCase() === p.toLowerCase())) {
+      uniqueParts.push(p);
+    }
+  });
+  let clean = uniqueParts.join(', ');
+  if (district && !clean.toLowerCase().includes(district.toLowerCase())) {
+    clean += ` (${district})`;
+  }
+  return clean;
 }
 
 export default function AdvoCaseSearch() {
@@ -503,6 +538,16 @@ export default function AdvoCaseSearch() {
           <div className="ecourts-upload-actions">
             <button
               type="button"
+              onClick={() => processRawText(SAMPLE_ECOURTS_EXPORT_TXT, 'sample_ecourts_cases.json')}
+              className="btn-ecourts-secondary"
+              title="Load sample eCourts CIS records to preview layout"
+            >
+              <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+              <span>Try Demo Sample</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setPasteDrawerOpen((v) => !v)}
               className="btn-ecourts-secondary btn-paste-toggle"
             >
@@ -545,7 +590,7 @@ export default function AdvoCaseSearch() {
           />
 
           <div className="ecourts-dropzone-icon-circle">
-            <Icon name="upload" style={{ width: 34, height: 34, color: 'var(--accent)' }} />
+            <Upload size={32} style={{ color: 'var(--accent)' }} />
           </div>
 
           <div className="ecourts-dropzone-text">
@@ -659,75 +704,91 @@ export default function AdvoCaseSearch() {
       {cases.length > 0 && (
         <div className="staggered-entry">
           {/* STATS OVERVIEW CARDS */}
-          <div className="ecourts-stats-grid">
-            <div className="ecourts-stat-card card-total">
-              <div className="stat-card-icon">📊</div>
-              <div className="stat-card-label">Total Extracted</div>
-              <div className="stat-card-value val-total">{stats.total}</div>
-            </div>
-
-            <div className="ecourts-stat-card card-pending">
-              <div className="stat-card-icon">⏳</div>
-              <div className="stat-card-label">Active / Pending</div>
-              <div className="stat-card-value val-pending">{stats.pending}</div>
-            </div>
-
-            <div className="ecourts-stat-card card-disposed">
-              <div className="stat-card-icon">⚖️</div>
-              <div className="stat-card-label">Disposed / Closed</div>
-              <div className="stat-card-value val-disposed">{stats.disposed}</div>
-            </div>
-
-            <div className="ecourts-stat-card card-diary">
-              <div className="stat-card-icon">📗</div>
-              <div className="stat-card-label">In Diary Status</div>
-              <div className="stat-card-value val-diary">
-                {stats.alreadyInDiary} <span className="val-sub">/ {stats.readyToImport} new</span>
-              </div>
-            </div>
+          <div
+            className="stats-row staggered-entry"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 16,
+              marginBottom: 20,
+            }}
+          >
+            <StatCard
+              value={stats.total}
+              label="Total Extracted"
+              color="var(--accent)"
+              icon={<Scale size={18} />}
+              hint="All parsed records"
+            />
+            <StatCard
+              value={stats.pending}
+              label="Active / Pending"
+              color="var(--warning)"
+              icon={<Clock size={18} />}
+              hint="Awaiting next listing"
+            />
+            <StatCard
+              value={stats.disposed}
+              label="Disposed / Closed"
+              color="var(--gray-500)"
+              icon={<CheckCircle2 size={18} />}
+              hint="Concluded proceedings"
+            />
+            <StatCard
+              value={stats.alreadyInDiary}
+              label="In Diary Status"
+              color="var(--success)"
+              icon={<BookOpen size={18} />}
+              hint={`${stats.readyToImport} new ready to sync`}
+            />
           </div>
 
           {/* CONTROLS & FILTER TOOLBAR */}
           <div className="ecourts-toolbar-card">
-            <div className="ecourts-filter-tabs">
-              <button
-                type="button"
-                onClick={() => setFilterType('all')}
-                className={`ecourts-filter-tab${filterType === 'all' ? ' is-active' : ''}`}
-              >
-                <span>All Cases</span>
-                <span className="ecourts-tab-pill">{cases.length}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterType('pending')}
-                className={`ecourts-filter-tab${filterType === 'pending' ? ' is-active' : ''}`}
-              >
-                <span>Pending</span>
-                <span className="ecourts-tab-pill">{stats.pending}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterType('disposed')}
-                className={`ecourts-filter-tab${filterType === 'disposed' ? ' is-active' : ''}`}
-              >
-                <span>Disposed</span>
-                <span className="ecourts-tab-pill">{stats.disposed}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilterType('new')}
-                className={`ecourts-filter-tab${filterType === 'new' ? ' is-active' : ''}`}
-              >
-                <span>New to Import</span>
-                <span className="ecourts-tab-pill">{stats.readyToImport}</span>
-              </button>
+            <div className="ecourts-filter-tabs" style={{ position: 'relative' }}>
+              {[
+                { id: 'all', label: 'All Cases', count: cases.length },
+                { id: 'pending', label: 'Pending', count: stats.pending },
+                { id: 'disposed', label: 'Disposed', count: stats.disposed },
+                { id: 'new', label: 'New to Import', count: stats.readyToImport },
+              ].map((tab) => {
+                const isActive = filterType === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setFilterType(tab.id)}
+                    className={`ecourts-filter-tab${isActive ? ' is-active' : ''}`}
+                    style={{ position: 'relative' }}
+                  >
+                    {isActive && (
+                      <motion.span
+                        layoutId="activeEcourtsTabIndicator"
+                        className="ecourts-tab-active-pill"
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: 'var(--bg-card)',
+                          borderRadius: 9,
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                          zIndex: 0,
+                        }}
+                        transition={{ type: 'spring', stiffness: 450, damping: 30 }}
+                      />
+                    )}
+                    <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span>{tab.label}</span>
+                      <span className="ecourts-tab-pill">{tab.count}</span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Search Query Box & View Switcher */}
             <div className="ecourts-search-and-view">
               <div className="ecourts-search-wrapper">
-                <span className="search-icon">🔍</span>
+                <Search size={15} className="search-icon" style={{ color: 'var(--text-muted)' }} />
                 <input
                   type="text"
                   value={searchQuery}
@@ -755,7 +816,7 @@ export default function AdvoCaseSearch() {
                   className={`ecourts-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
                   title="Grid Cards View"
                 >
-                  <Icon name="grid" style={{ width: 15, height: 15 }} />
+                  <LayoutGrid size={15} />
                 </button>
                 <button
                   type="button"
@@ -763,7 +824,7 @@ export default function AdvoCaseSearch() {
                   className={`ecourts-view-btn${viewMode === 'table' ? ' is-active' : ''}`}
                   title="Compact Table View"
                 >
-                  <Icon name="list" style={{ width: 15, height: 15 }} />
+                  <List size={15} />
                 </button>
               </div>
             </div>
@@ -803,11 +864,13 @@ export default function AdvoCaseSearch() {
               </span>
             </div>
 
-            <button
+            <motion.button
               type="button"
               disabled={selectedCaseNumbers.size === 0 || loadingImport}
               onClick={handleImportSelected}
               className="btn-ecourts-primary btn-import-cta"
+              whileHover={{ scale: selectedCaseNumbers.size > 0 && !loadingImport ? 1.02 : 1 }}
+              whileTap={{ scale: selectedCaseNumbers.size > 0 && !loadingImport ? 0.98 : 1 }}
             >
               {loadingImport ? (
                 <>
@@ -816,11 +879,11 @@ export default function AdvoCaseSearch() {
                 </>
               ) : (
                 <>
-                  <span>📥</span>
-                  <span>Import {selectedCaseNumbers.size} Selected Cases to Dashboard</span>
+                  <Sparkles size={16} />
+                  <span>Import {selectedCaseNumbers.size} Selected Case{selectedCaseNumbers.size === 1 ? '' : 's'} to Dashboard</span>
                 </>
               )}
-            </button>
+            </motion.button>
           </div>
 
           {/* CASES LIST: GRID OR TABLE */}
@@ -841,15 +904,17 @@ export default function AdvoCaseSearch() {
               </button>
             </div>
           ) : viewMode === 'grid' ? (
-            <div className="ecourts-cases-grid">
+            <div className={`ecourts-cases-grid${filteredCases.length === 1 ? ' single-case' : ''}`}>
               {filteredCases.map((c) => {
                 const isSelected = selectedCaseNumbers.has(c.case_number);
                 const isAlreadyInDiary = existingCasesMap.has((c.case_number || '').trim().toUpperCase());
                 const stageIndex = getStageStepIndex(c.case_stage);
 
                 return (
-                  <div
+                  <motion.div
                     key={c.case_number || c.cnr_number}
+                    whileHover={{ y: -4, scale: 1.01 }}
+                    transition={{ duration: 0.2 }}
                     className={`ecourts-case-card${isSelected ? ' is-selected' : ''}`}
                     onClick={() => toggleCaseSelection(c.case_number)}
                   >
@@ -873,7 +938,11 @@ export default function AdvoCaseSearch() {
                           >
                             <span>CNR: {c.cnr_number}</span>
                             <span className="cnr-copy-indicator">
-                              {copiedCnr === c.cnr_number ? '✓ Copied' : '📋'}
+                              {copiedCnr === c.cnr_number ? (
+                                <Check size={11} />
+                              ) : (
+                                <Copy size={11} />
+                              )}
                             </span>
                           </div>
                         )}
@@ -886,17 +955,19 @@ export default function AdvoCaseSearch() {
                         </span>
                         {isAlreadyInDiary ? (
                           <span className="ecourts-diary-tag in-diary">
-                            ✓ In Diary
+                            <Check size={12} style={{ display: 'inline', marginRight: 2 }} />
+                            In Diary
                           </span>
                         ) : (
                           <span className="ecourts-diary-tag ready-sync">
-                            ⚡ Ready to Sync
+                            <Sparkles size={12} style={{ display: 'inline', marginRight: 2 }} />
+                            Ready to Sync
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Parties Section (with Tamil Indic tags) */}
+                    {/* Parties Section (with sleek VS divider & Tamil Indic tags) */}
                     <div className="ecourts-parties-box">
                       <div className="ecourts-party-row">
                         <span className="ecourts-party-role petitioner">Petitioner</span>
@@ -908,7 +979,11 @@ export default function AdvoCaseSearch() {
                         </div>
                       </div>
 
-                      <div className="ecourts-parties-vs">vs</div>
+                      <div className="ecourts-parties-vs-divider">
+                        <span className="vs-line" />
+                        <span className="vs-pill">VS</span>
+                        <span className="vs-line" />
+                      </div>
 
                       <div className="ecourts-party-row">
                         <span className="ecourts-party-role respondent">Respondent</span>
@@ -921,11 +996,16 @@ export default function AdvoCaseSearch() {
                       </div>
                     </div>
 
-                    {/* Court and Judge Details */}
+                    {/* Court and Judge Details with Deduplicated Clean Court Name */}
                     <div className="ecourts-meta-details">
-                      <div className="ecourts-meta-item">
-                        <span className="meta-label">Court</span>
-                        <span className="meta-value">{c.court_name || 'District Court'}{c.district ? ` (${c.district})` : ''}</span>
+                      <div className="ecourts-meta-item court-item">
+                        <div className="meta-label-group">
+                          <Scale size={13} className="meta-icon" />
+                          <span className="meta-label">Court</span>
+                        </div>
+                        <span className="meta-value court-value" title={c.court_name}>
+                          {formatCourtName(c.court_name, c.district)}
+                        </span>
                       </div>
                       {c.judge_name && (
                         <div className="ecourts-meta-item">
@@ -934,30 +1014,40 @@ export default function AdvoCaseSearch() {
                         </div>
                       )}
                       <div className="ecourts-meta-item hearing-item">
-                        <span className="meta-label">Next Hearing</span>
+                        <div className="meta-label-group">
+                          <Calendar size={13} className="meta-icon" />
+                          <span className="meta-label">Next Hearing</span>
+                        </div>
                         <span className="meta-value hearing-badge">
-                          {c.next_hearing_date ? `📅 ${c.next_hearing_date}` : 'Not Scheduled'}
+                          {c.next_hearing_date ? c.next_hearing_date : 'Not Scheduled'}
                         </span>
                       </div>
                     </div>
 
-                    {/* Stage Milestones Tracker */}
+                    {/* Stage Milestones Tracker with High-End Visual Beacon */}
                     <div className="ecourts-stage-timeline">
                       <div className="ecourts-stage-label">
-                        <span>Current Stage:</span>
-                        <strong>{c.case_stage || 'Filing / Registration'}</strong>
+                        <span className="stage-title-text">Current Stage:</span>
+                        <strong className="stage-active-badge">{c.case_stage || 'Filing / Registration'}</strong>
                       </div>
                       <div className="ecourts-milestone-bar">
-                        {STAGE_MILESTONES.map((step, idx) => (
-                          <div
-                            key={step}
-                            className={`ecourts-milestone-node${idx <= stageIndex ? ' is-completed' : ''}${idx === stageIndex ? ' is-current' : ''}`}
-                            title={step}
-                          >
-                            <span className="node-dot" />
-                            <span className="node-text">{step}</span>
-                          </div>
-                        ))}
+                        {STAGE_MILESTONES.map((step, idx) => {
+                          const isCompleted = idx < stageIndex;
+                          const isCurrent = idx === stageIndex;
+                          return (
+                            <div
+                              key={step}
+                              className={`ecourts-milestone-node${isCompleted ? ' is-completed' : ''}${isCurrent ? ' is-current' : ''}`}
+                              title={step}
+                            >
+                              <div className="node-track">
+                                <span className="node-dot" />
+                                {isCurrent && <span className="node-beacon" />}
+                              </div>
+                              <span className="node-text">{step}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -978,10 +1068,11 @@ export default function AdvoCaseSearch() {
                         onClick={() => setExpandedCase(c)}
                         className="btn-ecourts-secondary btn-inspect"
                       >
-                        Inspect Details 🔍
+                        <span>Inspect Details</span>
+                        <ExternalLink size={13} />
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -1046,8 +1137,7 @@ export default function AdvoCaseSearch() {
                             </div>
                           </td>
                           <td>
-                            <div style={{ fontWeight: 600 }}>{c.court_name}</div>
-                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{c.district}</div>
+                            <div style={{ fontWeight: 600 }}>{formatCourtName(c.court_name, c.district)}</div>
                           </td>
                           <td style={{ fontWeight: 600 }}>
                             {c.case_stage || '-'}
@@ -1144,7 +1234,7 @@ export default function AdvoCaseSearch() {
             <div className="ecourts-modal-details-grid">
               <div className="modal-detail-item">
                 <span className="detail-label">Court:</span>
-                <strong>{expandedCase.court_name}</strong>
+                <strong>{formatCourtName(expandedCase.court_name, expandedCase.district)}</strong>
               </div>
               <div className="modal-detail-item">
                 <span className="detail-label">District:</span>

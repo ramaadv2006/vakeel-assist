@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CheckSquare, Briefcase, Calendar, Plus, Trash2, CheckCircle2, ArrowRight } from 'lucide-react';
 import { api } from '../api/client';
+import StatCard from '../components/StatCard';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
 import { useReveal } from '../hooks/useReveal';
@@ -12,18 +14,22 @@ function HubCase({ group, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [revealRef, inView] = useReveal();
 
-  const openCount = tasks.filter((t) => !t.is_completed).length;
+  const completedCount = tasks.filter((t) => t.is_completed).length;
+  const openCount = tasks.length - completedCount;
+  const progressPercent = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
 
   useEffect(() => {
-    if (openCount === 0) {
-      const timer = setTimeout(() => onChanged(), 350);
+    if (openCount === 0 && tasks.length > 0) {
+      const timer = setTimeout(() => onChanged(), 400);
       return () => clearTimeout(timer);
     }
-  }, [openCount, onChanged]);
+  }, [openCount, tasks.length, onChanged]);
 
   const toggle = async (taskId) => {
     const data = await api.post(`/case-tasks/${taskId}/toggle`);
-    setTasks((prev) => prev.map((t) => (t.task_id === taskId ? { ...t, is_completed: data.is_completed ? 1 : 0 } : t)));
+    setTasks((prev) =>
+      prev.map((t) => (t.task_id === taskId ? { ...t, is_completed: data.is_completed ? 1 : 0 } : t))
+    );
   };
 
   const remove = async (taskId) => {
@@ -37,47 +43,107 @@ function HubCase({ group, onChanged }) {
     setBusy(true);
     try {
       const data = await api.post(`/cases/${group.case_id}/tasks`, { title });
-      setTasks((prev) => [...prev, { task_id: data.task.id, title: data.task.title, is_completed: 0, case_id: group.case_id }]);
+      setTasks((prev) => [
+        ...prev,
+        { task_id: data.task.id, title: data.task.title, is_completed: 0, case_id: group.case_id },
+      ]);
       setNewTitle('');
     } finally {
       setBusy(false);
     }
   };
 
-  if (openCount === 0) return null;
+  if (openCount === 0 && tasks.length > 0) return null;
 
   return (
     <motion.div
       layout
       ref={revealRef}
       className={`card-form reveal-up hub-case-section${inView ? ' in-view' : ''}`}
-      style={{ padding: '20px 24px' }}
-      whileHover={{ y: -2, boxShadow: '0 8px 24px -6px rgba(10, 29, 55, 0.12)' }}
-      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      style={{
+        padding: '22px 24px',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-card)',
+        background: 'var(--bg-card)',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+      whileHover={{ y: -3, boxShadow: '0 12px 28px -6px rgba(11, 21, 38, 0.10)' }}
+      transition={{ type: 'spring', stiffness: 420, damping: 28 }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)' }}>
-            {group.client_name}
-          </div>
-          <div className="meta" style={{ marginTop: 4 }}>
-            <span className="meta-item" title="Case Number"><Icon name="case" />{group.case_number}</span>
-            <span className="meta-divider">|</span>
-            <span className="meta-item" title="Court Name"><Icon name="court" />{group.court_name}</span>
-            <span className="meta-divider">|</span>
-            <span className="meta-item" title="Next Hearing Date" style={{ color: 'var(--primary-light)', fontWeight: 600 }}>
-              <Icon name="calendar" />{group.next_hearing_date}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h3 style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
+              {group.client_name}
+            </h3>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: '2px 8px',
+                borderRadius: 12,
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: 'var(--danger)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+              }}
+            >
+              {openCount} Pending Action{openCount === 1 ? '' : 's'}
             </span>
-            <span className="meta-divider">|</span>
-            <span className="meta-item" style={{ fontWeight: 700, color: 'var(--accent-hover)' }}>{openCount} open</span>
           </div>
+
+          <div className="meta" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span className="meta-item" style={{ fontWeight: 600 }}>
+              <Icon name="case" style={{ width: 13, height: 13 }} />
+              {group.case_number}
+            </span>
+            <span style={{ color: 'var(--gray-300)' }}>•</span>
+            <span className="meta-item">
+              <Icon name="court" style={{ width: 13, height: 13 }} />
+              {group.court_name}
+            </span>
+            <span style={{ color: 'var(--gray-300)' }}>•</span>
+            <span className="meta-item" style={{ color: 'var(--accent-hover)', fontWeight: 600 }}>
+              <Calendar size={13} />
+              Hearing: {group.next_hearing_date}
+            </span>
+          </div>
+
+          {/* Mini progress bar */}
+          {tasks.length > 0 && (
+            <div style={{ marginTop: 10, maxWidth: 280 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                <span>Progress</span>
+                <span>{completedCount}/{tasks.length} Done ({progressPercent}%)</span>
+              </div>
+              <div style={{ height: 5, width: '100%', background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden', border: '1px solid var(--border-card)' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${progressPercent}%`,
+                    background: 'var(--accent)',
+                    borderRadius: 3,
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
-        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-          <Link to={`/edit/${group.case_id}`} className="btn-icon-text btn-edit">Edit Case</Link>
+
+        <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+          <Link
+            to={`/edit/${group.case_id}`}
+            className="btn-icon-text btn-export"
+            style={{ fontSize: 12.5, padding: '6px 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>Open Case</span>
+            <ArrowRight size={12} />
+          </Link>
         </motion.div>
       </div>
 
-      <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px dashed var(--border-card)', paddingTop: 12 }}>
+      {/* Task Checklist Items */}
+      <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid var(--border-card)', paddingTop: 14 }}>
         <AnimatePresence initial={false}>
           {tasks.map((task) => (
             <motion.div
@@ -86,47 +152,105 @@ function HubCase({ group, onChanged }) {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', gap: 8, overflow: 'hidden' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '9px 14px',
+                background: 'var(--bg-app)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-card)',
+                gap: 10,
+                overflow: 'hidden',
+              }}
             >
-              <div className="checkbox-group" style={{ gap: 8 }}>
-                <input type="checkbox" checked={!!task.is_completed} onChange={() => toggle(task.task_id)} id={`hub-task-${task.task_id}`} />
-                <label htmlFor={`hub-task-${task.task_id}`} style={{ fontSize: 13, textDecoration: task.is_completed ? 'line-through' : 'none', opacity: task.is_completed ? 0.5 : 1 }}>
+              <div className="checkbox-group" style={{ gap: 10, flex: 1 }}>
+                <input
+                  type="checkbox"
+                  checked={!!task.is_completed}
+                  onChange={() => toggle(task.task_id)}
+                  id={`hub-task-${task.task_id}`}
+                />
+                <label
+                  htmlFor={`hub-task-${task.task_id}`}
+                  style={{
+                    fontSize: 13,
+                    cursor: 'pointer',
+                    textDecoration: task.is_completed ? 'line-through' : 'none',
+                    opacity: task.is_completed ? 0.5 : 1,
+                    transition: 'all 0.2s',
+                  }}
+                >
                   {task.title}
                 </label>
               </div>
+
               <motion.button
-                whileHover={{ scale: 1.2, color: 'var(--danger)' }}
+                whileHover={{ scale: 1.15, color: 'var(--danger)' }}
                 whileTap={{ scale: 0.9 }}
                 type="button"
                 onClick={() => remove(task.task_id)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, lineHeight: 1, padding: '0 4px' }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: 4,
+                }}
+                title="Delete task item"
               >
-                &times;
+                <Trash2 size={13} />
               </motion.button>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+      {/* Quick Add Input */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <input
           type="text"
-          placeholder="Add checklist item..."
+          placeholder="Add pre-hearing checklist item..."
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTask(); } }}
-          style={{ flex: 1, padding: '6px 10px', fontSize: 12, height: 30 }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              addTask();
+            }
+          }}
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            fontSize: 12.5,
+            height: 36,
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-card)',
+            background: 'var(--bg-app)',
+          }}
         />
         <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
           type="button"
           className="btn-submit"
           disabled={busy}
           onClick={addTask}
-          style={{ padding: '0 14px', fontSize: 12, height: 30, lineHeight: '30px', margin: 0 }}
+          style={{
+            padding: '0 16px',
+            fontSize: 12.5,
+            height: 36,
+            lineHeight: '36px',
+            margin: 0,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
         >
-          Add
+          <Plus size={14} />
+          <span>Add</span>
         </motion.button>
       </div>
     </motion.div>
@@ -137,26 +261,31 @@ export default function Tasks() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
-  // useCallback keeps this stable: it is handed to every HubCase as
-  // onChanged, which lists it in an effect dependency array.
   const load = useCallback(
     () =>
       api
         .get('/tasks')
-        .then((res) => { setData(res); setError(null); })
+        .then((res) => {
+          setData(res);
+          setError(null);
+        })
         .catch((err) => setError(err.message || 'Could not load your tasks.')),
     []
   );
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (error) {
     return (
-      <div className="form-container" style={{ maxWidth: 900 }}>
+      <div className="form-container" style={{ maxWidth: 940 }}>
         <div className="empty-state">
           <Icon name="warning" />
           <span>{error}</span>
-          <button type="button" className="btn-export" onClick={load}>Try again</button>
+          <button type="button" className="btn-export" onClick={load}>
+            Try again
+          </button>
         </div>
       </div>
     );
@@ -164,16 +293,19 @@ export default function Tasks() {
 
   if (!data) {
     return (
-      <div className="form-container" style={{ maxWidth: 900 }}>
+      <div className="form-container" style={{ maxWidth: 940 }}>
         <Skeleton count={3} rows={2} widths={['45%', '75%']} />
       </div>
     );
   }
 
-  const totalOpen = data.case_groups.reduce((sum, g) => sum + g.tasks.filter((t) => !t.is_completed).length, 0);
+  const totalOpen = data.case_groups.reduce(
+    (sum, g) => sum + g.tasks.filter((t) => !t.is_completed).length,
+    0
+  );
 
   return (
-    <div className="form-container" style={{ maxWidth: 900 }}>
+    <div className="form-container" style={{ maxWidth: 940 }}>
       {/* Top Hero Navigation */}
       <div className="page-hero-nav">
         <Link to="/" className="btn-back-dashboard">
@@ -189,18 +321,29 @@ export default function Tasks() {
 
       <div className="form-header staggered-entry">
         <h2>Action Items & Case Tasks</h2>
-        <p>Manage checklists and pending actions grouped by case file</p>
+        <p>Pre-hearing checklists and procedural action items grouped by case docket</p>
       </div>
 
-      <div className="stats-row staggered-entry" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', marginBottom: 28 }}>
-        <div className="stat-card" style={{ borderLeftColor: 'var(--accent)' }}>
-          <div className="num">{totalOpen}</div>
-          <div className="label">Open Items</div>
-        </div>
-        <div className="stat-card" style={{ borderLeftColor: 'var(--info)' }}>
-          <div className="num">{data.case_groups.length}</div>
-          <div className="label">Cases with Pending Tasks</div>
-        </div>
+      {/* KPI Stats */}
+      <div
+        className="stats-row staggered-entry"
+        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', marginBottom: 24 }}
+      >
+        <StatCard
+          value={totalOpen}
+          label="Open Action Items"
+          color="var(--accent)"
+          icon={<CheckSquare size={18} />}
+          hint="Items pending completion"
+        />
+
+        <StatCard
+          value={data.case_groups.length}
+          label="Cases with Checklist"
+          color="var(--info)"
+          icon={<Briefcase size={18} />}
+          hint="Active matters with tasks"
+        />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -211,8 +354,13 @@ export default function Tasks() {
 
       {data.case_groups.length === 0 && (
         <div className="empty-state staggered-entry">
-          <Icon name="tasks" style={{ width: 48, height: 48, stroke: '#cbd5e1' }} />
-          <span>Nothing outstanding — every active case is fully checked off.</span>
+          <CheckCircle2 size={48} color="var(--success)" style={{ opacity: 0.8 }} />
+          <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-dark)' }}>
+            All Set — No Pending Action Items
+          </span>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            Every active matter is fully checked off. You can add pre-hearing checklist items from any case card.
+          </span>
         </div>
       )}
     </div>

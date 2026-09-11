@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, FileText, ChevronRight, Printer, Download, Save, Copy,
   Trash2, X, Check, FolderOpen, ArrowLeft, AlertCircle, Loader2, Sparkles,
@@ -826,15 +827,36 @@ function Library({
           </div>
 
           <div style={styles.pillContainer}>
-            {availableGroups.map((grp) => (
-              <button
-                key={grp}
-                style={selectedGroup === grp ? styles.pillActive : styles.pill}
-                onClick={() => setSelectedGroup(grp)}
-              >
-                {grp}
-              </button>
-            ))}
+            {availableGroups.map((grp) => {
+              const isActive = selectedGroup === grp;
+              return (
+                <button
+                  key={grp}
+                  style={{
+                    ...styles.pill,
+                    position: "relative",
+                    color: isActive ? "var(--on-brand)" : "var(--muted)",
+                    fontWeight: isActive ? 600 : 500,
+                  }}
+                  onClick={() => setSelectedGroup(grp)}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="activeDraftGroupIndicator"
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "var(--brand)",
+                        borderRadius: 20,
+                        zIndex: 0,
+                      }}
+                      transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                    />
+                  )}
+                  <span style={{ position: "relative", zIndex: 1 }}>{grp}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -862,7 +884,15 @@ function Library({
             </div>
             <div style={styles.cardGrid}>
               {items.map((t) => (
-                <button key={t.id} style={styles.card} className="draftmitra-card" onClick={() => onPick(t)}>
+                <motion.button
+                  key={t.id}
+                  whileHover={{ y: -3, scale: 1.015 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.18 }}
+                  style={styles.card}
+                  className="draftmitra-card"
+                  onClick={() => onPick(t)}
+                >
                   <div className="card-icon" style={styles.cardIcon}>
                     {t.custom ? <Sparkles size={18} color="var(--brand-ink)" /> : <FileText size={19} color="var(--brand-ink)" />}
                   </div>
@@ -871,7 +901,7 @@ function Library({
                     <div style={styles.cardSub}>{t.sub}</div>
                   </div>
                   <ChevronRight size={18} color="var(--muted)" className="card-arrow" />
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>

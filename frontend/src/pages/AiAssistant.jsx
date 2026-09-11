@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
 import '../styles/AiAssistant.css';
@@ -136,226 +137,283 @@ export default function AiAssistant() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="ai-nav-tabs">
-          <button
-            className={`ai-tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
-            onClick={() => setActiveTab('chat')}
-          >
-            <Icon name="ai" style={{ width: 16, height: 16 }} />
-            Legal Chat
-          </button>
-          <button
-            className={`ai-tab-btn ${activeTab === 'analysis' ? 'active' : ''}`}
-            onClick={() => setActiveTab('analysis')}
-          >
-            <Icon name="case" style={{ width: 16, height: 16 }} />
-            Case Document Analysis
-          </button>
+        <div className="ai-nav-tabs" style={{ position: 'relative' }}>
+          {[
+            { id: 'chat', label: 'Legal Chat', icon: 'ai' },
+            { id: 'analysis', label: 'Case Document Analysis', icon: 'case' },
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                className={`ai-tab-btn ${isActive ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+                style={{ position: 'relative' }}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="activeAiTabIndicator"
+                    className="ai-tab-active-pill"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'var(--bg-card)',
+                      borderRadius: 'var(--radius-sm)',
+                      boxShadow: 'var(--shadow-sm)',
+                      zIndex: 0,
+                    }}
+                    transition={{ type: 'spring', stiffness: 450, damping: 30 }}
+                  />
+                )}
+                <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <Icon name={tab.icon} style={{ width: 16, height: 16 }} />
+                  <span>{tab.label}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="ai-card">
-        {activeTab === 'chat' ? (
-          /* CHAT TAB */
-          <div className="ai-chat-wrapper">
-            <div className="ai-chat-messages">
-              {messages.map((m, idx) => (
-                <div key={idx} className={`chat-bubble-group ${m.role}`}>
-                  <span className="chat-sender-label">
-                    {m.role === 'user' ? 'You' : 'Advo Buddy AI'}
-                  </span>
-                  <div className={`chat-bubble ${m.role}`}>{m.text}</div>
-                </div>
-              ))}
+        <AnimatePresence mode="wait">
+          {activeTab === 'chat' ? (
+            /* CHAT TAB */
+            <motion.div
+              key="chat"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+              className="ai-chat-wrapper"
+            >
+              <div className="ai-chat-messages">
+                {messages.map((m, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className={`chat-bubble-group ${m.role}`}
+                  >
+                    <span className="chat-sender-label">
+                      {m.role === 'user' ? 'You' : 'Advo Buddy AI'}
+                    </span>
+                    <div className={`chat-bubble ${m.role}`}>{m.text}</div>
+                  </motion.div>
+                ))}
 
-              {chatLoading && (
-                <div className="chat-bubble-group assistant">
-                  <span className="chat-sender-label">Advo Buddy AI</span>
-                  <div className="chat-bubble assistant chat-typing">
-                    <span>Advo Buddy is analyzing</span>
-                    <span className="typing-dot"></span>
-                    <span className="typing-dot"></span>
-                    <span className="typing-dot"></span>
+                {chatLoading && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="chat-bubble-group assistant"
+                  >
+                    <span className="chat-sender-label">Advo Buddy AI</span>
+                    <div className="chat-bubble assistant chat-typing">
+                      <span>Advo Buddy is analyzing</span>
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                      <span className="typing-dot"></span>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Quick Suggestions Chips */}
+              {messages.length <= 2 && (
+                <div style={{ padding: '0 20px 12px' }}>
+                  <div className="chat-suggestions">
+                    {quickPrompts.map((prompt, i) => (
+                      <motion.button
+                        key={i}
+                        whileHover={{ scale: 1.02, y: -2 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="chip-suggestion"
+                        onClick={() => handleSendMessage(prompt)}
+                        disabled={chatLoading}
+                      >
+                        💡 {prompt}
+                      </motion.button>
+                    ))}
                   </div>
                 </div>
               )}
 
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Quick Suggestions Chips */}
-            {messages.length <= 2 && (
-              <div style={{ padding: '0 20px 10px' }}>
-                <div className="chat-suggestions">
-                  {quickPrompts.map((prompt, i) => (
-                    <button
-                      key={i}
-                      className="chip-suggestion"
-                      onClick={() => handleSendMessage(prompt)}
-                      disabled={chatLoading}
-                    >
-                      💡 {prompt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Input Row */}
-            <div className="ai-chat-input-area">
-              <textarea
-                className="ai-chat-textarea"
-                rows={1}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask a legal question, law provision, or drafting query..."
-              />
-              <button
-                className="ai-send-btn"
-                onClick={() => handleSendMessage()}
-                disabled={chatLoading || !input.trim()}
-              >
-                Send
-                <Icon name="ai" style={{ width: 16, height: 16 }} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          /* CASE ANALYSIS TAB */
-          <div className="ai-analysis-wrapper">
-            <div>
-              <h3 style={{ margin: '0 0 6px', fontFamily: 'Lora, serif', color: 'var(--text-dark)' }}>
-                Upload Case File for AI Breakdown
-              </h3>
-              <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: 14 }}>
-                Upload a case document (PDF, DOCX, or TXT) to extract key parties, legal issues, applicable sections, risk assessment, and recommendations.
-              </p>
-            </div>
-
-            {/* Dropzone / Upload Box */}
-            <label className="dropzone-box">
-              <input
-                type="file"
-                accept=".pdf,.docx,.txt"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
-              />
-              <div className="dropzone-icon">
-                <Icon name="case" style={{ width: 28, height: 28 }} />
-              </div>
-              <div>
-                <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: 'var(--text-dark)' }}>
-                  Click or drag case document to select
-                </p>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--gray-500)' }}>
-                  Supports PDF, DOCX, TXT files up to 15MB
-                </p>
-              </div>
-              <span className="file-select-btn">Browse Files</span>
-            </label>
-
-            {file && (
-              <div className="analyze-action-row">
-                <span className="selected-file-badge">
-                  📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFile(null);
-                      setAnalysisResult(null);
-                    }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 'bold' }}
-                  >
-                    ✕
-                  </button>
-                </span>
-                <button
+              {/* Input Row */}
+              <div className="ai-chat-input-area">
+                <textarea
+                  className="ai-chat-textarea"
+                  rows={1}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Ask a legal question, law provision, or drafting query..."
+                />
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -1 }}
+                  whileTap={{ scale: 0.98 }}
                   className="ai-send-btn"
-                  onClick={handleAnalyzeDocument}
-                  disabled={analysisLoading}
+                  onClick={() => handleSendMessage()}
+                  disabled={chatLoading || !input.trim()}
                 >
-                  {analysisLoading ? 'Analyzing Document...' : 'Analyze Document'}
+                  Send
                   <Icon name="ai" style={{ width: 16, height: 16 }} />
-                </button>
+                </motion.button>
               </div>
-            )}
-
-            {analysisError && (
-              <div className="ai-key-warning is-error">
-                ⚠️ {analysisError}
-              </div>
-            )}
-
-            {/* Analysis Results Display */}
-            {analysisResult && (
-              <div className="analysis-results-card">
-                <h3 style={{ margin: 0, fontFamily: 'Lora, serif', color: 'var(--primary)', fontSize: 20 }}>
-                  Structured Case Analysis
+            </motion.div>
+          ) : (
+            /* CASE ANALYSIS TAB */
+            <motion.div
+              key="analysis"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+              className="ai-analysis-wrapper"
+            >
+              <div>
+                <h3 style={{ margin: '0 0 6px', fontFamily: 'Lora, serif', color: 'var(--text-dark)' }}>
+                  Upload Case File for AI Breakdown
                 </h3>
-
-                {analysisResult.summary && (
-                  <div className="analysis-section">
-                    <h4>📌 Executive Summary</h4>
-                    <p>{analysisResult.summary}</p>
-                  </div>
-                )}
-
-                {analysisResult.keyParties?.length > 0 && (
-                  <div className="analysis-section">
-                    <h4>👥 Key Parties Involved</h4>
-                    <ul>
-                      {analysisResult.keyParties.map((p, idx) => (
-                        <li key={idx}>{p}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {analysisResult.keyIssues?.length > 0 && (
-                  <div className="analysis-section">
-                    <h4>⚖️ Key Legal Issues & Dispute Points</h4>
-                    <ul>
-                      {analysisResult.keyIssues.map((issue, idx) => (
-                        <li key={idx}>{issue}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {analysisResult.relevantSections?.length > 0 && (
-                  <div className="analysis-section">
-                    <h4>📖 Relevant Statutory Sections & Precedents</h4>
-                    <ul>
-                      {analysisResult.relevantSections.map((sec, idx) => (
-                        <li key={idx}>{sec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {analysisResult.riskAssessment && (
-                  <div className="analysis-section risk-box">
-                    <h4>⚠️ Risk Assessment</h4>
-                    <p>{analysisResult.riskAssessment}</p>
-                  </div>
-                )}
-
-                {analysisResult.recommendations?.length > 0 && (
-                  <div className="analysis-section">
-                    <h4>💡 Actionable Recommendations & Strategy</h4>
-                    <ul>
-                      {analysisResult.recommendations.map((rec, idx) => (
-                        <li key={idx}>{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <p style={{ margin: 0, color: 'var(--gray-500)', fontSize: 14 }}>
+                  Upload a case document (PDF, DOCX, or TXT) to extract key parties, legal issues, applicable sections, risk assessment, and recommendations.
+                </p>
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Dropzone / Upload Box */}
+              <label className="dropzone-box">
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  onChange={handleFileChange}
+                  style={{ display: 'none' }}
+                />
+                <div className="dropzone-icon">
+                  <Icon name="case" style={{ width: 28, height: 28 }} />
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: 'var(--text-dark)' }}>
+                    Click or drag case document to select
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--gray-500)' }}>
+                    Supports PDF, DOCX, TXT files up to 15MB
+                  </p>
+                </div>
+                <span className="file-select-btn">Browse Files</span>
+              </label>
+
+              {file && (
+                <div className="analyze-action-row">
+                  <span className="selected-file-badge">
+                    📄 {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFile(null);
+                        setAnalysisResult(null);
+                      }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 'bold' }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="ai-send-btn"
+                    onClick={handleAnalyzeDocument}
+                    disabled={analysisLoading}
+                  >
+                    {analysisLoading ? 'Analyzing Document...' : 'Analyze Document'}
+                    <Icon name="ai" style={{ width: 16, height: 16 }} />
+                  </motion.button>
+                </div>
+              )}
+
+              {analysisError && (
+                <div className="ai-key-warning is-error">
+                  ⚠️ {analysisError}
+                </div>
+              )}
+
+              {/* Analysis Results Display */}
+              {analysisResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35 }}
+                  className="analysis-results-card"
+                >
+                  <h3 style={{ margin: 0, fontFamily: 'Lora, serif', color: 'var(--primary)', fontSize: 20 }}>
+                    Structured Case Analysis
+                  </h3>
+
+                  {analysisResult.summary && (
+                    <div className="analysis-section">
+                      <h4>📌 Executive Summary</h4>
+                      <p>{analysisResult.summary}</p>
+                    </div>
+                  )}
+
+                  {analysisResult.keyParties?.length > 0 && (
+                    <div className="analysis-section">
+                      <h4>👥 Key Parties Involved</h4>
+                      <ul>
+                        {analysisResult.keyParties.map((p, idx) => (
+                          <li key={idx}>{p}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {analysisResult.keyIssues?.length > 0 && (
+                    <div className="analysis-section">
+                      <h4>⚖️ Key Legal Issues & Dispute Points</h4>
+                      <ul>
+                        {analysisResult.keyIssues.map((issue, idx) => (
+                          <li key={idx}>{issue}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {analysisResult.relevantSections?.length > 0 && (
+                    <div className="analysis-section">
+                      <h4>📖 Relevant Statutory Sections & Precedents</h4>
+                      <ul>
+                        {analysisResult.relevantSections.map((sec, idx) => (
+                          <li key={idx}>{sec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {analysisResult.riskAssessment && (
+                    <div className="analysis-section risk-box">
+                      <h4>⚠️ Risk Assessment</h4>
+                      <p>{analysisResult.riskAssessment}</p>
+                    </div>
+                  )}
+
+                  {analysisResult.recommendations?.length > 0 && (
+                    <div className="analysis-section">
+                      <h4>💡 Actionable Recommendations & Strategy</h4>
+                      <ul>
+                        {analysisResult.recommendations.map((rec, idx) => (
+                          <li key={idx}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="disclaimer-footer">

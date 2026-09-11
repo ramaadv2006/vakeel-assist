@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useFlash } from '../context/FlashContext';
@@ -106,23 +107,38 @@ export default function Settings() {
 
   const avatarUrl = preview || advocate?.avatar_url;
 
+  const reminderChannels = [
+    { id: 'none', label: 'Off', icon: 'settings', desc: 'No alerts' },
+    { id: 'whatsapp', label: 'WhatsApp', icon: 'phone', desc: 'Instant message' },
+    { id: 'sms', label: 'SMS Text', icon: 'bell', desc: 'Mobile text' },
+    { id: 'email', label: 'Email', icon: 'case', desc: 'Chambers inbox' },
+  ];
+
   return (
     <div className="form-container" style={{ maxWidth: 780 }}>
-      <Link to="/" className="back-link staggered-entry">
-        <Icon name="back" />
-        Back to Dashboard
-      </Link>
+      {/* Top Hero Navigation */}
+      <div className="page-hero-nav">
+        <Link to="/" className="btn-back-dashboard">
+          <span>←</span>
+          <span>Back to Dashboard</span>
+        </Link>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          <Link to="/" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Dashboard</Link>
+          <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>/</span>
+          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Settings</span>
+        </div>
+      </div>
 
       <div className="form-header staggered-entry">
         <h2>Advocate Profile & Settings</h2>
         <p>Manage your professional credentials, chamber details, profile photo, and hearing alert preferences</p>
       </div>
 
-      <div className="card-form staggered-entry" style={{ textAlign: 'center', marginBottom: 24, padding: 24 }}>
+      <div className="card-form staggered-entry" style={{ textAlign: 'center', marginBottom: 24, padding: 26 }}>
         <div
           style={{
             position: 'relative', width: 110, height: 110, borderRadius: '50%', margin: '0 auto 16px auto',
-            border: '3px solid var(--accent)', boxShadow: 'var(--shadow-md)', overflow: 'hidden',
+            border: '3px solid var(--accent)', boxShadow: '0 8px 24px rgba(184, 147, 94, 0.25)', overflow: 'hidden',
             background: 'var(--bg-app)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
@@ -140,15 +156,22 @@ export default function Settings() {
           )}
         </div>
 
-        <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 700, color: 'var(--text-dark)' }}>
+        <div style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 700, color: 'var(--text-dark)' }}>
           {advocate?.name || 'Advocate'}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--text-main)', marginTop: 2 }}>
+        <div style={{ fontSize: 13, color: 'var(--text-main)', marginTop: 4 }}>
           {advocate?.bar_council_number ? <>Enrollment No: <strong>{advocate.bar_council_number}</strong></> : 'Advocate & Legal Counsel'}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 14 }}>
-          <label className="btn-change-photo">
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--primary)', fontSize: 12, fontWeight: 600 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} />
+            <span>Verified Chambers Counsel</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 18 }}>
+          <label className="btn-change-photo" style={{ cursor: 'pointer' }}>
             <Icon name="camera" />
             Change Photo
             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
@@ -167,7 +190,7 @@ export default function Settings() {
           Personal & Professional Info
         </div>
 
-        <div className="form-row" style={{ marginTop: 16 }}>
+        <div className="form-row">
           <div className="form-group">
             <label htmlFor="name">Full Name *</label>
             <input type="text" id="name" required value={form.name} onChange={update('name')} placeholder="e.g. Adv. M. Subramanian" />
@@ -200,24 +223,50 @@ export default function Settings() {
           </div>
         </div>
 
-        <div style={{ margin: '24px 0 16px 0', borderBottom: '1px dashed var(--border-card)', paddingBottom: 8 }}>
+        <div style={{ margin: '10px 0 0 0', borderBottom: '1px dashed var(--border-card)', paddingBottom: 10 }}>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="bell" style={{ color: 'var(--accent)' }} />
             Notification & Alert Preferences
           </div>
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="reminder_method">Reminder Channel</label>
-            <select id="reminder_method" value={form.reminder_method} onChange={update('reminder_method')}>
-              <option value="none">Off - No automated alerts</option>
-              <option value="whatsapp">WhatsApp Messages</option>
-              <option value="sms">SMS Text Messages</option>
-              <option value="email">Email Notifications</option>
-            </select>
+        {/* Visual Channel Selector */}
+        <div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8 }}>
+            Alert Delivery Channel
+          </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 10 }}>
+            {reminderChannels.map((ch) => {
+              const isActive = form.reminder_method === ch.id;
+              return (
+                <button
+                  key={ch.id}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, reminder_method: ch.id }))}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '12px 10px',
+                    borderRadius: 'var(--radius-md)',
+                    border: `1.5px solid ${isActive ? 'var(--accent)' : 'var(--border-card)'}`,
+                    background: isActive ? 'var(--accent-bg)' : 'var(--bg-app)',
+                    color: isActive ? 'var(--primary)' : 'var(--text-dark)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <Icon name={ch.icon} style={{ width: 18, height: 18, stroke: isActive ? 'var(--accent)' : 'var(--text-muted)' }} />
+                  <span style={{ fontWeight: 600, fontSize: 13 }}>{ch.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{ch.desc}</span>
+                </button>
+              );
+            })}
           </div>
+        </div>
 
+        <div className="form-row">
           <div className="form-group">
             <label htmlFor="reminder_days_before">Alert Schedule</label>
             <select id="reminder_days_before" value={form.reminder_days_before} onChange={update('reminder_days_before')}>
@@ -228,7 +277,15 @@ export default function Settings() {
           </div>
         </div>
 
-        <button type="submit" className="btn-submit" style={{ marginTop: 16 }}>Save Profile & Preferences</button>
+        <motion.button
+          whileHover={{ scale: 1.015, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          type="submit"
+          className="btn-submit"
+          style={{ marginTop: 6 }}
+        >
+          Save Profile & Preferences
+        </motion.button>
       </form>
 
       {/* Legal & Compliance Section */}

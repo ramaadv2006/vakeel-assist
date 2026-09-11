@@ -1,5 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Calendar, ChevronLeft, ChevronRight, Printer, Scale, MapPin, Award } from 'lucide-react';
 import { api } from '../api/client';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
@@ -10,26 +12,31 @@ export default function Diary() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
-  // Day-to-day navigation deliberately keeps the previous day on screen
-  // while the next one loads, so only the first paint shows the shimmer.
   const load = useCallback(
     () =>
       api
         .get(`/diary${date ? `?date=${date}` : ''}`)
-        .then((res) => { setData(res); setError(null); })
+        .then((res) => {
+          setData(res);
+          setError(null);
+        })
         .catch((err) => setError(err.message || 'Could not load the court diary.')),
     [date]
   );
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (error) {
     return (
-      <div className="form-container" style={{ maxWidth: 900 }}>
+      <div className="form-container" style={{ maxWidth: 1000 }}>
         <div className="empty-state">
           <Icon name="warning" />
           <span>{error}</span>
-          <button type="button" className="btn-export" onClick={load}>Try again</button>
+          <button type="button" className="btn-export" onClick={load}>
+            Try again
+          </button>
         </div>
       </div>
     );
@@ -37,7 +44,7 @@ export default function Diary() {
 
   if (!data) {
     return (
-      <div className="form-container" style={{ maxWidth: 900 }}>
+      <div className="form-container" style={{ maxWidth: 1000 }}>
         <Skeleton count={3} rows={2} widths={['40%', '80%']} />
       </div>
     );
@@ -49,7 +56,7 @@ export default function Diary() {
 
   return (
     <>
-      <div className="form-container no-print" style={{ maxWidth: 900, marginBottom: 20 }}>
+      <div className="form-container no-print" style={{ maxWidth: 1000, marginBottom: 20 }}>
         {/* Top Hero Navigation */}
         <div className="page-hero-nav">
           <Link to="/" className="btn-back-dashboard">
@@ -63,43 +70,185 @@ export default function Diary() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }} className="staggered-entry">
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button className="btn-export" title="Previous day" onClick={() => goDate(data.prev_date)} type="button">&larr; Prev Day</button>
-            <span style={{ fontWeight: 700, color: 'var(--text-dark)', padding: '0 4px' }}>
-              {data.selected_date}{data.is_today ? ' (Today)' : ''}
-            </span>
-            <button className="btn-export" title="Next day" onClick={() => goDate(data.next_date)} type="button">Next Day &rarr;</button>
+        {/* Date Selector & Print Bar */}
+        <div
+          className="card-form staggered-entry"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 14,
+            padding: '14px 20px',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px solid var(--border-card)',
+            background: 'var(--bg-card)',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="btn-icon-text btn-export"
+              title="Previous day"
+              onClick={() => goDate(data.prev_date)}
+              type="button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 14px' }}
+            >
+              <ChevronLeft size={15} />
+              <span>Prev Day</span>
+            </motion.button>
+
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '6px 14px',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-app)',
+                border: '1px solid var(--border-card)',
+              }}
+            >
+              <Calendar size={15} color="var(--accent)" />
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-dark)' }}>
+                {data.selected_date}
+              </span>
+              {data.is_today && (
+                <span
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: 10,
+                    background: 'var(--accent)',
+                    color: '#ffffff',
+                  }}
+                >
+                  Today
+                </span>
+              )}
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="btn-icon-text btn-export"
+              title="Next day"
+              onClick={() => goDate(data.next_date)}
+              type="button"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '7px 14px' }}
+            >
+              <span>Next Day</span>
+              <ChevronRight size={15} />
+            </motion.button>
+
+            {!data.is_today && (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                type="button"
+                onClick={() => goDate('')}
+                className="btn-icon-text"
+                style={{
+                  padding: '7px 12px',
+                  fontSize: 12,
+                  background: 'var(--accent-bg)',
+                  color: 'var(--accent-hover)',
+                  border: '1px solid var(--accent-border)',
+                }}
+              >
+                Jump to Today
+              </motion.button>
+            )}
           </div>
-          <button type="button" className="btn-submit" onClick={() => window.print()} style={{ margin: 0 }}>Print Diary</button>
+
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            type="button"
+            className="btn-submit"
+            onClick={() => window.print()}
+            style={{
+              margin: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 20px',
+              fontSize: 13,
+            }}
+          >
+            <Printer size={15} />
+            <span>Print Cause List</span>
+          </motion.button>
         </div>
       </div>
 
-      <div className="form-container" style={{ maxWidth: 900 }}>
-        <div className="diary-sheet staggered-entry">
-          <div className="diary-letterhead">
-            <h2>{data.advocate?.name}</h2>
-            <p>
-              {data.advocate?.bar_council_number && `Bar Council No: ${data.advocate.bar_council_number}`}
-              {data.advocate?.office_address && (data.advocate?.bar_council_number ? ` • ${data.advocate.office_address}` : data.advocate.office_address)}
-            </p>
+      <div className="form-container" style={{ maxWidth: 1000 }}>
+        <div
+          className="diary-sheet staggered-entry"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-card)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-md)',
+            padding: '36px 40px',
+          }}
+        >
+          {/* Authentic Chambers Letterhead */}
+          <div className="diary-letterhead" style={{ textAlign: 'center', paddingBottom: 20, borderBottom: '2px solid var(--accent)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: '50%', background: 'var(--accent-bg)', color: 'var(--accent)', marginBottom: 10, border: '1px solid var(--accent-border)' }}>
+              <Scale size={22} />
+            </div>
+            <h2 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 700, color: 'var(--text-dark)', margin: '0 0 6px 0' }}>
+              {data.advocate?.name || 'Advocate Chambers'}
+            </h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, fontSize: 13, color: 'var(--text-main)', flexWrap: 'wrap' }}>
+              {data.advocate?.bar_council_number && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Award size={14} color="var(--accent)" />
+                  <strong>Bar Council: {data.advocate.bar_council_number}</strong>
+                </span>
+              )}
+              {data.advocate?.office_address && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <MapPin size={14} color="var(--accent)" />
+                  <span>{data.advocate.office_address}</span>
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="diary-subheading">Court Board — {data.selected_date}</div>
+          <div
+            className="diary-subheading"
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: 1.2,
+              color: 'var(--accent)',
+              textAlign: 'center',
+              marginTop: 20,
+              marginBottom: 20,
+            }}
+          >
+            Daily Cause List & Court Board — {data.selected_date}
+          </div>
 
           {data.hearings.length > 0 ? (
             <div className="table-scroll">
-              <table className="diary-table">
+              <table className="diary-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr>
-                    <th>Court</th>
-                    <th>Hall</th>
-                    <th>Item No</th>
-                    <th>Case Number</th>
-                    <th>Client</th>
-                    <th>Judge</th>
-                    <th>Opposing Counsel</th>
-                    <th>Stage</th>
+                  <tr style={{ background: 'var(--bg-app)', borderBottom: '2px solid var(--border-card)' }}>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--text-muted)' }}>Court</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'center', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--text-muted)' }}>Hall</th>
+                    <th style={{ padding: '12px 10px', textAlign: 'center', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--text-muted)' }}>Item</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--text-muted)' }}>Case Number</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--text-muted)' }}>Client Name</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--text-muted)' }}>Judge / Bench</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--text-muted)' }}>Opposing Counsel</th>
+                    <th style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.6, color: 'var(--text-muted)' }}>Stage</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -110,18 +259,42 @@ export default function Diary() {
                       <Fragment key={c.id}>
                         {showGroup && (
                           <tr className="diary-court-group">
-                            <td colSpan={8}>{c.court_name}</td>
+                            <td colSpan={8} style={{ padding: '12px 14px', background: 'var(--accent-bg)', color: 'var(--accent-hover)', fontWeight: 700, fontSize: 13, borderBottom: '1px solid var(--accent-border)' }}>
+                              🏛️ {c.court_name}
+                            </td>
                           </tr>
                         )}
-                        <tr>
-                          <td>{c.court_name}</td>
-                          <td>{c.court_hall || '—'}</td>
-                          <td>{c.item_number || '—'}</td>
-                          <td>{c.case_number}</td>
-                          <td>{c.client_name}</td>
-                          <td>{c.judge_name || '—'}</td>
-                          <td>{c.opposing_counsel || '—'}</td>
-                          <td>{c.case_stage || '—'}</td>
+                        <tr style={{ borderBottom: '1px solid var(--border-card)', transition: 'background 0.2s' }}>
+                          <td style={{ padding: '12px 14px', fontSize: 13, color: 'var(--text-dark)' }}>{c.court_name}</td>
+                          <td style={{ padding: '12px 10px', textAlign: 'center' }}>
+                            {c.court_hall ? (
+                              <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'var(--bg-app)', border: '1px solid var(--border-card)' }}>
+                                {c.court_hall}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td style={{ padding: '12px 10px', textAlign: 'center' }}>
+                            {c.item_number ? (
+                              <span style={{ fontSize: 11.5, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: 'var(--accent-bg)', color: 'var(--accent-hover)', border: '1px solid var(--accent-border)' }}>
+                                #{c.item_number}
+                              </span>
+                            ) : '—'}
+                          </td>
+                          <td style={{ padding: '12px 14px', fontWeight: 700, fontSize: 13.5, color: 'var(--text-dark)' }}>
+                            <Link to={`/edit/${c.id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                              {c.case_number}
+                            </Link>
+                          </td>
+                          <td style={{ padding: '12px 14px', fontWeight: 600, fontSize: 13, color: 'var(--text-dark)' }}>{c.client_name}</td>
+                          <td style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--text-main)', fontStyle: 'italic' }}>{c.judge_name || '—'}</td>
+                          <td style={{ padding: '12px 14px', fontSize: 12.5, color: 'var(--text-main)' }}>{c.opposing_counsel || '—'}</td>
+                          <td style={{ padding: '12px 14px' }}>
+                            {c.case_stage ? (
+                              <span className="badge week" style={{ fontSize: 11, padding: '3px 10px' }}>
+                                {c.case_stage}
+                              </span>
+                            ) : '—'}
+                          </td>
                         </tr>
                       </Fragment>
                     );
@@ -130,7 +303,15 @@ export default function Diary() {
               </table>
             </div>
           ) : (
-            <p style={{ color: 'var(--text-main)', fontSize: 14 }}>No hearings scheduled for this date.</p>
+            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)' }}>
+              <Calendar size={40} color="var(--gray-300)" style={{ marginBottom: 12 }} />
+              <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-dark)', margin: '0 0 6px 0' }}>
+                No Hearings Scheduled for {data.selected_date}
+              </p>
+              <p style={{ fontSize: 13, margin: 0 }}>
+                Use the day navigation buttons above or open the calendar view on your Dashboard to view other dates.
+              </p>
+            </div>
           )}
         </div>
       </div>

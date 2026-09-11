@@ -63,7 +63,7 @@ export default function EditCase() {
   };
 
   return (
-    <div className="form-container">
+    <div className="form-container" style={{ maxWidth: 980 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }} className="staggered-entry">
         <Link to="/" className="back-link">
           <Icon name="back" />

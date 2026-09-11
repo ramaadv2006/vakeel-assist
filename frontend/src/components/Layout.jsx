@@ -11,19 +11,19 @@ export default function Layout({ children }) {
 
   return (
     <>
-      <div className="ambient-blobs">
-        <div className="blob blob-1"></div>
-        <div className="blob blob-2"></div>
-        <div className="blob blob-3"></div>
+      <div className="ambient-canvas" aria-hidden="true">
+        <div className="ambient-glow ambient-glow-gold" />
+        <div className="ambient-glow ambient-glow-sapphire" />
+        <div className="ambient-grid-overlay" />
       </div>
       <Header />
       <AnimatePresence mode="wait">
         <motion.main
           key={location.pathname}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, y: -8, filter: 'blur(2px)' }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         >
           <FlashMessages />
           {children ?? <Outlet />}

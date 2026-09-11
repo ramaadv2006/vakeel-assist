@@ -1,62 +1,121 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Briefcase, CheckCircle2, AlertCircle, Receipt, ArrowRight } from 'lucide-react';
 import { api } from '../api/client';
+import StatCard from '../components/StatCard';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
 import { useReveal } from '../hooks/useReveal';
 
-const STATUS_BADGE = { Active: 'success', Closed: 'danger' };
+const STATUS_BADGE = { Active: 'success', Closed: 'danger', 'On Hold': 'warning' };
 
 function LedgerCard({ caseData, index }) {
-  const pending = (caseData.total_fee || 0) - (caseData.fee_paid || 0);
+  const agreed = caseData.total_fee || 0;
+  const paid = caseData.fee_paid || 0;
+  const pending = agreed - paid;
+  const expenses = caseData.expenses || 0;
   const [revealRef, inView] = useReveal();
   const staggerCls = index < 4 ? 'staggered-entry' : `reveal-up${inView ? ' in-view' : ''}`;
+  const paidPercent = agreed > 0 ? Math.min(100, Math.round((paid / agreed) * 100)) : 0;
 
   return (
-    <div ref={revealRef} className={`case-card ledger-card ${staggerCls}`} style={{ padding: '16px 20px' }}>
+    <motion.div
+      ref={revealRef}
+      className={`case-card ledger-card ${staggerCls}`}
+      style={{
+        padding: '20px 24px',
+        borderRadius: 'var(--radius-lg)',
+        border: '1px solid var(--border-card)',
+        background: 'var(--bg-card)',
+        boxShadow: 'var(--shadow-sm)',
+      }}
+      whileHover={{ y: -3, boxShadow: '0 12px 28px -6px rgba(11, 21, 38, 0.10)' }}
+      transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-        <div style={{ flex: 1, minWidth: 250 }}>
-          <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)' }}>
-            {caseData.client_name}
-          </div>
-          <div className="meta" style={{ marginTop: 4 }}>
-            <span className="meta-item"><Icon name="case" />{caseData.case_number}</span>
-            <span className="meta-divider">|</span>
-            <span className="meta-item"><Icon name="court" />{caseData.court_name}</span>
-            <span className="meta-divider">|</span>
-            <span className="meta-item">
-              <span className={`badge ${STATUS_BADGE[caseData.status] || 'warning'}`} style={{ fontSize: 11, padding: '2px 8px' }}>{caseData.status}</span>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h3 style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
+              {caseData.client_name}
+            </h3>
+            <span className={`badge ${STATUS_BADGE[caseData.status] || 'warning'}`} style={{ fontSize: 11, padding: '2px 9px' }}>
+              {caseData.status}
             </span>
           </div>
+
+          <div className="meta" style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span className="meta-item" style={{ fontWeight: 600 }}>
+              <Icon name="case" style={{ width: 13, height: 13 }} />
+              {caseData.case_number}
+            </span>
+            <span style={{ color: 'var(--gray-300)' }}>•</span>
+            <span className="meta-item">
+              <Icon name="court" style={{ width: 13, height: 13 }} />
+              {caseData.court_name}
+            </span>
+          </div>
+
+          {/* Payment Recovery Mini-Progress Bar */}
+          {agreed > 0 && (
+            <div style={{ marginTop: 12, maxWidth: 320 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-muted)', marginBottom: 4 }}>
+                <span>Recovery: {paidPercent}%</span>
+                <span>₹{paid.toLocaleString('en-IN')} / ₹{agreed.toLocaleString('en-IN')}</span>
+              </div>
+              <div style={{ height: 6, width: '100%', background: 'var(--bg-app)', borderRadius: 3, overflow: 'hidden', border: '1px solid var(--border-card)' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${paidPercent}%`,
+                    background: paidPercent === 100 ? 'var(--success)' : 'linear-gradient(90deg, var(--accent) 0%, var(--success) 100%)',
+                    borderRadius: 3,
+                    transition: 'width 0.4s ease',
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', textAlign: 'right' }}>
-          <div>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-main)', fontWeight: 600 }}>Agreed Fee</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-dark)' }}>₹{(caseData.total_fee || 0).toLocaleString('en-IN')}</div>
+        {/* Ledger Balance Highlights */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(70px, 1fr))', gap: 16, textAlign: 'right', minWidth: 300 }}>
+          <div style={{ padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.4 }}>Agreed</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-dark)', marginTop: 2 }}>₹{agreed.toLocaleString('en-IN')}</div>
           </div>
-          <div>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-main)', fontWeight: 600 }}>Paid</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--success)' }}>₹{(caseData.fee_paid || 0).toLocaleString('en-IN')}</div>
+
+          <div style={{ padding: '8px 10px', background: 'var(--success-bg)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: 'var(--success)', fontWeight: 700, letterSpacing: 0.4 }}>Collected</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--success)', marginTop: 2 }}>₹{paid.toLocaleString('en-IN')}</div>
           </div>
-          <div>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-main)', fontWeight: 600 }}>Pending</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: pending > 0 ? 'var(--danger)' : 'var(--text-main)' }}>₹{pending.toLocaleString('en-IN')}</div>
+
+          <div style={{ padding: '8px 10px', background: pending > 0 ? 'var(--danger-bg)' : 'var(--bg-app)', borderRadius: 'var(--radius-sm)', border: pending > 0 ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: pending > 0 ? 'var(--danger)' : 'var(--text-muted)', fontWeight: 700, letterSpacing: 0.4 }}>Balance</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: pending > 0 ? 'var(--danger)' : 'var(--text-dark)', marginTop: 2 }}>₹{pending.toLocaleString('en-IN')}</div>
           </div>
-          <div>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', color: 'var(--text-main)', fontWeight: 600 }}>Expenses</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--info)' }}>₹{(caseData.expenses || 0).toLocaleString('en-IN')}</div>
+
+          <div style={{ padding: '8px 10px', background: 'var(--bg-app)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-card)' }}>
+            <div style={{ fontSize: 10.5, textTransform: 'uppercase', color: 'var(--info)', fontWeight: 700, letterSpacing: 0.4 }}>Court Costs</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--info)', marginTop: 2 }}>₹{expenses.toLocaleString('en-IN')}</div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12, borderTop: '1px dashed var(--border-card)', paddingTop: 8, gap: 12 }}>
-        <Link to={`/edit/${caseData.id}#billing-section`} className="btn-icon-text btn-edit" style={{ fontSize: 13, padding: '7px 16px' }}>
-          <Icon name="edit" />
-          Update Ledger
-        </Link>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14, borderTop: '1px solid var(--border-card)', paddingTop: 10 }}>
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+          <Link
+            to={`/edit/${caseData.id}#billing-section`}
+            className="btn-icon-text btn-edit"
+            style={{ fontSize: 12.5, padding: '6px 16px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <Icon name="edit" style={{ width: 13, height: 13 }} />
+            <span>Update Ledger</span>
+            <ArrowRight size={12} />
+          </Link>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -81,14 +140,16 @@ export default function Billing() {
 
   if (!data) {
     return (
-      <div className="form-container" style={{ maxWidth: 1000 }}>
+      <div className="form-container" style={{ maxWidth: 1040 }}>
         <Skeleton count={4} rows={2} widths={['35%', '80%']} />
       </div>
     );
   }
 
+  const collectionRate = data.total_agreed > 0 ? Math.round((data.total_collected / data.total_agreed) * 100) : 0;
+
   return (
-    <div className="form-container" style={{ maxWidth: 1000 }}>
+    <div className="form-container" style={{ maxWidth: 1040 }}>
       {/* Top Hero Navigation */}
       <div className="page-hero-nav">
         <Link to="/" className="btn-back-dashboard">
@@ -103,44 +164,105 @@ export default function Billing() {
       </div>
 
       <div className="form-header staggered-entry">
-        <h2>Professional Fees & Ledger</h2>
-        <p>Track receivables, collections, and litigation expenses across your cases</p>
+        <h2>Chambers Financial Ledger</h2>
+        <p>Monitor professional receivables, collections, and litigation expenses across your caseload</p>
       </div>
 
-      <div className="stats-row staggered-entry" style={{ marginBottom: 24 }}>
-        <div className="stat-card" style={{ borderLeftColor: 'var(--accent)' }}>
-          <div className="num">₹{data.total_agreed.toLocaleString('en-IN')}</div>
-          <div className="label">Total Agreed Fees</div>
+      {/* Interactive KPI Stats Grid */}
+      <div className="stats-row staggered-entry" style={{ marginBottom: 20 }}>
+        <StatCard
+          value={data.total_agreed}
+          prefix="₹"
+          label="Total Agreed Fees"
+          color="var(--accent)"
+          icon={<Briefcase size={18} />}
+          hint="Contracted legal retainer"
+        />
+
+        <StatCard
+          value={data.total_collected}
+          prefix="₹"
+          label="Total Collected"
+          color="var(--success)"
+          icon={<CheckCircle2 size={18} />}
+          hint={`${collectionRate}% collection rate`}
+        />
+
+        <StatCard
+          value={data.total_pending}
+          prefix="₹"
+          label="Outstanding Balance"
+          color="var(--danger)"
+          icon={<AlertCircle size={18} />}
+          hint="Pending client dues"
+        />
+
+        <StatCard
+          value={data.total_expenses}
+          prefix="₹"
+          label="Litigation Expenses"
+          color="var(--info)"
+          icon={<Receipt size={18} />}
+          hint="Court stamps & process fees"
+        />
+      </div>
+
+      {/* Overall Recovery Health Bar */}
+      <div
+        className="card-form staggered-entry"
+        style={{
+          padding: '16px 20px',
+          marginBottom: 24,
+          borderRadius: 'var(--radius-md)',
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-card)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-dark)' }}>
+            Chambers Fee Realization Rate: <strong style={{ color: 'var(--success)' }}>{collectionRate}%</strong>
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            ₹{data.total_collected.toLocaleString('en-IN')} received of ₹{data.total_agreed.toLocaleString('en-IN')} total
+          </span>
         </div>
-        <div className="stat-card" style={{ borderLeftColor: 'var(--success)' }}>
-          <div className="num" style={{ color: 'var(--success)' }}>₹{data.total_collected.toLocaleString('en-IN')}</div>
-          <div className="label">Total Collected</div>
-        </div>
-        <div className="stat-card" style={{ borderLeftColor: 'var(--danger)' }}>
-          <div className="num" style={{ color: 'var(--danger)' }}>₹{data.total_pending.toLocaleString('en-IN')}</div>
-          <div className="label">Outstanding Balance</div>
-        </div>
-        <div className="stat-card" style={{ borderLeftColor: 'var(--info)' }}>
-          <div className="num" style={{ color: 'var(--info)' }}>₹{data.total_expenses.toLocaleString('en-IN')}</div>
-          <div className="label">Litigation Expenses</div>
+        <div style={{ height: 8, width: '100%', background: 'var(--bg-app)', borderRadius: 4, overflow: 'hidden', border: '1px solid var(--border-card)' }}>
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${collectionRate}%` }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              height: '100%',
+              background: 'linear-gradient(90deg, var(--accent) 0%, var(--success) 100%)',
+              borderRadius: 4,
+            }}
+          />
         </div>
       </div>
 
+      {/* Search Filter */}
       <div className="dashboard-actions staggered-entry" style={{ marginBottom: 20 }}>
         <div className="search-box" style={{ flex: 1, maxWidth: '100%' }}>
           <Icon name="search" />
-          <input type="text" placeholder="Search by client, case number, or status..." value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input
+            type="text"
+            placeholder="Search by client, case number, or status..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
       </div>
 
       {filtered.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {filtered.map((c, i) => <LedgerCard key={c.id} caseData={c} index={i} />)}
+          {filtered.map((c, i) => (
+            <LedgerCard key={c.id} caseData={c} index={i} />
+          ))}
         </div>
       ) : (
         <div className="empty-state staggered-entry">
           <Icon name="billing" style={{ width: 48, height: 48, stroke: '#cbd5e1' }} />
-          <span>No ledger records found. Fill in billing details when adding or editing cases.</span>
+          <span>No ledger records found matching your filter.</span>
         </div>
       )}
     </div>
