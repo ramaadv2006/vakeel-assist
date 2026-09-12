@@ -48,31 +48,48 @@ export default function StatCard({
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
       style={{
-        borderLeftColor: resolvedColor,
-        cursor: onClick ? 'pointer' : 'default',
-        boxShadow: isActive
-          ? `0 12px 28px -6px color-mix(in srgb, ${resolvedColor} 25%, transparent), 0 0 0 1px ${resolvedColor}`
+        borderColor: isActive ? resolvedColor : undefined,
+        background: isActive
+          ? `linear-gradient(180deg, color-mix(in srgb, ${resolvedColor} 6%, var(--bg-card)) 0%, var(--bg-card) 100%)`
           : undefined,
+        boxShadow: isActive
+          ? `0 0 0 1.5px ${resolvedColor}, 0 12px 28px -6px color-mix(in srgb, ${resolvedColor} 22%, transparent)`
+          : undefined,
+        cursor: onClick ? 'pointer' : 'default',
       }}
       whileHover={{
         y: -4,
-        scale: 1.018,
-        boxShadow: `0 16px 32px -8px color-mix(in srgb, ${resolvedColor} 22%, rgba(0,0,0,0.12)), 0 2px 6px -1px rgba(0,0,0,0.06)`,
+        scale: 1.015,
+        boxShadow: `0 14px 28px -6px color-mix(in srgb, ${resolvedColor} 18%, rgba(11,21,38,0.1)), 0 2px 6px -1px rgba(11,21,38,0.04)`,
+        borderColor: isActive ? resolvedColor : `color-mix(in srgb, ${resolvedColor} 40%, var(--border-card))`,
       }}
-      whileTap={onClick ? { scale: 0.97 } : undefined}
+      whileTap={onClick ? { scale: 0.98 } : undefined}
       transition={{ type: 'spring', stiffness: 440, damping: 26 }}
     >
+      {/* Precision Top Accent Bar that smoothly curves with the card's rounded corners */}
+      <div
+        className="stat-card-top-accent"
+        style={{
+          backgroundColor: resolvedColor,
+          opacity: isActive ? 1 : 0.85,
+          height: isActive ? 4 : 3,
+        }}
+      />
+
       <div className="stat-card-top">
-        <span className="label">{label}</span>
+        <span className="label" style={{ color: isActive ? resolvedColor : undefined }}>
+          {label}
+        </span>
         {renderedIcon && (
           <motion.div
             className="stat-card-icon-badge"
-            whileHover={{ rotate: 8, scale: 1.1 }}
+            whileHover={{ rotate: 6, scale: 1.08 }}
             transition={{ type: 'spring', stiffness: 400, damping: 15 }}
             style={{
-              backgroundColor: `color-mix(in srgb, ${resolvedColor} 14%, var(--bg-card))`,
+              backgroundColor: `color-mix(in srgb, ${resolvedColor} 12%, var(--bg-card))`,
               color: resolvedColor,
-              border: `1px solid color-mix(in srgb, ${resolvedColor} 28%, transparent)`,
+              border: `1px solid color-mix(in srgb, ${resolvedColor} 24%, transparent)`,
+              boxShadow: isActive ? `0 2px 8px color-mix(in srgb, ${resolvedColor} 20%, transparent)` : undefined,
             }}
           >
             {renderedIcon}
@@ -85,14 +102,6 @@ export default function StatCard({
       </div>
 
       {hint && <div className="stat-card-hint">{hint}</div>}
-
-      {isActive && (
-        <motion.div
-          layoutId="statActiveIndicator"
-          className="stat-active-indicator"
-          style={{ background: resolvedColor, boxShadow: `0 0 12px ${resolvedColor}` }}
-        />
-      )}
     </motion.div>
   );
 }

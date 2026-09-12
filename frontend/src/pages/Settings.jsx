@@ -166,7 +166,7 @@ export default function Settings() {
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 20, background: 'var(--accent-bg)', border: '1px solid var(--accent-border)', color: 'var(--primary)', fontSize: 14, fontWeight: 600 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} />
-            <span>Verified Chambers Counsel</span>
+            <span>Verified Advocate</span>
           </div>
         </div>
 

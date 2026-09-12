@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,6 +13,7 @@ import {
   X,
   Download,
   RotateCcw,
+  List,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -90,6 +91,18 @@ export default function Dashboard() {
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [filterDate, setFilterDate] = useState(null);
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const load = () => {
     api.get('/dashboard').then(setData);
@@ -149,6 +162,14 @@ export default function Dashboard() {
   const stale = allCases.filter((c) => c.is_stale && matchesQuery(c, query) && (!filterDate || c.next_hearing_date === filterDate));
 
   const totalFilteredCount = overdue.length + today.length + thisWeek.length + upcoming.length;
+
+  const activeCategoryCount =
+    activeCategory === 'overdue' ? overdue.length :
+    activeCategory === 'today' ? today.length :
+    activeCategory === 'week' ? thisWeek.length :
+    activeCategory === 'upcoming' ? upcoming.length :
+    activeCategory === 'stale' ? stale.length :
+    totalFilteredCount;
 
   // Time of day greeting
   const hour = new Date().getHours();
@@ -287,49 +308,78 @@ export default function Dashboard() {
         transition={{ duration: 0.3, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="command-bar-row">
-          <div className="search-box">
-            <Search size={16} />
+          <div className="search-box" onClick={() => searchInputRef.current?.focus()}>
+            <Search size={16} className="search-icon" />
             <input
+              ref={searchInputRef}
               type="text"
+              className="command-deck-search-input"
               placeholder="Search by client, case no, court, judge, notes..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search matters"
             />
-            {query && (
+            {query ? (
               <button
                 type="button"
-                onClick={() => setQuery('')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQuery('');
+                  searchInputRef.current?.focus();
+                }}
                 className="search-clear-btn"
                 title="Clear search"
               >
                 <X size={14} />
               </button>
+            ) : (
+              <span className="search-shortcut-hint" title="Press Ctrl+K or ⌘K to search">
+                <kbd className="kbd-shortcut">⌘K</kbd>
+              </span>
             )}
           </div>
 
           <div className="command-bar-controls">
             {/* Segmented View Switcher */}
-            <div className="view-switch-segmented">
+            <div className="view-switch-segmented" role="tablist" aria-label="Matter views">
               <button
                 type="button"
+                role="tab"
+                aria-selected={view === 'list'}
                 className={`segmented-btn${view === 'list' ? ' active' : ''}`}
                 onClick={() => setView('list')}
               >
                 {view === 'list' && (
-                  <motion.span layoutId="activeViewPill" className="segmented-pill-indicator" />
+                  <motion.span
+                    layoutId="activeViewPill"
+                    className="segmented-pill-indicator"
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  />
                 )}
-                <span className="segmented-btn-label">List View</span>
+                <span className="segmented-btn-content">
+                  <List size={14} strokeWidth={2.2} />
+                  <span>List View</span>
+                </span>
               </button>
 
               <button
                 type="button"
+                role="tab"
+                aria-selected={view === 'calendar'}
                 className={`segmented-btn${view === 'calendar' ? ' active' : ''}`}
                 onClick={() => setView('calendar')}
               >
                 {view === 'calendar' && (
-                  <motion.span layoutId="activeViewPill" className="segmented-pill-indicator" />
+                  <motion.span
+                    layoutId="activeViewPill"
+                    className="segmented-pill-indicator"
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  />
                 )}
-                <span className="segmented-btn-label">Calendar View</span>
+                <span className="segmented-btn-content">
+                  <CalendarIcon size={14} strokeWidth={2.2} />
+                  <span>Calendar View</span>
+                </span>
               </button>
             </div>
 
@@ -340,46 +390,72 @@ export default function Dashboard() {
                 className="btn-export-compact"
                 title="Export diary cases to CSV"
               >
-                <Download size={14} />
+                <Download size={14} className="export-icon" />
                 <span>Export CSV</span>
               </button>
             )}
           </div>
         </div>
 
+        <div className="command-deck-divider" />
+
         {/* Quick Category Filter Pills Ribbon */}
-        <div className="filter-tabs-strip" style={{ position: 'relative' }}>
-          {[
-            { id: 'all', label: 'All Matters', count: allCases.length },
-            ...(data.overdue.length > 0 ? [{ id: 'overdue', label: 'Overdue', count: data.overdue.length, dot: 'dot-overdue', isOverdue: true }] : []),
-            { id: 'today', label: 'Today', count: data.today.length, dot: 'dot-today' },
-            { id: 'week', label: 'This Week', count: data.this_week.length, dot: 'dot-week' },
-            { id: 'upcoming', label: 'Upcoming', count: data.upcoming.length, dot: 'dot-upcoming' },
-          ].map((tab) => {
-            const isActive = activeCategory === tab.id;
-            return (
+        <div className="filter-tabs-strip">
+          <div className="filter-tabs-group" role="tablist" aria-label="Filter matters by timeframe">
+            {[
+              { id: 'all', label: 'All Matters', count: allCases.length },
+              ...(data.overdue.length > 0 ? [{ id: 'overdue', label: 'Overdue', count: data.overdue.length, dot: 'dot-overdue', isOverdue: true }] : []),
+              { id: 'today', label: 'Today', count: data.today.length, dot: 'dot-today' },
+              { id: 'week', label: 'This Week', count: data.this_week.length, dot: 'dot-week' },
+              { id: 'upcoming', label: 'Upcoming', count: data.upcoming.length, dot: 'dot-upcoming' },
+            ].map((tab) => {
+              const isActive = activeCategory === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`filter-tab${tab.isOverdue ? ' tab-overdue' : ''}${isActive ? ' active' : ''}`}
+                  onClick={() => setActiveCategory(tab.id)}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="activeFilterTabIndicator"
+                      className={`filter-tab-active-bg${tab.isOverdue ? ' active-bg-overdue' : ''}`}
+                      transition={{ type: 'spring', stiffness: 460, damping: 34 }}
+                    />
+                  )}
+                  <span className="filter-tab-content">
+                    {tab.dot && <span className={`tab-dot ${tab.dot}`} />}
+                    <span className="tab-label">{tab.label}</span>
+                    <span className={`tab-count${tab.isOverdue ? ' count-overdue' : ''}`}>{tab.count}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="filter-strip-meta">
+            {(activeCategory !== 'all' || query || filterDate) && (
               <button
-                key={tab.id}
                 type="button"
-                className={`filter-tab${tab.isOverdue ? ' tab-overdue' : ''}${isActive ? ' active' : ''}`}
-                onClick={() => setActiveCategory(tab.id)}
-                style={{ position: 'relative' }}
+                onClick={() => {
+                  setActiveCategory('all');
+                  setQuery('');
+                  setFilterDate(null);
+                }}
+                className="btn-filter-quick-reset"
+                title="Reset active category & filters"
               >
-                {isActive && (
-                  <motion.span
-                    layoutId="activeFilterTabIndicator"
-                    className="filter-tab-active-bg"
-                    transition={{ type: 'spring', stiffness: 480, damping: 32 }}
-                  />
-                )}
-                <span style={{ position: 'relative', zIndex: 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  {tab.dot && <span className={`tab-dot ${tab.dot}`} />}
-                  <span>{tab.label}</span>
-                  <span className={`tab-count${tab.isOverdue ? ' count-overdue' : ''}`}>{tab.count}</span>
-                </span>
+                <RotateCcw size={12} />
+                <span>Reset</span>
               </button>
-            );
-          })}
+            )}
+            <span className="filter-meta-count">
+              Showing <strong>{activeCategoryCount}</strong> of <strong>{allCases.length}</strong> matters
+            </span>
+          </div>
         </div>
       </motion.div>
 

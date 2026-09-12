@@ -89,7 +89,7 @@ export default function Header() {
         {advocate && (
           <span className="advo-badge-pill">
             <span className="advo-badge-dot" />
-            <span>Chambers Counsel</span>
+            <span>Verified Advocate</span>
           </span>
         )}
       </div>

@@ -244,7 +244,7 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
         </div>
 
         {showStatus ? (
-          <div className="form-row">
+          <div className="form-row" style={{ alignItems: 'flex-end' }}>
             <div className="form-group">
               <label htmlFor="status">Case File Status</label>
               <select id="status" value={form.status} onChange={update('status')}>
@@ -254,15 +254,33 @@ export default function CaseForm({ initialValues, onSubmit, submitLabel, showSta
                 {form.status === 'Deleted' && <option>Deleted</option>}
               </select>
             </div>
-            <div className="form-group checkbox-group" style={{ justifyContent: 'center' }}>
-              <input type="checkbox" id="notify_client" checked={form.notify_client} onChange={update('notify_client')} />
-              <label htmlFor="notify_client">Send automated hearing alerts directly to client</label>
+            <div className="form-group" style={{ paddingBottom: 6 }}>
+              <label className="toggle-switch-card" htmlFor="notify_client">
+                <input
+                  type="checkbox"
+                  id="notify_client"
+                  checked={form.notify_client}
+                  onChange={update('notify_client')}
+                  className="toggle-switch-input"
+                />
+                <span className="toggle-switch-slider" />
+                <span className="toggle-switch-label">Send automated hearing alerts directly to client</span>
+              </label>
             </div>
           </div>
         ) : (
-          <div className="form-group checkbox-group">
-            <input type="checkbox" id="notify_client" checked={form.notify_client} onChange={update('notify_client')} />
-            <label htmlFor="notify_client">Send automated hearing alerts directly to client</label>
+          <div className="form-group" style={{ marginTop: 6, alignItems: 'flex-start' }}>
+            <label className="toggle-switch-card" htmlFor="notify_client">
+              <input
+                type="checkbox"
+                id="notify_client"
+                checked={form.notify_client}
+                onChange={update('notify_client')}
+                className="toggle-switch-input"
+              />
+              <span className="toggle-switch-slider" />
+              <span className="toggle-switch-label">Send automated hearing alerts directly to client</span>
+            </label>
           </div>
         )}
       </div>
