@@ -6296,3 +6296,220 @@ body.dark .btn-back-dashboard,
         gap: 12px;
     }
 }
+
+/* ==========================================================================
+   WHATSAPP LANGUAGE SELECTOR MODAL
+   ========================================================================== */
+.wa-lang-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: rgba(4, 9, 20, 0.86);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+.wa-lang-modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-xl);
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    position: relative;
+    padding: 20px;
+    gap: 14px;
+    margin: auto;
+}
+
+.wa-lang-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.wa-lang-header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.wa-brand-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(37, 211, 102, 0.16);
+    border: 1px solid rgba(37, 211, 102, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.wa-modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0;
+    line-height: 1.25;
+}
+
+.wa-modal-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 3px 0 0;
+}
+
+.wa-recipient-chip {
+    background: var(--bg-app);
+    border: 1px solid var(--border-card);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.wa-chip-label {
+    color: var(--text-muted);
+    font-size: 12.5px;
+}
+
+.wa-chip-phone {
+    color: #16a34a;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.wa-lang-options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.wa-lang-card {
+    background: var(--bg-app);
+    border: 1.5px solid var(--border-card);
+    border-radius: 14px;
+    padding: 14px 16px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.wa-lang-card:hover {
+    border-color: #25d366;
+    background: rgba(37, 211, 102, 0.06);
+    box-shadow: 0 4px 16px rgba(37, 211, 102, 0.15);
+}
+
+.wa-card-tamil {
+    border-color: rgba(212, 175, 55, 0.35);
+}
+
+.wa-card-tamil:hover {
+    border-color: #d4af37;
+    background: rgba(212, 175, 55, 0.08);
+    box-shadow: 0 4px 16px rgba(212, 175, 55, 0.18);
+}
+
+.wa-lang-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.wa-flag-pill {
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    color: var(--text-dark);
+}
+
+.wa-flag-tamil {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--accent);
+    border-color: rgba(212, 175, 55, 0.4);
+}
+
+.wa-send-pill {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #16a34a;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.wa-send-tamil {
+    color: var(--accent);
+}
+
+.wa-lang-card-name {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.wa-lang-preview-snippet {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.wa-lang-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    margin-top: 2px;
+}
+
+.btn-wa-cancel {
+    padding: 7px 16px;
+    background: transparent;
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-wa-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-dark);
+}

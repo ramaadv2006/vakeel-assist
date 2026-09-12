@@ -5,27 +5,10 @@ import { Eye, Calendar, Building2, Phone, Edit3 } from 'lucide-react';
 import { api } from '../api/client';
 import Icon from './Icon';
 import CaseDetailModal from './CaseDetailModal';
+import WhatsAppLanguageModal, { openWhatsAppWithLanguage } from './WhatsAppLanguageModal';
 
-export function shareOnWhatsApp(caseData) {
-  const phone = caseData.client_phone || '';
-  if (!phone) {
-    alert("No client phone number listed for this case. Please add a phone number via 'Edit'.");
-    return;
-  }
-  let cleanPhone = phone.replace(/\D/g, '');
-  if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
-
-  let message = `Respected Client, \n\nThis is to inform you that your case details are as follows:\n`;
-  message += `- Case Number: ${caseData.case_number}\n`;
-  message += `- Court: ${caseData.court_name}\n`;
-  if (caseData.court_hall) message += `- Court Hall: ${caseData.court_hall}\n`;
-  if (caseData.item_number) message += `- Item Number: ${caseData.item_number}\n`;
-  if (caseData.judge_name) message += `- Judge: ${caseData.judge_name}\n`;
-  message += `- Next Hearing Date: ${caseData.next_hearing_date}\n`;
-  if (caseData.case_stage) message += `- Case Stage: ${caseData.case_stage}\n\n`;
-  message += `Please be present.\nRegards,\n(Sent via Advo Buddy)`;
-
-  window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+export function shareOnWhatsApp(caseData, lang = 'en') {
+  openWhatsAppWithLanguage(caseData, lang);
 }
 
 export function TasksDrawer({ caseId, tasks, setTasks }) {
@@ -127,6 +110,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [tasks, setTasks] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [waModalOpen, setWaModalOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,6 +124,14 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
   const totalTasks = tasks ? tasks.length : 0;
   const taskProgress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
   const pendingFee = (caseData.total_fee || 0) - (caseData.fee_paid || 0);
+
+  const handleWhatsAppClick = () => {
+    if (!caseData.client_phone) {
+      alert("No client phone number listed for this case. Please add a phone number via 'Edit'.");
+      return;
+    }
+    setWaModalOpen(true);
+  };
 
   return (
     <>
@@ -224,7 +216,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
               <button
                 type="button"
                 className="btn-mobile-quick-action btn-wa"
-                onClick={() => shareOnWhatsApp(caseData)}
+                onClick={handleWhatsAppClick}
                 title="Send WhatsApp update"
               >
                 <Icon name="phone" style={{ width: 13, height: 13 }} />
@@ -384,7 +376,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
                 whileTap={{ scale: 0.97 }}
                 type="button"
                 className="btn-icon-text btn-whatsapp"
-                onClick={() => shareOnWhatsApp(caseData)}
+                onClick={handleWhatsAppClick}
                 title="Share hearing details on WhatsApp"
               >
                 <Icon name="phone" style={{ width: 13, height: 13 }} />
@@ -473,7 +465,14 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
         onReopen={onReopen}
         tasks={tasks}
         setTasks={setTasks}
-        onWhatsApp={shareOnWhatsApp}
+        onWhatsApp={() => setWaModalOpen(true)}
+      />
+
+      {/* WhatsApp Language Choice Modal */}
+      <WhatsAppLanguageModal
+        isOpen={waModalOpen}
+        onClose={() => setWaModalOpen(false)}
+        caseData={caseData}
       />
     </>
   );
