@@ -279,7 +279,7 @@ export default function CaseDetailModal({
                 onClick={onClose}
               >
                 <Clock size={13} />
-                <span>History</span>
+                <span>Hearing History</span>
               </Link>
 
               <Link
@@ -288,7 +288,7 @@ export default function CaseDetailModal({
                 onClick={onClose}
               >
                 <Edit3 size={13} />
-                <span>Edit</span>
+                <span>Edit Case</span>
               </Link>
 
               {caseData.status !== 'Active' && onReopen && (

@@ -6185,10 +6185,36 @@ body.dark .btn-back-dashboard,
         background-color: rgba(9, 16, 29, 0.98) !important;
         backdrop-filter: blur(20px) !important;
         -webkit-backdrop-filter: blur(20px) !important;
+        padding: 10px 14px !important;
+        min-height: 56px !important;
+    }
+
+    /* Fixed profile menu dropdown positioning so it is never clipped off-screen */
+    .header-profile-dropdown {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: -42px !important;
+        left: auto !important;
+        width: min(260px, calc(100vw - 24px)) !important;
+        max-width: calc(100vw - 24px) !important;
+        transform-origin: top right;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    .header-dropdown-name {
+        font-size: 15px !important;
+        word-break: break-word;
+        white-space: normal !important;
+    }
+
+    .header-dropdown-email {
+        font-size: 12.5px !important;
+        word-break: break-all;
+        white-space: normal !important;
     }
 
     .dashboard-container {
-        gap: 16px;
+        gap: 14px;
     }
 
     /* Fixed top hero banner alignment on mobile */
@@ -6196,6 +6222,8 @@ body.dark .btn-back-dashboard,
         padding: 16px 16px !important;
         border-radius: 16px !important;
         box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+        margin-bottom: 2px;
+        background-image: linear-gradient(135deg, var(--bg-card) 70%, var(--accent-bg) 100%) !important;
     }
 
     .hero-eyebrow {
@@ -6203,34 +6231,41 @@ body.dark .btn-back-dashboard,
         align-items: center;
         flex-wrap: wrap;
         gap: 6px;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
     }
 
     .hero-eyebrow-pill {
-        font-size: 11.5px;
-        padding: 3px 9px;
+        font-size: 11px !important;
+        padding: 3px 8px !important;
         letter-spacing: 0.4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .hero-date-chip {
-        font-size: 12.5px;
+        font-size: 12px !important;
         font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .hero-bar-chip {
-        font-size: 11.5px;
-        padding: 2px 8px;
+        font-size: 11px !important;
+        padding: 2px 7px !important;
     }
 
     .hero-greeting {
         font-size: 21px !important;
         margin: 2px 0 6px !important;
         line-height: 1.3 !important;
+        word-break: break-word;
     }
 
     .hero-briefing {
         font-size: 14px !important;
-        line-height: 1.5 !important;
+        line-height: 1.55 !important;
         color: var(--text-main);
     }
 

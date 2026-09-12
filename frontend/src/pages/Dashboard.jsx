@@ -205,7 +205,7 @@ export default function Dashboard() {
         <div className="dashboard-hero-content">
           <div className="hero-eyebrow">
             <span className="hero-eyebrow-pill">
-              <Scale size={13} /> Chambers Legal Workspace
+              <Scale size={13} /> <span>Chambers Workspace</span>
             </span>
             <span className="hero-date-chip">
               <CalendarIcon size={13} /> {todayDateStr}
@@ -218,7 +218,7 @@ export default function Dashboard() {
           </div>
 
           <h1 className="hero-greeting">
-            Hi 😊, {advocate?.name ? `Advocate ${advocate.name}` : 'Advocate'}
+            Hi 😊, {advocate?.name ? (advocate.name.toLowerCase().startsWith('advocate') ? advocate.name : `Advocate ${advocate.name}`) : 'Advocate'}
           </h1>
 
           <p className="hero-briefing">
