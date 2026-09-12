@@ -171,9 +171,6 @@ export default function Dashboard() {
     activeCategory === 'stale' ? stale.length :
     totalFilteredCount;
 
-  // Time of day greeting
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const todayDateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'short',
@@ -221,7 +218,7 @@ export default function Dashboard() {
           </div>
 
           <h1 className="hero-greeting">
-            {greeting}, {advocate?.name ? `Advocate ${advocate.name}` : 'Advocate'}
+            Hi 😊, {advocate?.name ? `Advocate ${advocate.name}` : 'Advocate'}
           </h1>
 
           <p className="hero-briefing">

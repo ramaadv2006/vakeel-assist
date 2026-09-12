@@ -247,7 +247,7 @@ export default function Pricing() {
               boxShadow: '0 4px 12px rgba(212, 175, 55, 0.35)',
             }}
           >
-            Recommended for Advocates
+            Recommended
           </div>
 
           <div>
