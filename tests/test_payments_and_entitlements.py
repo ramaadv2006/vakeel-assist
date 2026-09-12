@@ -29,8 +29,11 @@ import json
 import time
 import pytest
 from app import app, get_db
+from advobuddy.config import Config
 from advobuddy.services.entitlement_service import EntitlementService
 from advobuddy.services.razorpay_service import RazorpayService
+
+config = Config.from_env()
 
 
 @pytest.fixture
@@ -91,7 +94,7 @@ def test_create_order_authenticated(client):
     if res.status_code == 201:
         data = res.get_json()
         assert "order_id" in data
-        assert data["amount"] == 49900
+        assert data["amount"] == 9900
         assert data["currency"] == "INR"
         assert "key_id" in data
 
@@ -147,7 +150,7 @@ def test_create_order_inactive_plan(client, db_conn):
 # 5. Frontend Amount Tampering Prevention
 # ----------------------------------------------------------------------
 def test_frontend_amount_tampering_ignored(client):
-    # Attempt passing 1 INR instead of 499 INR
+    # Attempt passing 1 INR instead of 99 INR
     res = client.post(
         "/api/payments/create-order",
         json={"plan_id": "pro", "amount": 100},
@@ -155,7 +158,7 @@ def test_frontend_amount_tampering_ignored(client):
     )
     if res.status_code == 201:
         data = res.get_json()
-        assert data["amount"] == 49900  # Strictly 49900 paise computed from DB price
+        assert data["amount"] == 9900  # Strictly 9900 paise computed from DB price
 
 
 # ----------------------------------------------------------------------
@@ -178,7 +181,7 @@ def test_valid_payment_signature_verification(client, db_conn):
     order_id = order_data["order_id"]
 
     payment_id = f"pay_test_{int(time.time())}"
-    secret = app.config.get("RAZORPAY_KEY_SECRET") or "placeholder_secret"
+    secret = config.RAZORPAY_KEY_SECRET or "placeholder_secret"
     valid_sig = generate_test_signature(secret, order_id, payment_id)
 
     verify_res = client.post(
@@ -241,7 +244,7 @@ def test_wrong_order_ownership_rejection(client):
     order_id = create_res.get_json()["order_id"]
 
     # User 11 attempts to verify User 10's order
-    secret = app.config.get("RAZORPAY_KEY_SECRET") or "placeholder_secret"
+    secret = config.RAZORPAY_KEY_SECRET or "placeholder_secret"
     sig = generate_test_signature(secret, order_id, "pay_shared_123")
 
     verify_res = client.post(
@@ -273,7 +276,7 @@ def test_duplicate_payment_verification_idempotency(client, db_conn):
     order_id = create_res.get_json()["order_id"]
     payment_id = f"pay_dup_{int(time.time())}"
 
-    secret = app.config.get("RAZORPAY_KEY_SECRET") or "placeholder_secret"
+    secret = config.RAZORPAY_KEY_SECRET or "placeholder_secret"
     sig = generate_test_signature(secret, order_id, payment_id)
 
     payload = {
@@ -304,7 +307,7 @@ def test_duplicate_payment_verification_idempotency(client, db_conn):
 # 10. Webhook Signature Validation
 # ----------------------------------------------------------------------
 def test_webhook_signature_validation(client):
-    webhook_secret = app.config.get("RAZORPAY_WEBHOOK_SECRET") or "placeholder_webhook_secret"
+    webhook_secret = config.RAZORPAY_WEBHOOK_SECRET or "placeholder_webhook_secret"
     payload = json.dumps({"event": "payment.captured", "id": f"evt_test_{int(time.time())}"}).encode("utf-8")
     valid_sig = generate_webhook_signature(webhook_secret, payload)
 
@@ -330,7 +333,7 @@ def test_webhook_signature_validation(client):
 # 11. Duplicate Webhook Event Idempotency
 # ----------------------------------------------------------------------
 def test_duplicate_webhook_idempotency(client):
-    webhook_secret = app.config.get("RAZORPAY_WEBHOOK_SECRET") or "placeholder_webhook_secret"
+    webhook_secret = config.RAZORPAY_WEBHOOK_SECRET or "placeholder_webhook_secret"
     event_id = f"evt_idemp_{int(time.time())}_{hashlib.md5(b'test').hexdigest()[:6]}"
     payload = json.dumps({"event": "payment.captured", "id": event_id}).encode("utf-8")
     valid_sig = generate_webhook_signature(webhook_secret, payload)
@@ -434,7 +437,7 @@ def test_payment_failure_webhook_handling(client, db_conn):
     assert create_res.status_code == 201
     order_id = create_res.get_json()["order_id"]
 
-    webhook_secret = app.config.get("RAZORPAY_WEBHOOK_SECRET") or "placeholder_webhook_secret"
+    webhook_secret = config.RAZORPAY_WEBHOOK_SECRET or "placeholder_webhook_secret"
     payload = json.dumps({
         "event": "payment.failed",
         "id": f"evt_fail_{int(time.time())}",
@@ -483,7 +486,7 @@ def test_payment_success_workflow_end_to_end(client, db_conn):
 
     # Step 2: Verify Payment
     payment_id = f"pay_e2e_{int(time.time())}"
-    secret = app.config.get("RAZORPAY_KEY_SECRET") or "placeholder_secret"
+    secret = config.RAZORPAY_KEY_SECRET or "placeholder_secret"
     sig = generate_test_signature(secret, order_id, payment_id)
 
     verify_res = client.post(
@@ -567,7 +570,7 @@ def test_cross_user_order_verification_prevention(client):
     assert create_res.status_code == 201
     order_id = create_res.get_json()["order_id"]
 
-    secret = app.config.get("RAZORPAY_KEY_SECRET") or "placeholder_secret"
+    secret = config.RAZORPAY_KEY_SECRET or "placeholder_secret"
     sig = generate_test_signature(secret, order_id, "pay_cross_attempt")
 
     # Attacker tries to submit verification for victim's order

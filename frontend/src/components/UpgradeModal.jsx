@@ -225,7 +225,7 @@ export default function UpgradeModal() {
                   Subscription Price
                 </div>
                 <div style={{ fontSize: 26, fontWeight: 800, color: '#ffffff', display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 2 }}>
-                  ₹499 <span style={{ fontSize: 13.5, color: '#94a3b8', fontWeight: 500 }}>/ month</span>
+                  ₹99 <span style={{ fontSize: 13.5, color: '#94a3b8', fontWeight: 500 }}>/ month</span>
                 </div>
               </div>
 
@@ -325,7 +325,7 @@ export default function UpgradeModal() {
                 ) : (
                   <>
                     <Zap size={16} fill="#070f1e" />
-                    <span>Upgrade to Pro — ₹499</span>
+                    <span>Upgrade to Pro — ₹99</span>
                   </>
                 )}
               </button>

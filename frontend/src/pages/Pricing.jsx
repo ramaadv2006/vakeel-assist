@@ -43,7 +43,7 @@ export default function Pricing() {
     });
   };
 
-  const proPrice = plans.find((p) => p.slug === 'pro')?.price ?? 499;
+  const proPrice = plans.find((p) => p.slug === 'pro')?.price ?? 99;
 
   return (
     <div style={{ minHeight: '90vh', padding: '36px 20px 60px', maxWidth: 1140, margin: '0 auto' }}>

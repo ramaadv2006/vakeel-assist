@@ -342,7 +342,7 @@ export default function Settings() {
                 boxShadow: isPro ? 'none' : '0 2px 10px rgba(212, 175, 55, 0.3)',
               }}
             >
-              {isPro ? 'View All Plans' : '⚡ Upgrade to Pro (₹499)'}
+              {isPro ? 'View All Plans' : '⚡ Upgrade to Pro (₹99)'}
             </Link>
           </div>
         </div>

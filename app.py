@@ -610,12 +610,12 @@ def init_db():
         )
     """)
 
-    # Seed Plans (Free: 0 INR, Pro: 499 INR)
+    # Seed Plans (Free: 0 INR, Pro: 99 INR)
     cur.execute("""
         INSERT INTO plans (name, slug, description, price, currency, billing_interval, is_active)
         VALUES 
             ('Free', 'free', 'Essential legal workspace with basic drafts and court diary', 0, 'INR', 'month', true),
-            ('Pro', 'pro', 'Advanced legal drafting suite, bail petitions, and AI intelligence', 499, 'INR', 'month', true)
+            ('Pro', 'pro', 'Advanced legal drafting suite, bail petitions, and AI intelligence', 99, 'INR', 'month', true)
         ON CONFLICT (slug) DO UPDATE 
         SET name = EXCLUDED.name,
             description = EXCLUDED.description,

@@ -1022,7 +1022,7 @@ function Editor({
               style={styles.btnPrimaryGold}
               onClick={() => openUpgradeModal && openUpgradeModal({ title: template.name, sub: template.sub, id: template.id })}
             >
-              <Sparkles size={16} /> Upgrade to Pro — ₹499/mo
+              <Sparkles size={16} /> Upgrade to Pro — ₹99/mo
             </button>
           </div>
         </div>
