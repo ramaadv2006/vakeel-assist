@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePlan } from '../context/PlanContext';
 import Icon from './Icon';
 
 const ADVOCATE_LINKS = [
@@ -19,6 +20,7 @@ const ADVOCATE_LINKS = [
 export default function Header() {
   const { advocate, logout } = useAuth();
   const { toggleTheme } = useTheme();
+  const { isPro } = usePlan();
   const location = useLocation();
   const navigate = useNavigate();
   const [navOpen, setNavOpen] = useState(false);
@@ -196,7 +198,7 @@ export default function Header() {
                   <div className="header-dropdown-header">
                     <div className="header-dropdown-name">{advocate.name || 'Counsel'}</div>
                     <div className="header-dropdown-email">{advocate.email}</div>
-                    <div style={{ marginTop: 6 }}>
+                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span
                         style={{
                           fontSize: '0.7rem',
@@ -210,10 +212,45 @@ export default function Header() {
                       >
                         ⚖️ Practicing Advocate
                       </span>
+                      {isPro ? (
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 800,
+                            padding: '2px 8px',
+                            borderRadius: 10,
+                            background: 'rgba(212, 175, 55, 0.2)',
+                            color: '#d4af37',
+                            border: '1px solid rgba(212, 175, 55, 0.5)',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          PRO
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: 10,
+                            background: 'rgba(255, 255, 255, 0.08)',
+                            color: '#94a3b8',
+                            border: '1px solid rgba(255, 255, 255, 0.12)',
+                          }}
+                        >
+                          FREE
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Link to="/pricing" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
+                      <Icon name="case" style={{ width: 15, height: 15 }} />
+                      <span>{isPro ? 'Manage Subscription' : 'Upgrade to Pro'}</span>
+                    </Link>
+
                     <Link to="/settings" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
                       <Icon name="settings" style={{ width: 15, height: 15 }} />
                       <span>Settings & Profile</span>

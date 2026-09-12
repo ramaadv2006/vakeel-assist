@@ -2,6 +2,8 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { FlashProvider } from './context/FlashContext';
+import { PlanProvider } from './context/PlanContext';
+import UpgradeModal from './components/UpgradeModal';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Skeleton from './components/Skeleton';
@@ -23,6 +25,7 @@ import Billing from './pages/Billing';
 import Settings from './pages/Settings';
 import Templates from './pages/Templates';
 import AiAssistant from './pages/AiAssistant';
+import Pricing from './pages/Pricing';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import AboutUs from './pages/AboutUs';
@@ -75,48 +78,52 @@ export default function App() {
       <AuthProvider>
         <ThemeProvider>
           <FlashProvider>
-            <SmoothScroll>
-              <Routes>
-                <Route path="/" element={<Home />} />
+            <PlanProvider>
+              <SmoothScroll>
+                <UpgradeModal />
+                <Routes>
+                  <Route path="/" element={<Home />} />
 
-                {/* Full-screen Dedicated Auth & Public Legal / Company Routes */}
-                <Route path="/login" element={<AuthCard />} />
-                <Route path="/signup" element={<AuthCard />} />
-                <Route path="/forgot-password" element={<AuthCard />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/about" element={<AboutUs />} />
-                <Route path="/contact" element={<ContactUs />} />
-                <Route path="/refund-policy" element={<RefundPolicy />} />
-                <Route path="/refunds" element={<RefundPolicy />} />
+                  {/* Full-screen Dedicated Auth & Public Legal / Company Routes */}
+                  <Route path="/login" element={<AuthCard />} />
+                  <Route path="/signup" element={<AuthCard />} />
+                  <Route path="/forgot-password" element={<AuthCard />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/about" element={<AboutUs />} />
+                  <Route path="/contact" element={<ContactUs />} />
+                  <Route path="/refund-policy" element={<RefundPolicy />} />
+                  <Route path="/refunds" element={<RefundPolicy />} />
 
-                <Route element={<Layout />}>
-                  <Route element={<ProtectedRoute />}>
-                    {/* Advocate Routes */}
-                    <Route path="/ai-assistant" element={<AiAssistant />} />
-                    <Route path="/clients" element={<Clients />} />
-                    <Route path="/add" element={<AddCase />} />
-                    <Route path="/edit/:caseId" element={<EditCase />} />
-                    <Route path="/history/:caseId" element={<CaseHistory />} />
-                    <Route path="/case/:caseId/audit" element={<CaseAudit />} />
-                    <Route path="/archive" element={<Archive />} />
-                    <Route path="/tasks" element={<Tasks />} />
-                    <Route path="/diary" element={<Diary />} />
-                    <Route path="/billing" element={<Billing />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/templates" element={<Templates />} />
-                    <Route path="/drafts" element={<Templates />} />
-                    <Route path="/draft" element={<Templates />} />
-                    <Route path="/draft-mitra" element={<Templates />} />
-                    <Route path="/case-search" element={<AdvoCaseSearch />} />
-                    <Route path="/ecourts-search" element={<AdvoCaseSearch />} />
+                  <Route element={<Layout />}>
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route element={<ProtectedRoute />}>
+                      {/* Advocate Routes */}
+                      <Route path="/ai-assistant" element={<AiAssistant />} />
+                      <Route path="/clients" element={<Clients />} />
+                      <Route path="/add" element={<AddCase />} />
+                      <Route path="/edit/:caseId" element={<EditCase />} />
+                      <Route path="/history/:caseId" element={<CaseHistory />} />
+                      <Route path="/case/:caseId/audit" element={<CaseAudit />} />
+                      <Route path="/archive" element={<Archive />} />
+                      <Route path="/tasks" element={<Tasks />} />
+                      <Route path="/diary" element={<Diary />} />
+                      <Route path="/billing" element={<Billing />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/templates" element={<Templates />} />
+                      <Route path="/drafts" element={<Templates />} />
+                      <Route path="/draft" element={<Templates />} />
+                      <Route path="/draft-mitra" element={<Templates />} />
+                      <Route path="/case-search" element={<AdvoCaseSearch />} />
+                      <Route path="/ecourts-search" element={<AdvoCaseSearch />} />
+                    </Route>
+
+                    <Route path="*" element={<Navigate to="/" replace />} />
                   </Route>
-
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Route>
-              </Routes>
-            </SmoothScroll>
+                </Routes>
+              </SmoothScroll>
+            </PlanProvider>
           </FlashProvider>
         </ThemeProvider>
       </AuthProvider>

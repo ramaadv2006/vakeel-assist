@@ -15,9 +15,12 @@ import { generateAndDownloadPdf } from "./pdfGenerator";
 import { storageGet, storageSet, storageDelete, storageList } from "./storage";
 import { importDraftWithAI } from "./aiImport";
 import { useAuth } from "../../context/AuthContext";
+import { usePlan } from "../../context/PlanContext";
 
 const STORAGE_PREFIX = "draft:";
 const CUSTOM_TPL_PREFIX = "customtpl:";
+
+export const isPremiumDraft = (t) => t?.id === "bail_app" || t?.id === "suretyship_app";
 
 /* Page 1 + (optional) folded backing sheet as one printable document. */
 const pagesToHtml = buildDocumentHtml;
@@ -161,6 +164,7 @@ Advocate (Enrolment No: {{enrolNo}})`
 
 export default function DraftMitra() {
   const { advocate } = useAuth();
+  const { hasEntitlement, openUpgradeModal, isPro } = usePlan();
   const [screen, setScreen] = useState("library"); // library | editor
   const [activeId, setActiveId] = useState(null);
   const [data, setData] = useState({});
@@ -343,6 +347,14 @@ export default function DraftMitra() {
   }, []);
 
   const openTemplate = (tmpl) => {
+    if (isPremiumDraft(tmpl) && !hasEntitlement(`draft.${tmpl.id}`)) {
+      openUpgradeModal({
+        title: tmpl.name,
+        sub: tmpl.sub,
+        id: tmpl.id,
+      });
+      return;
+    }
     const init = {};
     tmpl.fields.forEach((f) => (init[f.id] = getFieldDefault(f, advocate)));
     setData(init);
@@ -530,6 +542,7 @@ export default function DraftMitra() {
           allCount={allTemplates.length}
           filteredCount={filteredTemplates.length}
           onPick={openTemplate}
+          hasEntitlement={hasEntitlement}
           onCreateClick={() => {
             setCreateName("");
             setCreateSub("");
@@ -563,6 +576,8 @@ export default function DraftMitra() {
           onSaveClick={() => setShowSaveBox(true)}
           onDrafts={() => setShowDrafts(true)}
           onBack={() => setScreen("library")}
+          hasEntitlement={hasEntitlement}
+          openUpgradeModal={openUpgradeModal}
         />
       )}
 
@@ -759,6 +774,7 @@ function Library({
   allCount,
   filteredCount,
   onPick,
+  hasEntitlement,
   onCreateClick,
   onImportClick,
   onDrafts,
@@ -883,26 +899,62 @@ function Library({
               <span style={styles.groupBadge}>{items.length} {items.length === 1 ? "template" : "templates"}</span>
             </div>
             <div style={styles.cardGrid}>
-              {items.map((t) => (
-                <motion.button
-                  key={t.id}
-                  whileHover={{ y: -3, scale: 1.015 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ duration: 0.18 }}
-                  style={styles.card}
-                  className="draftmitra-card"
-                  onClick={() => onPick(t)}
-                >
-                  <div className="card-icon" style={styles.cardIcon}>
-                    {t.custom ? <Sparkles size={18} color="var(--brand-ink)" /> : <FileText size={19} color="var(--brand-ink)" />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={styles.cardTitle}>{t.name}</div>
-                    <div style={styles.cardSub}>{t.sub}</div>
-                  </div>
-                  <ChevronRight size={18} color="var(--muted)" className="card-arrow" />
-                </motion.button>
-              ))}
+              {items.map((t) => {
+                const isPremium = isPremiumDraft(t);
+                const isLocked = isPremium && hasEntitlement && !hasEntitlement(`draft.${t.id}`);
+                return (
+                  <motion.button
+                    key={t.id}
+                    whileHover={{ y: -3, scale: 1.015 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.18 }}
+                    style={{
+                      ...styles.card,
+                      border: isLocked ? "1px solid rgba(212, 175, 55, 0.45)" : styles.card.border,
+                      background: isLocked ? "linear-gradient(180deg, rgba(212, 175, 55, 0.04) 0%, rgba(11, 21, 38, 0.02) 100%), var(--bg-card)" : styles.card.background,
+                    }}
+                    className="draftmitra-card"
+                    onClick={() => onPick(t)}
+                  >
+                    <div className="card-icon" style={styles.cardIcon}>
+                      {isPremium ? (
+                        <Scale size={19} color="#d4af37" />
+                      ) : t.custom ? (
+                        <Sparkles size={18} color="var(--brand-ink)" />
+                      ) : (
+                        <FileText size={19} color="var(--brand-ink)" />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 3 }}>
+                        <span style={styles.cardTitle}>{t.name}</span>
+                        {isPremium && (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
+                              background: isLocked ? "rgba(212, 175, 55, 0.18)" : "rgba(16, 185, 129, 0.16)",
+                              border: isLocked ? "1px solid rgba(212, 175, 55, 0.5)" : "1px solid rgba(16, 185, 129, 0.4)",
+                              color: isLocked ? "#d4af37" : "#10b981",
+                              padding: "2px 8px",
+                              borderRadius: 10,
+                              fontSize: 11,
+                              fontWeight: 800,
+                              letterSpacing: "0.4px",
+                              textTransform: "uppercase",
+                            }}
+                          >
+                            {isLocked ? "🔒 PRO" : "✓ PRO"}
+                          </span>
+                        )}
+                      </div>
+                      <div style={styles.cardSub}>{t.sub}</div>
+                    </div>
+                    <ChevronRight size={18} color={isLocked ? "#d4af37" : "var(--muted)"} className="card-arrow" />
+                  </motion.button>
+                );
+              })}
             </div>
           </div>
         ))
@@ -911,28 +963,81 @@ function Library({
   );
 }
 
-function Editor({ template, data, setField, page1Blocks, page2Blocks, hasCover, mobileTab, setMobileTab, onPrint, onCopy, onSaveClick, onDrafts, onBack }) {
+function Editor({
+  template,
+  data,
+  setField,
+  page1Blocks,
+  page2Blocks,
+  hasCover,
+  mobileTab,
+  setMobileTab,
+  onPrint,
+  onCopy,
+  onSaveClick,
+  onDrafts,
+  onBack,
+  hasEntitlement,
+  openUpgradeModal,
+}) {
+  const isPremium = isPremiumDraft(template);
+  const isLocked = isPremium && hasEntitlement && !hasEntitlement(`draft.${template.id}`);
   const page1Parts = useMemo(() => partitionBlocks(page1Blocks), [page1Blocks]);
   const page2Parts = useMemo(() => (page2Blocks ? partitionBlocks(page2Blocks) : null), [page2Blocks]);
+
+  if (isLocked) {
+    return (
+      <main style={styles.editorMain}>
+        <div style={styles.editorHead}>
+          <div>
+            <button style={styles.backLink} onClick={onBack} title="Back to Library">
+              <ArrowLeft size={15} /> <span>Back to Templates</span>
+            </button>
+            <h2 style={{ ...styles.editorTitle, marginTop: 12 }}>{template.name}</h2>
+            <div style={styles.editorSub}>{template.sub}</div>
+          </div>
+        </div>
+        <div
+          style={{
+            margin: "40px auto",
+            maxWidth: 600,
+            padding: "40px 32px",
+            textAlign: "center",
+            background: "var(--bg-card)",
+            borderRadius: 16,
+            border: "2px solid #d4af37",
+            boxShadow: "0 16px 48px rgba(212, 175, 55, 0.15)",
+          }}
+        >
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🔒</div>
+          <h3 style={{ fontSize: 22, fontWeight: 800, color: "var(--text-dark, #0b1526)", margin: "0 0 8px" }}>
+            Pro Subscription Required
+          </h3>
+          <p style={{ color: "var(--text-muted, #64748b)", fontSize: 15, lineHeight: 1.6, margin: "0 0 24px" }}>
+            <b>{template.name}</b> is an advanced legal drafting template exclusively available to Vakeel Assist Pro subscribers.
+          </p>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
+            <button style={styles.btnGhost} onClick={onBack}>Back to Library</button>
+            <button
+              style={styles.btnPrimaryGold}
+              onClick={() => openUpgradeModal && openUpgradeModal({ title: template.name, sub: template.sub, id: template.id })}
+            >
+              <Sparkles size={16} /> Upgrade to Pro — ₹499/mo
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main style={styles.editorMain}>
       <div style={styles.editorHead}>
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-            <button style={styles.backLink} onClick={onBack} title="Back to Library">
-              <ArrowLeft size={15} /> <span>Back to Templates</span>
-            </button>
-            <span style={{ color: "var(--border)" }}>|</span>
-            <Link to="/" style={{ ...styles.backLink, textDecoration: "none" }} title="Return to Dashboard">
-              <span>🏠 Dashboard</span>
-            </Link>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, marginBottom: 4 }}>
-            <span style={styles.eyebrow}>{template.group.toUpperCase()}</span>
-            {template.custom && <span style={styles.customBadge}><Sparkles size={11} /> Custom Draft</span>}
-          </div>
-          <h2 style={styles.editorTitle}>{template.name}</h2>
+          <button style={styles.backLink} onClick={onBack} title="Back to Library">
+            <ArrowLeft size={15} /> <span>Back to Templates</span>
+          </button>
+          <h2 style={{ ...styles.editorTitle, marginTop: 12 }}>{template.name}</h2>
           <div style={styles.editorSub}>{template.sub}</div>
         </div>
         <div style={styles.actionRow}>

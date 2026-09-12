@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { useFlash } from '../context/FlashContext';
+import { usePlan } from '../context/PlanContext';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
 
@@ -11,6 +12,7 @@ const REMINDER_DAYS = [1, 2, 3, 5, 7];
 
 export default function Settings() {
   const { advocate, setAdvocate } = useAuth();
+  const { plan, subscription, isPro, openUpgradeModal } = usePlan();
   const addFlash = useFlash();
   const fileInputRef = useRef(null);
 
@@ -287,6 +289,64 @@ export default function Settings() {
           Save Profile & Preferences
         </motion.button>
       </form>
+
+      {/* Subscription & Plan Management Section */}
+      <div className="card-form staggered-entry" style={{ marginTop: 24, padding: 22, border: isPro ? '1px solid rgba(212, 175, 55, 0.4)' : '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
+          <div>
+            <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="billing" style={{ color: isPro ? '#d4af37' : 'var(--accent)' }} />
+              Plan &amp; Subscription Details
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-dark)' }}>
+                {isPro ? 'Vakeel Assist Pro' : 'Free Tier'}
+              </span>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: 10,
+                  background: isPro ? 'rgba(212, 175, 55, 0.2)' : 'rgba(255, 255, 255, 0.08)',
+                  color: isPro ? '#d4af37' : 'var(--text-muted)',
+                  border: isPro ? '1px solid rgba(212, 175, 55, 0.5)' : '1px solid var(--border-color)',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {isPro ? 'PRO ACTIVE' : 'FREE'}
+              </span>
+            </div>
+            <p style={{ fontSize: 14.5, color: 'var(--text-muted)', margin: '8px 0 0', lineHeight: 1.5 }}>
+              {isPro
+                ? `Your Pro subscription is active${subscription?.end_date ? ` until ${new Date(subscription.end_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}. Includes Bail Application, Suretyship Form 46, and Advanced AI.`
+                : 'You are currently on the Free plan with 10 standard court petitions and basic case management.'}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <Link
+              to="/pricing"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '9px 16px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 14.5,
+                fontWeight: 700,
+                textDecoration: 'none',
+                color: isPro ? 'var(--text-dark)' : '#0b1526',
+                background: isPro ? 'var(--bg-app)' : 'linear-gradient(135deg, #d4af37 0%, #b8935e 100%)',
+                border: isPro ? '1px solid var(--border-color)' : 'none',
+                boxShadow: isPro ? 'none' : '0 2px 10px rgba(212, 175, 55, 0.3)',
+              }}
+            >
+              {isPro ? 'View All Plans' : '⚡ Upgrade to Pro (₹499)'}
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {/* Legal & Compliance Section */}
       <div className="card-form staggered-entry" style={{ marginTop: 24, padding: 20 }}>

@@ -62,6 +62,11 @@ class Config:
             "RATELIMIT_STORAGE_URI", self.REDIS_URL or "memory://"
         )
 
+        # Razorpay Payment Gateway Configuration
+        self.RAZORPAY_KEY_ID = env.get("RAZORPAY_KEY_ID", "rzp_test_placeholder")
+        self.RAZORPAY_KEY_SECRET = env.get("RAZORPAY_KEY_SECRET", "placeholder_secret")
+        self.RAZORPAY_WEBHOOK_SECRET = env.get("RAZORPAY_WEBHOOK_SECRET", "placeholder_webhook_secret")
+
         try:
             self.DB_POOL_MIN = max(1, int(env.get("DB_POOL_MIN", "2")))
         except (TypeError, ValueError):

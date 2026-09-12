@@ -49,6 +49,8 @@ from advobuddy.ecourts import (
     parse_ecourts_export,
 )
 from advobuddy.blueprints.courts import courts_bp
+from advobuddy.blueprints.payments import payments_bp, init_payments_blueprint
+from advobuddy.services.entitlement_service import EntitlementService
 
 config = Config.from_env()
 
@@ -59,6 +61,7 @@ app.config["MAX_CONTENT_LENGTH"] = config.MAX_CONTENT_LENGTH
 # Strict CORS configuration derived from environment configuration
 CORS(app, resources={r"/api/*": {"origins": config.CORS_ORIGINS}}, supports_credentials=True)
 app.register_blueprint(courts_bp)
+app.register_blueprint(payments_bp)
 
 # Rate Limiter setup with Redis support and memory fallback
 def get_rate_limit_key():
@@ -184,6 +187,10 @@ class _PooledConnection:
     def commit(self):
         self._conn.commit()
 
+    def rollback(self):
+        if not self._conn.closed:
+            self._conn.rollback()
+
     def close(self):
         # Route/helper functions throughout this file call close() when THEY
         # are done with it - fine when each call got its own connection, but
@@ -210,6 +217,9 @@ class _PooledConnection:
                 self._pool.putconn(conn, close=True)
             except Exception:
                 pass
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
 
 
 def _get_pool():
@@ -484,7 +494,174 @@ def init_db():
 
     # Supabase Auth now owns credentials; local password_hash is unused for
     # new rows (kept, not dropped, to avoid a destructive column removal).
-    cur.execute("ALTER TABLE advocates ALTER COLUMN password_hash DROP NOT NULL")
+    try:
+        cur.execute("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='advocates' AND column_name='password_hash' AND is_nullable='NO'
+                ) THEN
+                    ALTER TABLE advocates ALTER COLUMN password_hash DROP NOT NULL;
+                END IF;
+            END $$;
+        """)
+    except Exception:
+        pass
+
+    # Payment, Plan, Entitlement, and Subscription Tables
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS plans (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            slug TEXT UNIQUE NOT NULL,
+            description TEXT,
+            price INTEGER NOT NULL DEFAULT 0,
+            currency TEXT NOT NULL DEFAULT 'INR',
+            billing_interval TEXT NOT NULL DEFAULT 'month',
+            is_active BOOLEAN NOT NULL DEFAULT true,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS plan_features (
+            id SERIAL PRIMARY KEY,
+            plan_id INTEGER NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+            feature_key TEXT NOT NULL,
+            feature_value TEXT NOT NULL DEFAULT 'true',
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_plan_feature UNIQUE (plan_id, feature_key)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS payment_orders (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES advocates(id) ON DELETE CASCADE,
+            plan_id INTEGER NOT NULL REFERENCES plans(id),
+            razorpay_order_id TEXT UNIQUE NOT NULL,
+            amount INTEGER NOT NULL,
+            currency TEXT NOT NULL DEFAULT 'INR',
+            status TEXT NOT NULL DEFAULT 'created',
+            receipt TEXT NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS payments (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES advocates(id) ON DELETE CASCADE,
+            plan_id INTEGER NOT NULL REFERENCES plans(id),
+            payment_order_id INTEGER REFERENCES payment_orders(id),
+            razorpay_payment_id TEXT UNIQUE NOT NULL,
+            razorpay_order_id TEXT NOT NULL,
+            razorpay_signature TEXT,
+            amount INTEGER NOT NULL,
+            currency TEXT NOT NULL DEFAULT 'INR',
+            status TEXT NOT NULL DEFAULT 'captured',
+            payment_method TEXT,
+            raw_gateway_reference TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES advocates(id) ON DELETE CASCADE,
+            plan_id INTEGER NOT NULL REFERENCES plans(id),
+            status TEXT NOT NULL DEFAULT 'active',
+            start_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            end_date TIMESTAMP WITH TIME ZONE,
+            razorpay_customer_id TEXT,
+            razorpay_subscription_id TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS entitlements (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES advocates(id) ON DELETE CASCADE,
+            feature_key TEXT NOT NULL,
+            source TEXT NOT NULL DEFAULT 'subscription',
+            status TEXT NOT NULL DEFAULT 'active',
+            starts_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            expires_at TIMESTAMP WITH TIME ZONE,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_user_feature_source UNIQUE (user_id, feature_key, source)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS webhook_events (
+            id SERIAL PRIMARY KEY,
+            event_id TEXT UNIQUE NOT NULL,
+            event_type TEXT NOT NULL,
+            payload TEXT,
+            processed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Seed Plans (Free: 0 INR, Pro: 499 INR)
+    cur.execute("""
+        INSERT INTO plans (name, slug, description, price, currency, billing_interval, is_active)
+        VALUES 
+            ('Free', 'free', 'Essential legal workspace with basic drafts and court diary', 0, 'INR', 'month', true),
+            ('Pro', 'pro', 'Advanced legal drafting suite, bail petitions, and AI intelligence', 499, 'INR', 'month', true)
+        ON CONFLICT (slug) DO UPDATE 
+        SET name = EXCLUDED.name,
+            description = EXCLUDED.description,
+            price = EXCLUDED.price,
+            currency = EXCLUDED.currency,
+            billing_interval = EXCLUDED.billing_interval,
+            is_active = EXCLUDED.is_active
+    """)
+
+    # Seed Plan Features
+    cur.execute("""
+        INSERT INTO plan_features (plan_id, feature_key, feature_value)
+        SELECT id, 'draft.basic', 'true' FROM plans WHERE slug = 'free'
+        ON CONFLICT (plan_id, feature_key) DO NOTHING
+    """)
+    cur.execute("""
+        INSERT INTO plan_features (plan_id, feature_key, feature_value)
+        SELECT id, 'ai.basic', 'true' FROM plans WHERE slug = 'free'
+        ON CONFLICT (plan_id, feature_key) DO NOTHING
+    """)
+
+    cur.execute("""
+        INSERT INTO plan_features (plan_id, feature_key, feature_value)
+        SELECT id, 'draft.basic', 'true' FROM plans WHERE slug = 'pro'
+        ON CONFLICT (plan_id, feature_key) DO NOTHING
+    """)
+    cur.execute("""
+        INSERT INTO plan_features (plan_id, feature_key, feature_value)
+        SELECT id, 'draft.bail_app', 'true' FROM plans WHERE slug = 'pro'
+        ON CONFLICT (plan_id, feature_key) DO NOTHING
+    """)
+    cur.execute("""
+        INSERT INTO plan_features (plan_id, feature_key, feature_value)
+        SELECT id, 'draft.suretyship_app', 'true' FROM plans WHERE slug = 'pro'
+        ON CONFLICT (plan_id, feature_key) DO NOTHING
+    """)
+    cur.execute("""
+        INSERT INTO plan_features (plan_id, feature_key, feature_value)
+        SELECT id, 'ai.basic', 'true' FROM plans WHERE slug = 'pro'
+        ON CONFLICT (plan_id, feature_key) DO NOTHING
+    """)
+    cur.execute("""
+        INSERT INTO plan_features (plan_id, feature_key, feature_value)
+        SELECT id, 'ai.advanced', 'true' FROM plans WHERE slug = 'pro'
+        ON CONFLICT (plan_id, feature_key) DO NOTHING
+    """)
 
     conn.commit()
     cur.close()
@@ -644,9 +821,25 @@ def _resolve_user_from_token(token):
     if token.startswith("dev-token") or token == "dev-advocate-token":
         try:
             parts = token.split("-")
-            return int(parts[-1])
+            user_id = int(parts[-1])
         except (ValueError, IndexError):
-            return 6
+            user_id = 6
+        try:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO advocates (id, name, email, role)
+                VALUES (%s, %s, %s, 'advocate')
+                ON CONFLICT (id) DO NOTHING
+                """,
+                (user_id, f"Dev User {user_id}", f"devuser_{user_id}@vakeelassist.test"),
+            )
+            conn.commit()
+            cur.close()
+        except Exception:
+            pass
+        return user_id
 
     token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
     now = time.time()
@@ -728,6 +921,9 @@ def _resolve_user_from_token(token):
                     _AUTH_TOKEN_CACHE.pop(k, None)
 
     return advocate_id
+
+
+init_payments_blueprint(get_db, _resolve_user_from_token)
 
 
 def login_required(f):
