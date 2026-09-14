@@ -32,6 +32,8 @@ export default function Settings() {
   const [phoneError, setPhoneError] = useState(false);
   const [shake, setShake] = useState(false);
 
+  const [archiveStats, setArchiveStats] = useState(null);
+
   useEffect(() => {
     if (advocate) {
       setForm({
@@ -47,6 +49,12 @@ export default function Settings() {
       });
     }
   }, [advocate]);
+
+  useEffect(() => {
+    api.get('/archive')
+      .then(setArchiveStats)
+      .catch((err) => console.warn('Could not load archive stats:', err));
+  }, []);
 
   useEffect(() => {
     setAvatarError(false);
@@ -289,6 +297,94 @@ export default function Settings() {
           Save Profile & Preferences
         </motion.button>
       </form>
+
+      {/* Case Archive & Records Management Section */}
+      <div className="card-form staggered-entry" style={{ marginTop: 24, padding: 22, border: '1px solid var(--border-card)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 14 }}>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 700, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="archive" style={{ color: 'var(--accent)' }} />
+              Case Archive &amp; Records Management
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-dark)' }}>
+                {archiveStats ? `${archiveStats.total_archived} Total Archived` : 'Preserved Records'}
+              </span>
+              {archiveStats && (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 10,
+                      background: 'rgba(239, 68, 68, 0.12)',
+                      color: 'var(--danger)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                    }}
+                  >
+                    {archiveStats.deleted_cases?.length || 0} Deleted
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 10,
+                      background: 'rgba(100, 116, 139, 0.12)',
+                      color: 'var(--gray-500)',
+                      border: '1px solid rgba(100, 116, 139, 0.3)',
+                    }}
+                  >
+                    {archiveStats.closed_cases?.length || 0} Closed
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 10,
+                      background: 'rgba(184, 147, 94, 0.15)',
+                      color: 'var(--accent)',
+                      border: '1px solid rgba(184, 147, 94, 0.35)',
+                    }}
+                  >
+                    {archiveStats.onhold_cases?.length || 0} On Hold
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p style={{ fontSize: 14.5, color: 'var(--text-muted)', margin: '8px 0 0', lineHeight: 1.5 }}>
+              Disposed matters, closed briefs, paused proceedings, and soft-deleted case files are safely preserved. You can review hearing timelines or restore matters to your active litigation diary at any time.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <Link
+              to="/archive"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '9px 16px',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: 14.5,
+                fontWeight: 600,
+                textDecoration: 'none',
+                color: 'var(--text-dark)',
+                background: 'var(--bg-app)',
+                border: '1px solid var(--border-card)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Icon name="archive" style={{ width: 14, height: 14 }} />
+              <span>Manage Case Archive</span>
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {/* Subscription & Plan Management Section */}
       <div className="card-form staggered-entry" style={{ marginTop: 24, padding: 22, border: isPro ? '1px solid rgba(212, 175, 55, 0.4)' : '1px solid var(--border-color)' }}>

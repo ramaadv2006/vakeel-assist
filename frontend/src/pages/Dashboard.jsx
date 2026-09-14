@@ -14,6 +14,9 @@ import {
   Download,
   RotateCcw,
   List,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +32,28 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function formatSelectedDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const parts = String(dateStr).split('-');
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, month, day);
+      return d.toLocaleDateString('en-IN', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+    return dateStr;
+  } catch {
+    return dateStr;
+  }
+}
 
 function matchesQuery(caseData, query) {
   if (!query) return true;
@@ -121,9 +146,6 @@ export default function Dashboard() {
     return [...data.overdue, ...data.today, ...data.this_week, ...data.upcoming];
   }, [data]);
 
-  const filter = (cases) =>
-    cases.filter((c) => matchesQuery(c, query) && (!filterDate || c.next_hearing_date === filterDate));
-
   const datesCount = useMemo(() => {
     const counts = {};
     allCases.forEach((c) => {
@@ -131,6 +153,43 @@ export default function Dashboard() {
     });
     return counts;
   }, [allCases]);
+
+  const monthEventsCount = useMemo(() => {
+    let count = 0;
+    const prefix = `${calYear}-${String(calMonth + 1).padStart(2, '0')}`;
+    Object.keys(datesCount).forEach((d) => {
+      if (d.startsWith(prefix)) count += datesCount[d];
+    });
+    return count;
+  }, [datesCount, calMonth, calYear]);
+
+  const dayCells = useMemo(() => {
+    const firstDayIndex = new Date(calYear, calMonth, 1).getDay();
+    const totalDays = new Date(calYear, calMonth + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < firstDayIndex; i++) cells.push(null);
+    for (let day = 1; day <= totalDays; day++) cells.push(day);
+    return cells;
+  }, [calYear, calMonth]);
+
+  const goMonth = (delta) => {
+    let m = calMonth + delta;
+    let y = calYear;
+    if (m < 0) { m = 11; y -= 1; }
+    if (m > 11) { m = 0; y += 1; }
+    setCalMonth(m);
+    setCalYear(y);
+  };
+
+  const goToToday = () => {
+    const now = new Date();
+    setCalMonth(now.getMonth());
+    setCalYear(now.getFullYear());
+    setFilterDate(now.toISOString().slice(0, 10));
+  };
+
+  const filter = (cases) =>
+    (cases || []).filter((c) => matchesQuery(c, query) && (!filterDate || c.next_hearing_date === filterDate));
 
   const handleExportCsv = (e) => {
     e.preventDefault();
@@ -177,21 +236,6 @@ export default function Dashboard() {
     day: 'numeric',
     year: 'numeric',
   });
-
-  const goMonth = (delta) => {
-    let m = calMonth + delta;
-    let y = calYear;
-    if (m < 0) { m = 11; y -= 1; }
-    if (m > 11) { m = 0; y += 1; }
-    setCalMonth(m);
-    setCalYear(y);
-  };
-
-  const firstDayIndex = new Date(calYear, calMonth, 1).getDay();
-  const totalDays = new Date(calYear, calMonth + 1, 0).getDate();
-  const dayCells = [];
-  for (let i = 0; i < firstDayIndex; i++) dayCells.push(null);
-  for (let day = 1; day <= totalDays; day++) dayCells.push(day);
 
   return (
     <div className="dashboard-container">
@@ -487,7 +531,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      {/* 5. Calendar View */}
+      {/* 5. Compact Executive Calendar View */}
       {view === 'calendar' && (
         <motion.div
           style={{ marginBottom: 32 }}
@@ -495,85 +539,130 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
         >
-          <div className="card-form calendar-card-wrapper" style={{ padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <button
-                className="btn-edit"
-                style={{ padding: '7px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                onClick={() => goMonth(-1)}
-                type="button"
-              >
-                &larr; Prev Month
-              </button>
+          <div className="card-form calendar-card-wrapper">
+            {/* Header Navigation Bar */}
+            <div className="calendar-header-bar">
+              <div className="calendar-header-title-group">
+                <div className="calendar-header-icon-badge">
+                  <CalendarDays size={18} color="var(--accent)" />
+                </div>
+                <div>
+                  <div className="calendar-header-month">
+                    {MONTH_NAMES[calMonth]} {calYear}
+                  </div>
+                  <div className="calendar-header-sub">
+                    {monthEventsCount > 0 ? (
+                      <span className="calendar-month-badge">
+                        <span className="calendar-badge-dot" />
+                        {monthEventsCount} hearing{monthEventsCount === 1 ? '' : 's'} scheduled
+                      </span>
+                    ) : (
+                      <span className="calendar-month-badge empty">
+                        No hearings listed
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-              <h2 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 700, color: 'var(--text-dark)', margin: 0 }}>
-                {MONTH_NAMES[calMonth]} {calYear}
-              </h2>
+              <div className="calendar-nav-controls">
+                <button
+                  className="btn-calendar-today"
+                  onClick={goToToday}
+                  type="button"
+                  title="Jump to today's date"
+                >
+                  Today
+                </button>
 
-              <button
-                className="btn-edit"
-                style={{ padding: '7px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                onClick={() => goMonth(1)}
-                type="button"
-              >
-                Next Month &rarr;
-              </button>
+                <div className="calendar-month-arrows">
+                  <button
+                    className="btn-calendar-nav"
+                    onClick={() => goMonth(-1)}
+                    type="button"
+                    aria-label="Previous Month"
+                    title="Previous Month"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button
+                    className="btn-calendar-nav"
+                    onClick={() => goMonth(1)}
+                    type="button"
+                    aria-label="Next Month"
+                    title="Next Month"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div id="calendar-grid">
+            {/* Weekdays Header */}
+            <div className="calendar-weekdays-row">
               {WEEKDAYS.map((d) => (
-                <div
-                  key={d}
-                  style={{
-                    fontWeight: 700,
-                    fontSize: 14,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.8px',
-                    color: 'var(--text-main)',
-                    textAlign: 'center',
-                    padding: '10px 0',
-                  }}
-                >
+                <div key={d} className="calendar-weekday-cell">
                   {d}
                 </div>
               ))}
+            </div>
 
+            {/* Compact Days Grid */}
+            <div id="calendar-grid" className="calendar-compact-grid">
               {dayCells.map((day, idx) => {
-                if (day === null) return <div key={`empty-${idx}`} className="calendar-day empty"></div>;
+                if (day === null) return <div key={`empty-${idx}`} className="calendar-day empty" />;
                 const mStr = String(calMonth + 1).padStart(2, '0');
                 const dStr = String(day).padStart(2, '0');
                 const cellDate = `${calYear}-${mStr}-${dStr}`;
-                const hasEvents = !!datesCount[cellDate];
+                const eventCount = datesCount[cellDate] || 0;
+                const hasEvents = eventCount > 0;
                 const selected = filterDate === cellDate;
                 const isToday = cellDate === new Date().toISOString().slice(0, 10);
 
                 return (
-                  <div
+                  <motion.div
                     key={cellDate}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     className={`calendar-day${hasEvents ? ' has-events' : ''}${selected ? ' selected-day' : ''}${isToday ? ' is-today' : ''}`}
-                    title={hasEvents ? `${datesCount[cellDate]} hearing(s) on ${cellDate}` : undefined}
+                    title={hasEvents ? `${eventCount} hearing${eventCount === 1 ? '' : 's'} on ${cellDate}` : undefined}
                     onClick={() => setFilterDate((prev) => (prev === cellDate ? null : cellDate))}
                   >
-                    <span className="day-number">{day}</span>
+                    <div className="calendar-day-header">
+                      <span className="day-number">{day}</span>
+                      {isToday && <span className="today-chip">Today</span>}
+                    </div>
                     {hasEvents && (
                       <div className="calendar-event-pill">
-                        {datesCount[cellDate]}
+                        <span className="event-dot" />
+                        <span className="event-count">{eventCount}</span>
                       </div>
                     )}
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
 
+            {/* Filter Date Banner */}
             {filterDate && (
-              <div style={{ display: 'flex', marginTop: 18, padding: '12px 18px', background: 'var(--accent-bg)', borderLeft: '3px solid var(--accent)', borderRadius: 'var(--radius-sm)', fontSize: 15.5, color: 'var(--text-main)', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>Showing hearings listed on: <strong>{filterDate}</strong></span>
+              <div className="calendar-filter-banner">
+                <div className="filter-banner-text">
+                  <span className="filter-banner-icon">⚖️</span>
+                  <span>
+                    Showing listed hearings for{' '}
+                    <strong>
+                      {formatSelectedDate(filterDate)}
+                    </strong>
+                    {datesCount[filterDate] ? ` (${datesCount[filterDate]} matter${datesCount[filterDate] === 1 ? '' : 's'})` : ' (0 matters)'}
+                  </span>
+                </div>
                 <button
                   onClick={() => setFilterDate(null)}
                   type="button"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', fontWeight: 700, fontSize: 15 }}
+                  className="btn-filter-banner-clear"
                 >
-                  ✕ Show All Dates
+                  <X size={14} />
+                  <span>Show All Hearings</span>
                 </button>
               </div>
             )}

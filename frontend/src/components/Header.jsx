@@ -12,7 +12,7 @@ const ADVOCATE_LINKS = [
   { to: '/clients', icon: 'clients', label: 'Clients' },
   { to: '/templates', icon: 'case', label: 'Drafts' },
   { to: '/billing', icon: 'billing', label: 'Billing' },
-  { to: '/archive', icon: 'archive', label: 'Archive' },
+  // { to: '/archive', icon: 'archive', label: 'Archive' },
   { to: '/tasks', icon: 'tasks', label: 'Tasks' },
   { to: '/diary', icon: 'calendar', label: 'Diary' },
 ];
@@ -246,6 +246,11 @@ export default function Header() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Link to="/archive" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
+                      <Icon name="archive" style={{ width: 15, height: 15 }} />
+                      <span>Case Archive</span>
+                    </Link>
+
                     <Link to="/pricing" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
                       <Icon name="case" style={{ width: 15, height: 15 }} />
                       <span>{isPro ? 'Manage Subscription' : 'Upgrade to Pro'}</span>
