@@ -7,11 +7,11 @@ import { usePlan } from '../context/PlanContext';
 import Icon from './Icon';
 
 const ADVOCATE_LINKS = [
+  { to: '/', icon: 'dashboard', label: 'Dashboard' },
   { to: '/case-search', icon: 'court', label: 'eCourts' },
   { to: '/ai-assistant', icon: 'ai', label: 'AI Assistant' },
   { to: '/clients', icon: 'clients', label: 'Clients' },
   { to: '/templates', icon: 'case', label: 'Drafts' },
-  { to: '/billing', icon: 'billing', label: 'Billing' },
   // { to: '/archive', icon: 'archive', label: 'Archive' },
   { to: '/tasks', icon: 'tasks', label: 'Tasks' },
   { to: '/diary', icon: 'calendar', label: 'Diary' },
@@ -100,7 +100,11 @@ export default function Header() {
       {advocate && (
         <nav className={`nav-links${navOpen ? ' open' : ''}`} id="nav-links" ref={navRef}>
           {ADVOCATE_LINKS.map((link) => {
-            const isActive = location.pathname === link.to;
+            const isActive = link.to === '/'
+              ? location.pathname === '/'
+              : (location.pathname === link.to ||
+                 (link.to === '/templates' && ['/drafts', '/draft', '/draft-mitra'].includes(location.pathname)) ||
+                 (link.to === '/case-search' && location.pathname === '/ecourts-search'));
             return (
               <Link
                 key={link.to}
@@ -246,6 +250,11 @@ export default function Header() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Link to="/billing" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
+                      <Icon name="billing" style={{ width: 15, height: 15 }} />
+                      <span>Billing & Fees</span>
+                    </Link>
+
                     <Link to="/archive" className="header-dropdown-item" onClick={() => setProfileMenuOpen(false)}>
                       <Icon name="archive" style={{ width: 15, height: 15 }} />
                       <span>Case Archive</span>
