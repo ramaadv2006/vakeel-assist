@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import StatCard from '../components/StatCard';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
+import Pagination from '../components/Pagination';
 import { useReveal } from '../hooks/useReveal';
 
 const STATUS_BADGE = { Active: 'success', Closed: 'danger', 'On Hold': 'warning' };
@@ -122,10 +123,16 @@ function LedgerCard({ caseData, index }) {
 export default function Billing() {
   const [data, setData] = useState(null);
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   useEffect(() => {
     api.get('/billing').then(setData);
   }, []);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   const filtered = useMemo(() => {
     if (!data) return [];
@@ -137,6 +144,11 @@ export default function Billing() {
       c.status.toLowerCase().includes(q)
     );
   }, [data, query]);
+
+  const pagedCases = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize]);
 
   if (!data) {
     return (
@@ -254,11 +266,23 @@ export default function Billing() {
       </div>
 
       {filtered.length > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {filtered.map((c, i) => (
-            <LedgerCard key={c.id} caseData={c} index={i} />
-          ))}
-        </div>
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {pagedCases.map((c, i) => (
+              <LedgerCard key={c.id} caseData={c} index={i} />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={page}
+            totalItems={filtered.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[10, 15, 25, 50]}
+            itemLabel="matters"
+          />
+        </>
       ) : (
         <div className="empty-state staggered-entry">
           <Icon name="billing" style={{ width: 48, height: 48, stroke: '#cbd5e1' }} />

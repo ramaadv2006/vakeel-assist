@@ -6,6 +6,7 @@ import { api } from '../api/client';
 import StatCard from '../components/StatCard';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
+import Pagination from '../components/Pagination';
 import { useReveal } from '../hooks/useReveal';
 
 function HubCase({ group, onChanged }) {
@@ -260,6 +261,8 @@ function HubCase({ group, onChanged }) {
 export default function Tasks() {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const load = useCallback(
     () =>
@@ -304,6 +307,8 @@ export default function Tasks() {
     0
   );
 
+  const pagedGroups = (data.case_groups || []).slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div className="form-container" style={{ maxWidth: 940 }}>
       {/* Top Hero Navigation */}
@@ -346,13 +351,25 @@ export default function Tasks() {
         />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {data.case_groups.map((group) => (
-          <HubCase key={group.case_id} group={group} onChanged={load} />
-        ))}
-      </div>
+      {data.case_groups.length > 0 ? (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {pagedGroups.map((group) => (
+              <HubCase key={group.case_id} group={group} onChanged={load} />
+            ))}
+          </div>
 
-      {data.case_groups.length === 0 && (
+          <Pagination
+            currentPage={page}
+            totalItems={data.case_groups.length}
+            pageSize={pageSize}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={[5, 10, 20, 50]}
+            itemLabel="cases with tasks"
+          />
+        </>
+      ) : (
         <div className="empty-state staggered-entry">
           <CheckCircle2 size={48} color="var(--success)" style={{ opacity: 0.8 }} />
           <span style={{ fontWeight: 600, fontSize: 17, color: 'var(--text-dark)' }}>

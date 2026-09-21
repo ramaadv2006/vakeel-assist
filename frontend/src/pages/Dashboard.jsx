@@ -25,6 +25,7 @@ import CaseCard from '../components/CaseCard';
 import StatCard from '../components/StatCard';
 import Icon from '../components/Icon';
 import Skeleton from '../components/Skeleton';
+import Pagination from '../components/Pagination';
 import { useReveal } from '../hooks/useReveal';
 
 const MONTH_NAMES = [
@@ -116,7 +117,14 @@ export default function Dashboard() {
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [filterDate, setFilterDate] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const searchInputRef = useRef(null);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setPage(1);
+  }, [query, filterDate, activeCategory]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -206,19 +214,11 @@ export default function Dashboard() {
     });
   };
 
-  if (!data) {
-    return (
-      <div style={{ maxWidth: 1160, margin: '0 auto' }}>
-        <Skeleton count={4} rows={2} widths={['50%', '85%']} />
-      </div>
-    );
-  }
-
-  const overdue = filter(data.overdue);
-  const today = filter(data.today);
-  const thisWeek = filter(data.this_week);
-  const upcoming = filter(data.upcoming);
-  const stale = allCases.filter((c) => c.is_stale && matchesQuery(c, query) && (!filterDate || c.next_hearing_date === filterDate));
+  const overdue = useMemo(() => (data ? filter(data.overdue) : []), [data, query, filterDate]);
+  const today = useMemo(() => (data ? filter(data.today) : []), [data, query, filterDate]);
+  const thisWeek = useMemo(() => (data ? filter(data.this_week) : []), [data, query, filterDate]);
+  const upcoming = useMemo(() => (data ? filter(data.upcoming) : []), [data, query, filterDate]);
+  const stale = useMemo(() => (data ? allCases.filter((c) => c.is_stale && matchesQuery(c, query) && (!filterDate || c.next_hearing_date === filterDate)) : []), [data, allCases, query, filterDate]);
 
   const totalFilteredCount = overdue.length + today.length + thisWeek.length + upcoming.length;
 
@@ -229,6 +229,44 @@ export default function Dashboard() {
     activeCategory === 'upcoming' ? upcoming.length :
     activeCategory === 'stale' ? stale.length :
     totalFilteredCount;
+
+  // Paginated Slices calculation
+  const allFilteredCombined = useMemo(() => {
+    return [...overdue, ...today, ...thisWeek, ...upcoming];
+  }, [overdue, today, thisWeek, upcoming]);
+
+  const pageStartIndex = (page - 1) * pageSize;
+  const pageEndIndex = page * pageSize;
+
+  const pagedAllCombined = useMemo(() => {
+    return allFilteredCombined.slice(pageStartIndex, pageEndIndex);
+  }, [allFilteredCombined, pageStartIndex, pageEndIndex]);
+
+  const pagedOverdue = useMemo(() => pagedAllCombined.filter((c) => c.days_left < 0), [pagedAllCombined]);
+  const pagedToday = useMemo(() => pagedAllCombined.filter((c) => c.days_left === 0), [pagedAllCombined]);
+  const pagedThisWeek = useMemo(() => pagedAllCombined.filter((c) => c.days_left > 0 && c.days_left <= 7), [pagedAllCombined]);
+  const pagedUpcoming = useMemo(() => pagedAllCombined.filter((c) => c.days_left > 7), [pagedAllCombined]);
+
+  const targetCategoryList = useMemo(() => {
+    if (activeCategory === 'overdue') return overdue;
+    if (activeCategory === 'today') return today;
+    if (activeCategory === 'week') return thisWeek;
+    if (activeCategory === 'upcoming') return upcoming;
+    if (activeCategory === 'stale') return stale;
+    return allFilteredCombined;
+  }, [activeCategory, overdue, today, thisWeek, upcoming, stale, allFilteredCombined]);
+
+  const pagedTargetCategoryList = useMemo(() => {
+    return targetCategoryList.slice(pageStartIndex, pageEndIndex);
+  }, [targetCategoryList, pageStartIndex, pageEndIndex]);
+
+  if (!data) {
+    return (
+      <div style={{ maxWidth: 1160, margin: '0 auto' }}>
+        <Skeleton count={4} rows={2} widths={['50%', '85%']} />
+      </div>
+    );
+  }
 
   const todayDateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -678,7 +716,7 @@ export default function Dashboard() {
             titleClass="overdue"
             iconColor="var(--danger)"
             icon={<AlertTriangle size={18} color="var(--danger)" />}
-            cases={overdue}
+            cases={pagedOverdue}
             badgeFor={{ cls: 'overdue', text: (c) => `${Math.abs(c.days_left)} days overdue` }}
             onDelete={handleDelete}
           />
@@ -688,7 +726,7 @@ export default function Dashboard() {
             titleClass="today"
             iconColor="var(--warning)"
             icon={<CalendarIcon size={18} color="var(--warning)" />}
-            cases={today}
+            cases={pagedToday}
             badgeFor={{ cls: 'today', text: () => 'Today' }}
             onDelete={handleDelete}
           />
@@ -697,7 +735,7 @@ export default function Dashboard() {
             title="This Week"
             iconColor="var(--accent)"
             icon={<Clock size={18} color="var(--accent)" />}
-            cases={thisWeek}
+            cases={pagedThisWeek}
             badgeFor={{ cls: 'week', text: (c) => `${c.days_left} days left` }}
             onDelete={handleDelete}
             reveal
@@ -707,7 +745,7 @@ export default function Dashboard() {
             title="Upcoming Hearings"
             iconColor="var(--gray-500)"
             icon={<Layers size={18} color="var(--gray-500)" />}
-            cases={upcoming}
+            cases={pagedUpcoming}
             badgeFor={{ cls: 'upcoming', text: (c) => `${c.days_left} days left` }}
             onDelete={handleDelete}
             reveal
@@ -719,7 +757,7 @@ export default function Dashboard() {
           titleClass="overdue"
           iconColor="var(--danger)"
           icon={<AlertTriangle size={18} color="var(--danger)" />}
-          cases={overdue}
+          cases={pagedTargetCategoryList}
           badgeFor={{ cls: 'overdue', text: (c) => `${Math.abs(c.days_left)} days overdue` }}
           onDelete={handleDelete}
         />
@@ -729,7 +767,7 @@ export default function Dashboard() {
           titleClass="today"
           iconColor="var(--warning)"
           icon={<CalendarIcon size={18} color="var(--warning)" />}
-          cases={today}
+          cases={pagedTargetCategoryList}
           badgeFor={{ cls: 'today', text: () => 'Today' }}
           onDelete={handleDelete}
         />
@@ -738,7 +776,7 @@ export default function Dashboard() {
           title="Hearings Listed This Week"
           iconColor="var(--accent)"
           icon={<Clock size={18} color="var(--accent)" />}
-          cases={thisWeek}
+          cases={pagedTargetCategoryList}
           badgeFor={{ cls: 'week', text: (c) => `${c.days_left} days left` }}
           onDelete={handleDelete}
         />
@@ -747,7 +785,7 @@ export default function Dashboard() {
           title="Upcoming Hearings"
           iconColor="var(--gray-500)"
           icon={<Layers size={18} color="var(--gray-500)" />}
-          cases={upcoming}
+          cases={pagedTargetCategoryList}
           badgeFor={{ cls: 'upcoming', text: (c) => `${c.days_left} days left` }}
           onDelete={handleDelete}
         />
@@ -756,9 +794,22 @@ export default function Dashboard() {
           title="Stale Matters (≥ 30 Days Without Update)"
           iconColor="var(--gray-500)"
           icon={<Layers size={18} color="var(--gray-500)" />}
-          cases={stale}
+          cases={pagedTargetCategoryList}
           badgeFor={{ cls: 'upcoming', text: (c) => `${c.days_since_update || 0}d stale` }}
           onDelete={handleDelete}
+        />
+      )}
+
+      {/* Pagination Controls */}
+      {activeCategoryCount > 0 && (
+        <Pagination
+          currentPage={page}
+          totalItems={activeCategoryCount}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+          pageSizeOptions={[10, 20, 50, 100]}
+          itemLabel="matters"
         />
       )}
 

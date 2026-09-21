@@ -6743,3 +6743,190 @@ body.dark .btn-back-dashboard,
     background: rgba(255, 255, 255, 0.08);
     color: var(--text-dark);
 }
+
+/* ============================================================
+   CHAMBERS PAGINATION SYSTEM
+   ============================================================ */
+.pagination-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.25s ease;
+}
+
+.pagination-info {
+    font-size: 14px;
+    color: var(--text-muted);
+    min-width: 180px;
+}
+
+.pagination-info strong {
+    color: var(--text-dark);
+    font-weight: 700;
+}
+
+.pagination-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pagination-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border: 1px solid var(--border-card);
+    background: var(--bg-app);
+    color: var(--text-dark);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+}
+
+.pagination-nav-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    color: var(--text-muted);
+}
+
+.pagination-nav-btn:hover:not(:disabled) {
+    background: var(--bg-card);
+    border-color: var(--accent);
+    color: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.pagination-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    border-color: var(--border-card);
+    background: var(--bg-app);
+}
+
+.pagination-pages-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-page-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.pagination-page-btn:hover:not(.active) {
+    background: var(--bg-card);
+    border-color: var(--accent-border);
+    color: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+.pagination-page-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(184, 147, 94, 0.35);
+}
+
+.pagination-active-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    border-radius: inherit;
+    z-index: 0;
+}
+
+.pagination-page-number {
+    position: relative;
+    z-index: 1;
+}
+
+.pagination-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 36px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    user-select: none;
+}
+
+.pagination-page-size {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--text-muted);
+}
+
+.pagination-size-label {
+    font-weight: 500;
+}
+
+.pagination-size-select {
+    padding: 6px 12px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-dark);
+    background: var(--bg-app);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.pagination-size-select:hover,
+.pagination-size-select:focus {
+    border-color: var(--accent);
+    background: var(--bg-card);
+}
+
+@media (max-width: 768px) {
+    .pagination-container {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+
+    .pagination-info {
+        order: 1;
+        width: 100%;
+    }
+
+    .pagination-controls {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .pagination-page-size {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+    }
+}
+

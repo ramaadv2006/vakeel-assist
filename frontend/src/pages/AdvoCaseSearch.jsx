@@ -23,6 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFlash } from '../context/FlashContext';
 import Icon from '../components/Icon';
 import StatCard from '../components/StatCard';
+import Pagination from '../components/Pagination';
 import { parseEcourtsExport, SAMPLE_ECOURTS_EXPORT_TXT } from '../utils/ecourtsParser';
 import '../styles/AdvoCaseSearch.css';
 
@@ -74,6 +75,13 @@ export default function AdvoCaseSearch() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
   const [filterType, setFilterType] = useState('all'); // 'all' | 'pending' | 'disposed' | 'new'
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(24);
+
+  // Auto reset page on filter/search change
+  useEffect(() => {
+    setPage(1);
+  }, [filterType, searchQuery, viewMode]);
 
   // Dropzone & Paste State
   const [fileDragActive, setFileDragActive] = useState(false);
@@ -330,6 +338,15 @@ export default function AdvoCaseSearch() {
     }
   };
 
+  const handleSelectCurrentPage = () => {
+    const pageNums = pagedCases.map((c) => c.case_number);
+    setSelectedCaseNumbers((prev) => {
+      const next = new Set(prev);
+      pageNums.forEach((n) => next.add(n));
+      return next;
+    });
+  };
+
   const handleSelectPendingOnly = () => {
     const pendingNums = cases.filter((c) => !c.is_disposed).map((c) => c.case_number);
     setSelectedCaseNumbers(new Set(pendingNums));
@@ -381,6 +398,11 @@ export default function AdvoCaseSearch() {
       return true;
     });
   }, [cases, filterType, searchQuery, existingCasesMap]);
+
+  const pagedCases = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredCases.slice(start, start + pageSize);
+  }, [filteredCases, page, pageSize]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -845,6 +867,15 @@ export default function AdvoCaseSearch() {
 
               <button
                 type="button"
+                onClick={handleSelectCurrentPage}
+                className="btn-ecourts-quick-filter"
+                title="Select only the cases visible on this page"
+              >
+                Select Page ({pagedCases.length})
+              </button>
+
+              <button
+                type="button"
                 onClick={handleSelectPendingOnly}
                 className="btn-ecourts-quick-filter"
               >
@@ -904,11 +935,11 @@ export default function AdvoCaseSearch() {
               </button>
             </div>
           ) : viewMode === 'grid' ? (
-            <div className={`ecourts-cases-grid${filteredCases.length === 1 ? ' single-case' : ''}`}>
-              {filteredCases.map((c) => {
-                const isSelected = selectedCaseNumbers.has(c.case_number);
-                const isAlreadyInDiary = existingCasesMap.has((c.case_number || '').trim().toUpperCase());
-                const stageIndex = getStageStepIndex(c.case_stage);
+            <div className={`ecourts-cases-grid${pagedCases.length === 1 ? ' single-case' : ''}`}>
+              {pagedCases.map((c) => {
+                  const isSelected = selectedCaseNumbers.has(c.case_number);
+                  const isAlreadyInDiary = existingCasesMap.has((c.case_number || '').trim().toUpperCase());
+                  const stageIndex = getStageStepIndex(c.case_stage);
 
                 return (
                   <motion.div
@@ -1101,7 +1132,7 @@ export default function AdvoCaseSearch() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredCases.map((c) => {
+                    {pagedCases.map((c) => {
                       const isSelected = selectedCaseNumbers.has(c.case_number);
                       const isAlreadyInDiary = existingCasesMap.has((c.case_number || '').trim().toUpperCase());
 
@@ -1174,6 +1205,19 @@ export default function AdvoCaseSearch() {
                 </table>
               </div>
             </div>
+          )}
+
+          {/* Pagination Controls */}
+          {filteredCases.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalItems={filteredCases.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[12, 24, 48, 96]}
+              itemLabel="extracted cases"
+            />
           )}
         </div>
       )}

@@ -663,6 +663,15 @@ def init_db():
         ON CONFLICT (plan_id, feature_key) DO NOTHING
     """)
 
+    # Performance Indexes for high-volume cases & instant queries
+    try:
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_cases_advocate_status_hearing ON cases (advocate_id, status, next_hearing_date)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_cases_advocate_case_number ON cases (advocate_id, case_number)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_hearing_history_case_id ON hearing_history (case_id, added_at)")
+        cur.execute("CREATE INDEX IF NOT EXISTS idx_case_tasks_case_id ON case_tasks (case_id, is_completed)")
+    except Exception:
+        pass
+
     conn.commit()
     cur.close()
     conn.close()
@@ -1198,11 +1207,23 @@ def dashboard():
     today = datetime.now().date()
 
     cur.execute(
-        """SELECT c.*, COALESCE(
-               (SELECT MAX(added_at) FROM hearing_history WHERE case_id = c.id),
-               c.created_at
-           ) AS last_updated_at
+        """SELECT c.*,
+                  COALESCE(th.last_updated_at, c.created_at) AS last_updated_at,
+                  COALESCE(tk.total_tasks, 0) AS total_tasks,
+                  COALESCE(tk.completed_tasks, 0) AS completed_tasks
            FROM cases c
+           LEFT JOIN (
+               SELECT case_id, MAX(added_at) AS last_updated_at
+               FROM hearing_history
+               GROUP BY case_id
+           ) th ON th.case_id = c.id
+           LEFT JOIN (
+               SELECT case_id,
+                      COUNT(*) AS total_tasks,
+                      SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) AS completed_tasks
+               FROM case_tasks
+               GROUP BY case_id
+           ) tk ON tk.case_id = c.id
            WHERE c.status='Active' AND c.advocate_id=%s
            ORDER BY c.next_hearing_date ASC""",
         (advocate_id,),
@@ -1570,8 +1591,19 @@ def case_archive():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        """SELECT * FROM cases WHERE advocate_id=%s AND status!='Active'
-           ORDER BY status ASC, client_name ASC""",
+        """SELECT c.*,
+                  COALESCE(tk.total_tasks, 0) AS total_tasks,
+                  COALESCE(tk.completed_tasks, 0) AS completed_tasks
+           FROM cases c
+           LEFT JOIN (
+               SELECT case_id,
+                      COUNT(*) AS total_tasks,
+                      SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) AS completed_tasks
+               FROM case_tasks
+               GROUP BY case_id
+           ) tk ON tk.case_id = c.id
+           WHERE c.advocate_id=%s AND c.status!='Active'
+           ORDER BY c.status ASC, c.client_name ASC""",
         (advocate_id,),
     )
     archived_cases = cur.fetchall()

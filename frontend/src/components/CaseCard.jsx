@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { memo, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Calendar, Building2, Phone, Edit3 } from 'lucide-react';
@@ -44,9 +44,9 @@ export function TasksDrawer({ caseId, tasks, setTasks }) {
 
   if (tasks === null) {
     return (
-      <div className="loading-text">
-        <div className="skeleton-line" style={{ width: '70%' }}></div>
-        <div className="skeleton-line" style={{ width: '45%', marginTop: 6 }}></div>
+      <div className="loading-text" style={{ padding: '8px 0' }}>
+        <div className="skeleton-line" style={{ width: '70%', height: 16 }}></div>
+        <div className="skeleton-line" style={{ width: '45%', height: 16, marginTop: 6 }}></div>
       </div>
     );
   }
@@ -106,22 +106,42 @@ export function TasksDrawer({ caseId, tasks, setTasks }) {
   );
 }
 
-export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onReopen }) {
+function CaseCard({ caseData, cssClass, badgeText, onDelete, onReopen }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [tasks, setTasks] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [waModalOpen, setWaModalOpen] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    api.get(`/cases/${caseData.id}/tasks`).then((data) => {
-      if (!cancelled) setTasks(data.tasks);
-    });
-    return () => { cancelled = true; };
-  }, [caseData.id]);
+  const loadTasksIfNeeded = useCallback(() => {
+    if (tasks === null) {
+      api.get(`/cases/${caseData.id}/tasks`)
+        .then((data) => setTasks(data.tasks || []))
+        .catch(() => setTasks([]));
+    }
+  }, [caseData.id, tasks]);
 
-  const completedCount = tasks ? tasks.filter((t) => t.is_completed === 1).length : 0;
-  const totalTasks = tasks ? tasks.length : 0;
+  const handleToggleDrawer = () => {
+    const nextState = !drawerOpen;
+    setDrawerOpen(nextState);
+    if (nextState) {
+      loadTasksIfNeeded();
+    }
+  };
+
+  const handleOpenModal = () => {
+    setModalOpen(true);
+    loadTasksIfNeeded();
+  };
+
+  // Task counts: prioritize live tasks array if loaded, otherwise fallback to precomputed counts from backend
+  const totalTasks = tasks !== null
+    ? tasks.length
+    : (caseData.total_tasks !== undefined ? caseData.total_tasks : 0);
+
+  const completedCount = tasks !== null
+    ? tasks.filter((t) => t.is_completed === 1).length
+    : (caseData.completed_tasks !== undefined ? caseData.completed_tasks : 0);
+
   const taskProgress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
   const pendingFee = (caseData.total_fee || 0) - (caseData.fee_paid || 0);
 
@@ -168,7 +188,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
           </div>
 
           {/* Client / Party Title */}
-          <h3 className="case-card-mobile-title" onClick={() => setModalOpen(true)}>
+          <h3 className="case-card-mobile-title" onClick={handleOpenModal}>
             {caseData.client_name}
           </h3>
 
@@ -205,7 +225,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
             <button
               type="button"
               className="btn-mobile-view-details"
-              onClick={() => setModalOpen(true)}
+              onClick={handleOpenModal}
               aria-label={`View details for ${caseData.client_name}`}
             >
               <Eye size={15} />
@@ -328,7 +348,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                 <button
                   type="button"
-                  onClick={() => setDrawerOpen((v) => !v)}
+                  onClick={handleToggleDrawer}
                   className="btn-checklist-toggle"
                 >
                   <Icon
@@ -340,7 +360,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
                       transition: 'transform 0.25s ease',
                     }}
                   />
-                  {drawerOpen ? 'Hide' : 'Show'} Pre-Hearing Checklist ({tasks === null ? '...' : `${completedCount}/${totalTasks}`})
+                  {drawerOpen ? 'Hide' : 'Show'} Pre-Hearing Checklist ({`${completedCount}/${totalTasks}`})
                 </button>
 
                 {totalTasks > 0 && (
@@ -400,7 +420,7 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
                 whileTap={{ scale: 0.97 }}
                 type="button"
                 className="btn-icon-text btn-edit"
-                onClick={() => setModalOpen(true)}
+                onClick={handleOpenModal}
                 title="Open complete case overview popup"
               >
                 <Eye size={13} />
@@ -454,26 +474,33 @@ export default function CaseCard({ caseData, cssClass, badgeText, onDelete, onRe
         </div>
       </motion.div>
 
-      {/* Case Details Popup Modal */}
-      <CaseDetailModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        caseData={caseData}
-        cssClass={cssClass}
-        badgeText={badgeText}
-        onDelete={onDelete}
-        onReopen={onReopen}
-        tasks={tasks}
-        setTasks={setTasks}
-        onWhatsApp={() => setWaModalOpen(true)}
-      />
+      {/* Case Details Popup Modal - ONLY MOUNTED WHEN OPEN */}
+      {modalOpen && (
+        <CaseDetailModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          caseData={caseData}
+          cssClass={cssClass}
+          badgeText={badgeText}
+          onDelete={onDelete}
+          onReopen={onReopen}
+          tasks={tasks}
+          setTasks={setTasks}
+          onWhatsApp={() => setWaModalOpen(true)}
+        />
+      )}
 
-      {/* WhatsApp Language Choice Modal */}
-      <WhatsAppLanguageModal
-        isOpen={waModalOpen}
-        onClose={() => setWaModalOpen(false)}
-        caseData={caseData}
-      />
+      {/* WhatsApp Language Choice Modal - ONLY MOUNTED WHEN OPEN */}
+      {waModalOpen && (
+        <WhatsAppLanguageModal
+          isOpen={waModalOpen}
+          onClose={() => setWaModalOpen(false)}
+          caseData={caseData}
+        />
+      )}
     </>
   );
 }
+
+export default memo(CaseCard);
+
