@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -67,7 +68,7 @@ export default function AdvoCaseSearch() {
   const [cases, setCases] = useState([]);
   const [fileMeta, setFileMeta] = useState(null); // { filename, size, total }
   const [existingCasesMap, setExistingCasesMap] = useState(new Map());
-  const [selectedCaseNumbers, setSelectedCaseNumbers] = useState(new Set());
+  const [selectedCaseIds, setSelectedCaseIds] = useState(new Set());
   const [expandedCase, setExpandedCase] = useState(null);
   const [copiedCnr, setCopiedCnr] = useState(null);
 
@@ -92,6 +93,17 @@ export default function AdvoCaseSearch() {
   // Import Action State
   const [loadingImport, setLoadingImport] = useState(false);
   const [importedStatus, setImportedStatus] = useState(null);
+  const [importProgress, setImportProgress] = useState({
+    active: false,
+    total: 0,
+    current: 0,
+    percent: 0,
+    importedCount: 0,
+    updatedCount: 0,
+    currentBatch: 0,
+    totalBatches: 0,
+    statusText: '',
+  });
 
   // Load existing cases to identify duplicates & conflicts
   const refreshExistingCases = () => {
@@ -183,24 +195,30 @@ export default function AdvoCaseSearch() {
       return;
     }
 
-    setCases(parsedList);
+    const enrichedList = parsedList.map((c, index) => ({
+      ...c,
+      _uid: c._uid || `case_${index}_${(c.case_number || 'case').trim()}_${(c.cnr_number || 'cnr').trim()}`,
+    }));
+
+    setCases(enrichedList);
     setFileMeta(sourceMeta);
 
     // Auto-select pending / new cases for easy import
     const newSelectSet = new Set();
-    parsedList.forEach((c) => {
-      const key = (c.case_number || '').trim().toUpperCase();
+    enrichedList.forEach((c) => {
+      const num = (c.case_number || '').trim();
+      const key = num.toUpperCase();
       if (!existingCasesMap.has(key)) {
-        newSelectSet.add(c.case_number);
+        newSelectSet.add(c._uid);
       }
     });
 
     if (newSelectSet.size === 0) {
-      parsedList.forEach((c) => newSelectSet.add(c.case_number));
+      enrichedList.forEach((c) => newSelectSet.add(c._uid));
     }
 
-    setSelectedCaseNumbers(newSelectSet);
-    addFlash(`Successfully parsed ${parsedList.length} case(s) from eCourts export!`, 'success');
+    setSelectedCaseIds(newSelectSet);
+    addFlash(`Successfully parsed ${enrichedList.length} case(s) from eCourts export!`, 'success');
   };
 
   // Parse text directly using fast client parser, with backend API fallback
@@ -302,7 +320,7 @@ export default function AdvoCaseSearch() {
   const handleClearCases = () => {
     setCases([]);
     setFileMeta(null);
-    setSelectedCaseNumbers(new Set());
+    setSelectedCaseIds(new Set());
     setImportedStatus(null);
   };
 
@@ -317,46 +335,66 @@ export default function AdvoCaseSearch() {
   };
 
   // Toggle individual case selection
-  const toggleCaseSelection = (caseNum) => {
-    setSelectedCaseNumbers((prev) => {
+  const toggleCaseSelection = (uid, e) => {
+    if (e) e.stopPropagation();
+    if (!uid) return;
+    setSelectedCaseIds((prev) => {
       const next = new Set(prev);
-      if (next.has(caseNum)) {
-        next.delete(caseNum);
+      if (next.has(uid)) {
+        next.delete(uid);
       } else {
-        next.add(caseNum);
+        next.add(uid);
       }
       return next;
     });
   };
 
-  // Select all / select pending / deselect all
-  const handleSelectAll = () => {
-    if (selectedCaseNumbers.size === filteredCases.length) {
-      setSelectedCaseNumbers(new Set());
+  // Selection Action Handlers
+  const handleSelectAllToggle = () => {
+    if (selectedCaseIds.size > 0) {
+      setSelectedCaseIds(new Set());
     } else {
-      setSelectedCaseNumbers(new Set(filteredCases.map((c) => c.case_number)));
+      setSelectedCaseIds(new Set(filteredCases.map((c) => c._uid)));
     }
   };
 
-  const handleSelectCurrentPage = () => {
-    const pageNums = pagedCases.map((c) => c.case_number);
-    setSelectedCaseNumbers((prev) => {
-      const next = new Set(prev);
-      pageNums.forEach((n) => next.add(n));
-      return next;
-    });
+  const handleSelectAll = () => {
+    setSelectedCaseIds(new Set(filteredCases.map((c) => c._uid)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedCaseIds(new Set());
+  };
+
+  const handleSelectPageOnly = () => {
+    const pageIds = pagedCases.map((c) => c._uid);
+    setSelectedCaseIds(new Set(pageIds));
   };
 
   const handleSelectPendingOnly = () => {
-    const pendingNums = cases.filter((c) => !c.is_disposed).map((c) => c.case_number);
-    setSelectedCaseNumbers(new Set(pendingNums));
+    const pendingIds = cases
+      .filter((c) => !c.is_disposed)
+      .map((c) => c._uid);
+    setSelectedCaseIds(new Set(pendingIds));
   };
 
   const handleSelectNewOnly = () => {
-    const newNums = cases
+    const newIds = cases
       .filter((c) => !existingCasesMap.has((c.case_number || '').trim().toUpperCase()))
-      .map((c) => c.case_number);
-    setSelectedCaseNumbers(new Set(newNums));
+      .map((c) => c._uid);
+    setSelectedCaseIds(new Set(newIds));
+  };
+
+  const handleInvertSelection = () => {
+    setSelectedCaseIds((prev) => {
+      const next = new Set();
+      filteredCases.forEach((c) => {
+        if (!prev.has(c._uid)) {
+          next.add(c._uid);
+        }
+      });
+      return next;
+    });
   };
 
   // Filter and search logic
@@ -416,51 +454,149 @@ export default function AdvoCaseSearch() {
     return { total, pending, disposed, alreadyInDiary, readyToImport };
   }, [cases, existingCasesMap]);
 
-  // Import Selected Cases to Advocate's Diary
+  // Selection State Checkers
+  const isAllSelected = filteredCases.length > 0 && selectedCaseIds.size === filteredCases.length;
+  const isIndeterminate = selectedCaseIds.size > 0 && selectedCaseIds.size < filteredCases.length;
+
+  // Import Selected Cases to Advocate's Diary with Chunked Progress
   const handleImportSelected = async () => {
-    const casesToImport = cases.filter((c) => selectedCaseNumbers.has(c.case_number));
+    const casesToImport = cases.filter((c) => selectedCaseIds.has(c._uid));
     if (casesToImport.length === 0) {
       addFlash('Please select at least one case to import into your diary.', 'error');
       return;
     }
 
+    const CHUNK_SIZE = 100;
+    const totalCases = casesToImport.length;
+    const totalBatches = Math.ceil(totalCases / CHUNK_SIZE);
+
     setLoadingImport(true);
     setImportedStatus(null);
+    setImportProgress({
+      active: true,
+      completed: false,
+      total: totalCases,
+      current: 0,
+      percent: 5,
+      importedCount: 0,
+      updatedCount: 0,
+      currentBatch: 1,
+      totalBatches,
+      statusText: `Initializing sync for ${totalCases} case(s)...`,
+      error: null,
+    });
 
-    try {
-      const payload = {
-        cases: casesToImport.map((c) => ({
-          case_number: c.case_number,
-          cnr_number: c.cnr_number,
-          client_name: c.client_name || c.parties || 'Client',
-          petitioner: c.petitioner || '',
-          respondent: c.respondent || '',
-          client_phone: c.client_phone || '',
-          client_email: c.client_email || '',
-          court_name: c.court_name || 'District Court',
-          court_hall: c.court_hall || '',
-          item_number: c.item_number || '',
-          case_type: c.case_type || 'Civil',
-          case_stage: c.case_stage || 'Filing / Registration',
-          judge_name: c.judge_name || '',
-          next_hearing_date: c.next_hearing_date || '',
-          opposing_counsel: c.opposing_counsel || '',
-          opposing_counsel_phone: c.opposing_counsel_phone || '',
-          notes: c.notes || `eCourts Export (CNR: ${c.cnr_number || 'N/A'})`,
-          total_fee: c.total_fee || 0,
-          fee_paid: c.fee_paid || 0,
-          expenses: c.expenses || 0,
-        })),
+    let aggregatedImported = 0;
+    let aggregatedUpdated = 0;
+    let aggregatedConflicts = [];
+    let hasError = null;
+
+    for (let i = 0; i < totalCases; i += CHUNK_SIZE) {
+      const batchNum = Math.floor(i / CHUNK_SIZE) + 1;
+      const chunk = casesToImport.slice(i, i + CHUNK_SIZE);
+      const batchStartCase = i + 1;
+      const batchEndCase = Math.min(i + chunk.length, totalCases);
+
+      setImportProgress((prev) => ({
+        ...prev,
+        currentBatch: batchNum,
+        statusText: `Recording batch ${batchNum} of ${totalBatches} (Cases ${batchStartCase}–${batchEndCase} of ${totalCases})...`,
+      }));
+
+      try {
+        const payload = {
+          cases: chunk.map((c) => ({
+            case_number: String(c.case_number || '').trim(),
+            cnr_number: String(c.cnr_number || '').trim(),
+            client_name: String(c.client_name || c.parties || 'Client').trim(),
+            petitioner: String(c.petitioner || '').trim(),
+            respondent: String(c.respondent || '').trim(),
+            client_phone: String(c.client_phone || '').trim(),
+            client_email: String(c.client_email || '').trim(),
+            court_name: String(c.court_name || 'District Court').trim(),
+            court_hall: String(c.court_hall || '').trim(),
+            item_number: String(c.item_number || '').trim(),
+            case_type: String(c.case_type || 'Civil').trim(),
+            case_stage: String(c.case_stage || 'Filing / Registration').trim(),
+            judge_name: String(c.judge_name || '').trim(),
+            next_hearing_date: String(c.next_hearing_date || '').trim(),
+            opposing_counsel: String(c.opposing_counsel || '').trim(),
+            opposing_counsel_phone: String(c.opposing_counsel_phone || '').trim(),
+            notes: String(c.notes || `eCourts Export (CNR: ${c.cnr_number || 'N/A'})`).trim(),
+            total_fee: Number(c.total_fee) || 0,
+            fee_paid: Number(c.fee_paid) || 0,
+            expenses: Number(c.expenses) || 0,
+          })),
+        };
+
+        const res = await api.post('/ecourts/import', payload);
+        aggregatedImported += res.imported_count || 0;
+        aggregatedUpdated += res.updated_count || 0;
+        if (res.conflicts && res.conflicts.length > 0) {
+          aggregatedConflicts.push(...res.conflicts);
+        }
+
+        const processedSoFar = batchEndCase;
+        const percent = Math.min(100, Math.round((processedSoFar / totalCases) * 100));
+
+        setImportProgress((prev) => ({
+          ...prev,
+          current: processedSoFar,
+          percent: percent < 100 ? Math.max(percent, Math.round((batchNum / totalBatches) * 100)) : 100,
+          importedCount: aggregatedImported,
+          updatedCount: aggregatedUpdated,
+          statusText: `Synced ${processedSoFar} of ${totalCases} cases (${percent}%)...`,
+        }));
+      } catch (err) {
+        hasError = err;
+        console.error('Batch import error:', err);
+        setImportProgress((prev) => ({
+          ...prev,
+          error: err.message || 'Failed during batch import.',
+          statusText: `Error at batch ${batchNum}: ${err.message || 'Connection failed'}`,
+        }));
+        break;
+      }
+    }
+
+    if (hasError && aggregatedImported === 0 && aggregatedUpdated === 0) {
+      addFlash(hasError.message || 'Failed to import cases. Please try again.', 'error');
+      setTimeout(() => {
+        setImportProgress((prev) => ({ ...prev, active: false }));
+        setLoadingImport(false);
+      }, 2500);
+    } else {
+      const summaryMsg = `Successfully imported ${aggregatedImported} new case(s)` +
+        (aggregatedUpdated > 0 ? ` and updated ${aggregatedUpdated} existing case(s)` : '') +
+        ` into your Advo Buddy diary.`;
+
+      const resultStatus = {
+        imported_count: aggregatedImported,
+        updated_count: aggregatedUpdated,
+        total_processed: aggregatedImported + aggregatedUpdated,
+        conflicts: [...new Set(aggregatedConflicts)],
+        message: summaryMsg,
       };
 
-      const res = await api.post('/ecourts/import', payload);
-      setImportedStatus(res);
-      addFlash(res.message || 'Cases successfully imported and synchronized with your dashboard!', 'success');
-      triggerConfetti();
+      setImportedStatus(resultStatus);
       refreshExistingCases();
-    } catch (err) {
-      addFlash(err.message || 'Failed to import cases. Please try again.', 'error');
-    } finally {
+      triggerConfetti();
+
+      if (hasError) {
+        addFlash(`Partially imported ${aggregatedImported + aggregatedUpdated} cases before stopping: ${hasError.message}`, 'warning');
+      } else {
+        addFlash(summaryMsg, 'success');
+      }
+
+      setImportProgress((prev) => ({
+        ...prev,
+        completed: true,
+        percent: 100,
+        current: totalCases,
+        importedCount: aggregatedImported,
+        updatedCount: aggregatedUpdated,
+        statusText: `All ${totalCases} cases safely saved to diary!`,
+      }));
       setLoadingImport(false);
     }
   };
@@ -546,87 +682,132 @@ export default function AdvoCaseSearch() {
 
       {/* FILE UPLOAD / IMPORT STATION */}
       <section className="ecourts-upload-section staggered-entry">
-        <div className="ecourts-upload-header">
-          <div>
-            <h2 className="ecourts-section-title">
-              <Icon name="upload" style={{ color: 'var(--accent)', width: 20, height: 20 }} />
-              Upload eCourts Export File
-            </h2>
-            <p className="ecourts-section-subtitle">
-              Select or drop the exported file received from the eCourts services portal.
-            </p>
-          </div>
+        {cases.length === 0 ? (
+          <>
+            <div className="ecourts-upload-header">
+              <div>
+                <h2 className="ecourts-section-title">
+                  <Icon name="upload" style={{ color: 'var(--accent)', width: 20, height: 20 }} />
+                  Upload eCourts Export File
+                </h2>
+                <p className="ecourts-section-subtitle">
+                  Select or drop the exported file received from the eCourts services portal.
+                </p>
+              </div>
 
-          <div className="ecourts-upload-actions">
-            <button
-              type="button"
-              onClick={() => processRawText(SAMPLE_ECOURTS_EXPORT_TXT, 'sample_ecourts_cases.json')}
-              className="btn-ecourts-secondary"
-              title="Load sample eCourts CIS records to preview layout"
+              <div className="ecourts-upload-actions">
+                <button
+                  type="button"
+                  onClick={() => processRawText(SAMPLE_ECOURTS_EXPORT_TXT, 'sample_ecourts_cases.json')}
+                  className="btn-ecourts-secondary"
+                  title="Load sample eCourts CIS records to preview layout"
+                >
+                  <Sparkles size={14} style={{ color: 'var(--accent)' }} />
+                  <span>Try Demo Sample</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPasteDrawerOpen((v) => !v)}
+                  className="btn-ecourts-secondary btn-paste-toggle"
+                >
+                  📋 {pasteDrawerOpen ? 'Close Paste Drawer' : 'Paste Raw Text / JSON'}
+                </button>
+              </div>
+            </div>
+
+            {/* Drag and Drop Zone */}
+            <div
+              className={`ecourts-file-dropzone${fileDragActive ? ' is-dragover' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
             >
-              <Sparkles size={14} style={{ color: 'var(--accent)' }} />
-              <span>Try Demo Sample</span>
-            </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.json,.csv,text/plain,application/json"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFileUpload(e.target.files[0]);
+                  }
+                }}
+              />
 
-            <button
-              type="button"
-              onClick={() => setPasteDrawerOpen((v) => !v)}
-              className="btn-ecourts-secondary btn-paste-toggle"
-            >
-              📋 {pasteDrawerOpen ? 'Close Paste Drawer' : 'Paste Raw Text / JSON'}
-            </button>
+              <div className="ecourts-dropzone-icon-circle">
+                <Upload size={32} style={{ color: 'var(--accent)' }} />
+              </div>
 
-            {cases.length > 0 && (
+              <div className="ecourts-dropzone-text">
+                <strong>Drag and drop the exported file from the eCourts portal here</strong>
+                <span>or click to browse files from your computer</span>
+              </div>
+
+              {loadingFileParse && (
+                <div className="ecourts-dropzone-loading">
+                  <span className="ecourts-loading-spinner" />
+                  <span>Parsing file & extracting bilingual case records...</span>
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          /* COMPACT FILE BANNER (When cases are already loaded) */
+          <div className="ecourts-compact-file-card">
+            <div className="compact-file-info">
+              <span className="compact-file-icon">📄</span>
+              <div>
+                <strong className="compact-file-name">{fileMeta?.filename || 'eCourts Export File'}</strong>
+                <span className="compact-file-meta">
+                  {fileMeta?.size ? `${fileMeta.size} • ` : ''}{cases.length} cases ready for diary sync
+                </span>
+              </div>
+            </div>
+
+            <div className="compact-file-actions">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="btn-ecourts-secondary"
+                style={{ fontSize: 13.5, padding: '6px 14px' }}
+              >
+                🔄 Replace File
+              </button>
+              <button
+                type="button"
+                onClick={() => setPasteDrawerOpen((v) => !v)}
+                className="btn-ecourts-secondary"
+                style={{ fontSize: 13.5, padding: '6px 14px' }}
+              >
+                📋 Paste Text
+              </button>
               <button
                 type="button"
                 onClick={handleClearCases}
                 className="btn-ecourts-danger"
+                style={{ fontSize: 13.5, padding: '6px 14px' }}
               >
                 🗑️ Clear All
               </button>
-            )}
-          </div>
-        </div>
-
-        {/* Drag and Drop Zone */}
-        <div
-          className={`ecourts-file-dropzone${fileDragActive ? ' is-dragover' : ''}`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".txt,.json,.csv,text/plain,application/json"
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              if (e.target.files && e.target.files[0]) {
-                handleFileUpload(e.target.files[0]);
-              }
-            }}
-          />
-
-          <div className="ecourts-dropzone-icon-circle">
-            <Upload size={32} style={{ color: 'var(--accent)' }} />
-          </div>
-
-          <div className="ecourts-dropzone-text">
-            <strong>Drag and drop the exported file from the eCourts portal here</strong>
-            <span>or click to browse files from your computer</span>
-          </div>
-
-          {loadingFileParse && (
-            <div className="ecourts-dropzone-loading">
-              <span className="ecourts-loading-spinner" />
-              <span>Parsing file & extracting bilingual case records...</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.json,.csv,text/plain,application/json"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFileUpload(e.target.files[0]);
+                  }
+                }}
+              />
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Expandable Paste Drawer */}
         {pasteDrawerOpen && (
@@ -664,27 +845,6 @@ export default function AdvoCaseSearch() {
                 {loadingFileParse ? 'Parsing...' : 'Parse Pasted Content'}
               </button>
             </div>
-          </div>
-        )}
-
-        {/* File Meta Pill when loaded */}
-        {fileMeta && (
-          <div className="ecourts-file-meta-bar">
-            <div className="ecourts-file-meta-details">
-              <span className="meta-filename">📄 <strong>{fileMeta.filename}</strong></span>
-              <span className="meta-separator">•</span>
-              <span className="meta-size">{fileMeta.size}</span>
-              <span className="meta-separator">•</span>
-              <span className="meta-count">{fileMeta.total} Cases Extracted</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleClearCases}
-              className="btn-ecourts-meta-reset"
-            >
-              Reset
-            </button>
           </div>
         )}
       </section>
@@ -855,63 +1015,99 @@ export default function AdvoCaseSearch() {
           {/* BATCH ACTION STRIP */}
           <div className="ecourts-batch-strip">
             <div className="ecourts-batch-left">
-              <label className="ecourts-batch-select-all">
+              <label
+                className="ecourts-batch-select-all"
+                title={isAllSelected ? 'Click to Deselect All' : 'Click to Select All'}
+              >
                 <input
                   type="checkbox"
-                  checked={selectedCaseNumbers.size > 0 && selectedCaseNumbers.size === filteredCases.length}
-                  onChange={handleSelectAll}
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = isIndeterminate;
+                  }}
+                  onChange={handleSelectAllToggle}
                   className="ecourts-checkbox"
                 />
-                <span>Select All ({filteredCases.length})</span>
+                <span>
+                  {isAllSelected ? 'Deselect All' : `Select All (${filteredCases.length})`}
+                </span>
               </label>
 
               <button
                 type="button"
-                onClick={handleSelectCurrentPage}
+                onClick={handleSelectPageOnly}
                 className="btn-ecourts-quick-filter"
                 title="Select only the cases visible on this page"
               >
-                Select Page ({pagedCases.length})
+                Select Page Only ({pagedCases.length})
               </button>
 
               <button
                 type="button"
                 onClick={handleSelectPendingOnly}
                 className="btn-ecourts-quick-filter"
+                title="Select all active/pending cases"
               >
-                Select Pending Only
+                Select Pending ({stats.pending})
               </button>
 
               <button
                 type="button"
                 onClick={handleSelectNewOnly}
                 className="btn-ecourts-quick-filter"
+                title="Select only cases not yet imported into your diary"
               >
-                Select New to Import
+                Select New Only ({stats.readyToImport})
               </button>
 
+              <button
+                type="button"
+                onClick={handleInvertSelection}
+                className="btn-ecourts-quick-filter"
+                title="Invert current selection"
+              >
+                ⇄ Invert
+              </button>
+
+              {selectedCaseIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={handleDeselectAll}
+                  className="btn-ecourts-quick-filter"
+                  title="Clear all selected cases"
+                  style={{
+                    color: 'var(--error, #ef4444)',
+                    borderColor: 'rgba(239, 68, 68, 0.35)',
+                    background: 'rgba(239, 68, 68, 0.08)',
+                    fontWeight: 700,
+                  }}
+                >
+                  ✕ Clear ({selectedCaseIds.size})
+                </button>
+              )}
+
               <span className="ecourts-batch-selected-count">
-                <strong>{selectedCaseNumbers.size}</strong> case(s) selected
+                <strong>{selectedCaseIds.size}</strong> of {filteredCases.length} selected
               </span>
             </div>
 
             <motion.button
               type="button"
-              disabled={selectedCaseNumbers.size === 0 || loadingImport}
+              disabled={selectedCaseIds.size === 0 || loadingImport}
               onClick={handleImportSelected}
               className="btn-ecourts-primary btn-import-cta"
-              whileHover={{ scale: selectedCaseNumbers.size > 0 && !loadingImport ? 1.02 : 1 }}
-              whileTap={{ scale: selectedCaseNumbers.size > 0 && !loadingImport ? 0.98 : 1 }}
+              whileHover={{ scale: selectedCaseIds.size > 0 && !loadingImport ? 1.02 : 1 }}
+              whileTap={{ scale: selectedCaseIds.size > 0 && !loadingImport ? 0.98 : 1 }}
             >
               {loadingImport ? (
                 <>
                   <span className="ecourts-loading-spinner" />
-                  <span>Importing into Dashboard...</span>
+                  <span>Importing... {importProgress.percent}% ({importProgress.current}/{importProgress.total})</span>
                 </>
               ) : (
                 <>
                   <Sparkles size={16} />
-                  <span>Import {selectedCaseNumbers.size} Selected Case{selectedCaseNumbers.size === 1 ? '' : 's'} to Dashboard</span>
+                  <span>Import {selectedCaseIds.size} Selected Case{selectedCaseIds.size === 1 ? '' : 's'} to Dashboard</span>
                 </>
               )}
             </motion.button>
@@ -937,17 +1133,18 @@ export default function AdvoCaseSearch() {
           ) : viewMode === 'grid' ? (
             <div className={`ecourts-cases-grid${pagedCases.length === 1 ? ' single-case' : ''}`}>
               {pagedCases.map((c) => {
-                  const isSelected = selectedCaseNumbers.has(c.case_number);
+                  const isSelected = selectedCaseIds.has(c._uid);
                   const isAlreadyInDiary = existingCasesMap.has((c.case_number || '').trim().toUpperCase());
                   const stageIndex = getStageStepIndex(c.case_stage);
 
                 return (
                   <motion.div
-                    key={c.case_number || c.cnr_number}
+                    key={c._uid}
                     whileHover={{ y: -4, scale: 1.01 }}
                     transition={{ duration: 0.2 }}
                     className={`ecourts-case-card${isSelected ? ' is-selected' : ''}`}
-                    onClick={() => toggleCaseSelection(c.case_number)}
+                    onClick={() => toggleCaseSelection(c._uid)}
+                    style={{ cursor: 'pointer' }}
                   >
                     {/* Card Header */}
                     <div className="ecourts-card-top">
@@ -1084,11 +1281,14 @@ export default function AdvoCaseSearch() {
 
                     {/* Card Actions Footer */}
                     <div className="ecourts-card-footer" onClick={(e) => e.stopPropagation()}>
-                      <label className="ecourts-card-checkbox-label">
+                      <label
+                        className="ecourts-card-checkbox-label"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() => toggleCaseSelection(c.case_number)}
+                          onChange={() => toggleCaseSelection(c._uid)}
                           className="ecourts-checkbox"
                         />
                         <span>{isSelected ? 'Selected' : 'Select Case'}</span>
@@ -1117,9 +1317,13 @@ export default function AdvoCaseSearch() {
                       <th style={{ width: 44 }}>
                         <input
                           type="checkbox"
-                          checked={selectedCaseNumbers.size > 0 && selectedCaseNumbers.size === filteredCases.length}
-                          onChange={handleSelectAll}
+                          checked={isAllSelected}
+                          ref={(el) => {
+                            if (el) el.indeterminate = isIndeterminate;
+                          }}
+                          onChange={handleSelectAllToggle}
                           className="ecourts-checkbox"
+                          title={isAllSelected ? 'Deselect All' : 'Select All'}
                         />
                       </th>
                       <th>Case & CNR</th>
@@ -1133,19 +1337,21 @@ export default function AdvoCaseSearch() {
                   </thead>
                   <tbody>
                     {pagedCases.map((c) => {
-                      const isSelected = selectedCaseNumbers.has(c.case_number);
+                      const isSelected = selectedCaseIds.has(c._uid);
                       const isAlreadyInDiary = existingCasesMap.has((c.case_number || '').trim().toUpperCase());
 
                       return (
                         <tr
-                          key={c.case_number || c.cnr_number}
+                          key={c._uid}
                           className={isSelected ? 'is-selected' : ''}
+                          onClick={() => toggleCaseSelection(c._uid)}
+                          style={{ cursor: 'pointer' }}
                         >
-                          <td>
+                          <td onClick={(e) => e.stopPropagation()}>
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleCaseSelection(c.case_number)}
+                              onChange={() => toggleCaseSelection(c._uid)}
                               className="ecourts-checkbox"
                             />
                           </td>
@@ -1222,8 +1428,141 @@ export default function AdvoCaseSearch() {
         </div>
       )}
 
-      {/* CASE INSPECT MODAL */}
-      {expandedCase && (
+      {/* REAL-TIME CASE IMPORT PROGRESS MODAL (Portaled directly to document.body) */}
+      {typeof document !== 'undefined' && importProgress.active && createPortal(
+        <AnimatePresence>
+          <motion.div
+            className="ecourts-progress-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className={`ecourts-progress-modal${importProgress.completed ? ' is-completed' : ''}`}
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            >
+              {importProgress.completed ? (
+                /* SUCCESS CELEBRATION STATE */
+                <div className="ecourts-progress-completed-view">
+                  <div className="ecourts-progress-icon-ring completed">
+                    <span>🎉</span>
+                  </div>
+
+                  <h2 className="ecourts-progress-title" style={{ fontSize: 24 }}>
+                    Sync Completed Successfully!
+                  </h2>
+                  <p className="ecourts-progress-subtitle" style={{ marginBottom: 20 }}>
+                    All verified eCourts case matters and hearing schedules have been securely recorded into your Advo Buddy diary.
+                  </p>
+
+                  <div className="ecourts-progress-summary-grid">
+                    <div className="progress-summary-stat">
+                      <span className="summary-val">{importProgress.importedCount}</span>
+                      <span className="summary-lbl">New Added</span>
+                    </div>
+                    {importProgress.updatedCount > 0 && (
+                      <div className="progress-summary-stat">
+                        <span className="summary-val">{importProgress.updatedCount}</span>
+                        <span className="summary-lbl">Updated</span>
+                      </div>
+                    )}
+                    <div className="progress-summary-stat">
+                      <span className="summary-val">{importProgress.total}</span>
+                      <span className="summary-lbl">Total Processed</span>
+                    </div>
+                  </div>
+
+                  <div className="ecourts-progress-modal-actions">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/')}
+                      className="btn-ecourts-primary"
+                      style={{ padding: '12px 24px', fontSize: 16, width: '100%' }}
+                    >
+                      🏠 Open Advocate Dashboard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImportProgress((prev) => ({ ...prev, active: false }))}
+                      className="btn-ecourts-secondary"
+                      style={{ padding: '10px 20px', fontSize: 15, width: '100%' }}
+                    >
+                      ✓ Stay on eCourts Import Page
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* IN-PROGRESS ACTIVE SYNC STATE */
+                <>
+                  <div className="ecourts-progress-icon-ring">
+                    <span className="ecourts-progress-icon-pulse" />
+                    <span>🏛️</span>
+                  </div>
+
+                  <h2 className="ecourts-progress-title">
+                    Importing Cases into Diary
+                  </h2>
+                  <p className="ecourts-progress-subtitle">
+                    Synchronizing official eCourts CIS records with your advocate dashboard
+                  </p>
+
+                  <div className="ecourts-progress-percent-container">
+                    <span className="ecourts-progress-percent-val">{importProgress.percent}</span>
+                    <span className="ecourts-progress-percent-symbol">%</span>
+                  </div>
+
+                  <div className="ecourts-progress-bar-track">
+                    <div
+                      className="ecourts-progress-bar-fill animated"
+                      style={{ width: `${importProgress.percent}%` }}
+                    />
+                  </div>
+
+                  <div className="ecourts-progress-stats-row">
+                    <span>
+                      <strong>{importProgress.current}</strong> of <strong>{importProgress.total}</strong> cases
+                    </span>
+                    <span>
+                      Batch <strong>{importProgress.currentBatch}</strong> of <strong>{importProgress.totalBatches}</strong>
+                    </span>
+                  </div>
+
+                  <div className="ecourts-progress-badges">
+                    {importProgress.importedCount > 0 && (
+                      <span className="ecourts-progress-badge badge-imported">
+                        ✓ {importProgress.importedCount} New Added
+                      </span>
+                    )}
+                    {importProgress.updatedCount > 0 && (
+                      <span className="ecourts-progress-badge badge-updated">
+                        ↻ {importProgress.updatedCount} Updated
+                      </span>
+                    )}
+                    <span className="ecourts-progress-badge badge-batch">
+                      ⚡ Batch {importProgress.currentBatch}/{importProgress.totalBatches}
+                    </span>
+                  </div>
+
+                  <div className="ecourts-progress-status-msg">
+                    {importProgress.statusText}
+                  </div>
+
+                  <div className="ecourts-progress-footer-note">
+                    Please keep this window open while your cases are safely recorded.
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* CASE INSPECT MODAL (Portaled directly to document.body) */}
+      {typeof document !== 'undefined' && expandedCase && createPortal(
         <div className="ecourts-modal-overlay" onClick={() => setExpandedCase(null)}>
           <div className="ecourts-modal-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="ecourts-modal-header">
@@ -1339,16 +1678,17 @@ export default function AdvoCaseSearch() {
               <button
                 type="button"
                 onClick={() => {
-                  toggleCaseSelection(expandedCase.case_number);
+                  toggleCaseSelection(expandedCase._uid);
                   setExpandedCase(null);
                 }}
                 className="btn-ecourts-primary"
               >
-                {selectedCaseNumbers.has(expandedCase.case_number) ? 'Deselect Case' : 'Select for Import'}
+                {selectedCaseIds.has(expandedCase._uid) ? 'Deselect Case' : 'Select for Import'}
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

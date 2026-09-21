@@ -3131,14 +3131,27 @@ def ecourts_submit_captcha():
         return jsonify({"error": f"eCourts verification failed: {str(e)}"}), 500
 
 
+def _safe_int(val, default=0):
+    if val is None or val == "":
+        return default
+    try:
+        return int(float(str(val).strip()))
+    except (ValueError, TypeError):
+        return default
+
+def _clean_str(val, default=""):
+    if val is None:
+        return default
+    return str(val).strip()
+
+
 @app.route("/api/ecourts/import", methods=["POST"])
 @login_required
-@limiter.limit("30 per minute")
+@limiter.limit("300 per minute")
 def ecourts_import_cases():
-
     """
     Imports a list of verified eCourts cases into the advocate's Advo Buddy diary.
-    Avoids duplicate entries and registers initial hearing history.
+    Avoids duplicate entries, detects hearing clashes in-memory, and registers initial hearing history.
     """
     advocate_id = g.advocate_id
     data = request.get_json(silent=True) or {}
@@ -3154,77 +3167,120 @@ def ecourts_import_cases():
     updated_count = 0
     all_conflicts = set()
 
-    for c in raw_cases:
-        case_number = (c.get("case_number") or "").strip()
-        if not case_number:
-            continue
-
-        client_name = (c.get("client_name") or c.get("parties") or "Client").strip()
-        client_phone = (c.get("client_phone") or "").strip()
-        client_email = (c.get("client_email") or "").strip()
-        court_name = (c.get("court_name") or "District Court").strip()
-        case_type = (c.get("case_type") or "Civil").strip()
-        next_hearing_date = (c.get("next_hearing_date") or datetime.now().strftime("%Y-%m-%d")).strip()
-        notes = (c.get("notes") or "").strip()
-        opposing_counsel = (c.get("opposing_counsel") or "").strip()
-        opposing_counsel_phone = (c.get("opposing_counsel_phone") or "").strip()
-        judge_name = (c.get("judge_name") or "").strip()
-        court_hall = (c.get("court_hall") or "").strip()
-        item_number = (c.get("item_number") or "").strip()
-        case_stage = (c.get("case_stage") or "").strip()
-        total_fee = int(c.get("total_fee") or 0)
-        fee_paid = int(c.get("fee_paid") or 0)
-        expenses = int(c.get("expenses") or 0)
-
-        # Check for hearing date conflict
-        conflicts = check_hearing_conflict(conn, advocate_id, court_name, next_hearing_date)
-        if conflicts:
-            for conf_num in conflicts:
-                all_conflicts.add(f"'{case_number}' clashes on {next_hearing_date} with '{conf_num}' at {court_name}")
-
-        # Check if already in database for this advocate
+    try:
+        # Pre-fetch all existing cases for this advocate in 1 single query
         cur.execute(
-            "SELECT id FROM cases WHERE advocate_id=%s AND case_number=%s",
-            (advocate_id, case_number),
+            "SELECT id, UPPER(TRIM(case_number)) AS case_num_key FROM cases WHERE advocate_id=%s AND status != 'Deleted'",
+            (advocate_id,),
         )
-        existing = cur.fetchone()
+        existing_map = {
+            row["case_num_key"]: row["id"]
+            for row in cur.fetchall()
+            if row.get("case_num_key")
+        }
 
-        if existing:
-            # Update existing case details with latest eCourts data
-            case_id = existing["id"]
-            cur.execute(
-                """UPDATE cases SET client_name=%s, court_name=%s, case_type=%s,
-                                   next_hearing_date=%s, opposing_counsel=%s,
-                                   opposing_counsel_phone=%s, judge_name=%s,
-                                   court_hall=%s, item_number=%s, case_stage=%s, notes=%s
-                   WHERE id=%s AND advocate_id=%s""",
-                (client_name, court_name, case_type, next_hearing_date,
-                 opposing_counsel, opposing_counsel_phone, judge_name,
-                 court_hall, item_number, case_stage, notes, case_id, advocate_id),
-            )
-            updated_count += 1
-        else:
-            # Insert new case
-            cur.execute(
-                """INSERT INTO cases (advocate_id, client_name, client_phone, client_email,
-                                     case_number, court_name, case_type, next_hearing_date,
-                                     notes, notify_client, opposing_counsel, opposing_counsel_phone,
-                                     judge_name, court_hall, item_number, case_stage,
-                                     total_fee, fee_paid, expenses)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                   RETURNING id""",
-                (advocate_id, client_name, client_phone, client_email, case_number,
-                 court_name, case_type, next_hearing_date, notes, 0,
-                 opposing_counsel, opposing_counsel_phone, judge_name, court_hall,
-                 item_number, case_stage, total_fee, fee_paid, expenses),
-            )
-            new_case_id = cur.fetchone()["id"]
-            add_history_entry(conn, new_case_id, next_hearing_date, note="Imported from eCourts Services")
-            imported_count += 1
+        # Pre-fetch active hearing dates for instant in-memory conflict detection
+        cur.execute(
+            """SELECT id, case_number, LOWER(TRIM(court_name)) AS court_name_key, next_hearing_date
+               FROM cases
+               WHERE advocate_id=%s AND status='Active'""",
+            (advocate_id,),
+        )
+        schedule_map = {}
+        for row in cur.fetchall():
+            c_key = row["court_name_key"] or ""
+            d_key = (row["next_hearing_date"] or "").strip()
+            if c_key and d_key:
+                schedule_map.setdefault((c_key, d_key), []).append((row["id"], row["case_number"]))
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        for c in raw_cases:
+            try:
+                case_number = _clean_str(c.get("case_number"))
+                if not case_number:
+                    continue
+
+                client_name = _clean_str(c.get("client_name") or c.get("parties"), "Client")
+                client_phone = _clean_str(c.get("client_phone"))
+                client_email = _clean_str(c.get("client_email"))
+                court_name = _clean_str(c.get("court_name"), "District Court")
+                case_type = _clean_str(c.get("case_type"), "Civil")
+
+                raw_date = _clean_str(c.get("next_hearing_date"))
+                if raw_date and len(raw_date) == 10 and raw_date[4] == '-' and raw_date[7] == '-':
+                    next_hearing_date = raw_date
+                else:
+                    next_hearing_date = datetime.now().strftime("%Y-%m-%d")
+
+                notes = _clean_str(c.get("notes"))
+                opposing_counsel = _clean_str(c.get("opposing_counsel"))
+                opposing_counsel_phone = _clean_str(c.get("opposing_counsel_phone"))
+                judge_name = _clean_str(c.get("judge_name"))
+                court_hall = _clean_str(c.get("court_hall"))
+                item_number = _clean_str(c.get("item_number"))
+                case_stage = _clean_str(c.get("case_stage"), "Filing / Registration")
+                total_fee = _safe_int(c.get("total_fee"), 0)
+                fee_paid = _safe_int(c.get("fee_paid"), 0)
+                expenses = _safe_int(c.get("expenses"), 0)
+
+                case_key = case_number.upper()
+                existing_id = existing_map.get(case_key)
+
+                # In-memory hearing clash detection (0 extra SQL queries)
+                c_key = court_name.lower()
+                d_key = next_hearing_date
+                for sch_id, sch_num in schedule_map.get((c_key, d_key), []):
+                    if sch_id != existing_id:
+                        all_conflicts.add(f"'{case_number}' clashes on {next_hearing_date} with '{sch_num}' at {court_name}")
+
+                if existing_id:
+                    # Update existing case details with latest eCourts data
+                    cur.execute(
+                        """UPDATE cases SET client_name=%s, court_name=%s, case_type=%s,
+                                           next_hearing_date=%s, opposing_counsel=%s,
+                                           opposing_counsel_phone=%s, judge_name=%s,
+                                           court_hall=%s, item_number=%s, case_stage=%s, notes=%s
+                           WHERE id=%s AND advocate_id=%s""",
+                        (client_name, court_name, case_type, next_hearing_date,
+                         opposing_counsel, opposing_counsel_phone, judge_name,
+                         court_hall, item_number, case_stage, notes, existing_id, advocate_id),
+                    )
+                    updated_count += 1
+                else:
+                    # Insert new case
+                    cur.execute(
+                        """INSERT INTO cases (advocate_id, client_name, client_phone, client_email,
+                                             case_number, court_name, case_type, next_hearing_date,
+                                             notes, notify_client, opposing_counsel, opposing_counsel_phone,
+                                             judge_name, court_hall, item_number, case_stage,
+                                             total_fee, fee_paid, expenses)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                           RETURNING id""",
+                        (advocate_id, client_name, client_phone, client_email, case_number,
+                         court_name, case_type, next_hearing_date, notes, 0,
+                         opposing_counsel, opposing_counsel_phone, judge_name, court_hall,
+                         item_number, case_stage, total_fee, fee_paid, expenses),
+                    )
+                    new_case_id = cur.fetchone()["id"]
+                    cur.execute(
+                        "INSERT INTO hearing_history (case_id, hearing_date, note) VALUES (%s, %s, %s)",
+                        (new_case_id, next_hearing_date, "Imported from eCourts Services"),
+                    )
+                    existing_map[case_key] = new_case_id
+                    if c_key and d_key:
+                        schedule_map.setdefault((c_key, d_key), []).append((new_case_id, case_number))
+                    imported_count += 1
+            except Exception as row_err:
+                app.logger.warning(f"Skipping malformed row during case import: {row_err}")
+                continue
+
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        app.logger.error(f"Error during bulk case import: {e}", exc_info=True)
+        return jsonify({"error": f"Import failed: {str(e)}"}), 500
+    finally:
+        cur.close()
+        conn.close()
 
     msg = f"Successfully imported {imported_count} new case(s)"
     if updated_count > 0:

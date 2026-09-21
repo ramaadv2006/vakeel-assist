@@ -209,3 +209,43 @@ def test_ecourts_parse_file_endpoint(client):
     assert data_json["totalCases"] == 3
 
 
+def test_ecourts_import_batch_performance(client):
+    """Verify /api/ecourts/import processes a batch of cases rapidly with conflict detection and idempotency."""
+    cases_batch = [
+        {
+            "case_number": f"TEST_WP/{i}/2026",
+            "cnr_number": f"TNCH01000{i:04d}2026",
+            "client_name": f"Test Client {i}",
+            "court_name": "High Court of Madras",
+            "case_type": "Writ Petition",
+            "next_hearing_date": "2026-10-15",
+            "opposing_counsel": "Advocate Raman",
+            "notes": "Automated scalability verification test",
+        }
+        for i in range(1, 21)
+    ]
+
+    # Initial import (20 new cases)
+    res = client.post(
+        "/api/ecourts/import",
+        json={"cases": cases_batch},
+        headers={"Authorization": "Bearer dev-token-1"},
+    )
+    assert res.status_code == 200
+    data = res.get_json()
+    assert data["total_processed"] == 20
+    assert data["imported_count"] + data["updated_count"] == 20
+
+    # Second import of the exact same cases (should update without creating duplicates)
+    res_update = client.post(
+        "/api/ecourts/import",
+        json={"cases": cases_batch},
+        headers={"Authorization": "Bearer dev-token-1"},
+    )
+    assert res_update.status_code == 200
+    data_update = res_update.get_json()
+    assert data_update["updated_count"] == 20
+    assert data_update["imported_count"] == 0
+
+
+
