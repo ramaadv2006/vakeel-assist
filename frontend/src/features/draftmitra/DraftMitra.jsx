@@ -159,6 +159,716 @@ Signature of Client:
 Accepted:
 {{advocate}}
 Advocate (Enrolment No: {{enrolNo}})`
+  },
+  {
+    label: "Lodgment Schedule (Form 37 C.R.P.)",
+    name: "Lodgment Schedule",
+    group: "Petitions",
+    sub: "Rule 131, Form No. 37 — Civil Rules of Practice (C.M. 10)",
+    text: `C. M. 10 — Rule No. 131, Form No. 37 — Civil Rule of Practice
+
+IN THE COURT OF {{court}}
+
+Original Suit No. {{osNo}}
+
+Between:
+{{client}}
+...Plaintiff / Appellant
+
+AND
+
+{{opponent}}
+...Defendant / Respondent
+
+LODGMENT SCHEDULE
+
+Schedule of lodgment to be made to the credit of the above suit to the account of {{accountOf}} under the decree / order dated the {{orderDate}}.
+
+Particulars of funds to be lodged: {{particulars}}
+Person to make the lodgment: {{lodger}}
+Amount (Cash): Rs. {{cashRs}} P. {{cashP}}
+Amount (Securities): Rs. {{secRs}} P. {{secP}}
+
+Total: Rs. {{totalCashRs}}
+
+It is requested that an order for lodgment may be issued.
+
+Dated the {{dated}}
+
+Advocate:
+{{advocate}}`
+  },
+  {
+    label: "Execution Petition (Order 21 Rule 11 CPC)",
+    name: "Execution Petition (Order 21 Rule 11)",
+    group: "Petitions",
+    sub: "Civil — Order XXI Rule 11 C.P.C. (நிறைவேற்று மனு — R.E.P.)",
+    text: `கனம் {{court}}
+
+R.E.P. No. {{repNo}} in O.S. No. {{osNo}}
+
+{{petitioner}}
+...மனுதாரர்/தீர்ப்பாணை பெற்றவர்
+
+எதிர்
+
+{{respondent}}
+...எதிர்மனுதாரர்/தீர்ப்புக் கடனாளி
+
+மனுதாரர் உரிமையியல் நடைமுறைச் சட்டம் கட்டளை 21 விதி 11-ன் படிக்கு தாக்கல் செய்யும் நிறைவேற்று மனு
+
+1. வியாஜ்ஜிய நெ: அசல்தவா எண். {{osNo}}
+2. மனுதாரரின் பெயர் மற்றும் முகவரி: {{petitioner}}
+   எதிர்மனுதாரரின் பெயர் மற்றும் முகவரி: {{respondent}}
+3. டிகிரி தேதி: {{decreeDate}}
+4. டிகிரி பேரில் அப்பீல் செய்யப் பட்டிருந்தால் அதன் விபரம்: {{appealDetails}}
+5. டிகிரிக்கு பின்னிட்டு பைசல் விபரம்: {{adjustmentDetails}}
+6. முந்தைய நிறைவேற்று மனுக்கள் விபரம்: {{priorEpDetails}}
+6a. மேடோவர் / இன்சால்வெண்டு மனு விபரம்: {{assignmentDetails}}
+7. வரவேண்டிய பாக்கித் தொகை & வட்டி: {{decreeAmountDue}}
+8. செலவுத் தொகை: {{costsAwarded}}
+9. யார் பேரில் அல்லது எதன் பேரில்: {{againstWhom}}
+10. பரிகாரமும் கோரிக்கையும்: {{prayer}}
+
+சொத்து விபரம்:
+{{propertySchedule}}
+
+மனுதாரரின் வழக்கறிஞர்: {{advocate}}`
+  },
+  {
+    label: "Particulars of Immovable Property (Rule 13)",
+    name: "Particulars of Immovable Property",
+    group: "Petitions",
+    sub: "Rule 13 C.R.P. / Order XXI Rule 13 C.P.C. (Valuation for Court Fees)",
+    text: `PARTICULARS OF IMMOVABLE PROPERTY
+
+IN THE COURT OF THE {{court}}
+
+{{caseType}} {{caseNo}}
+
+BETWEEN:
+{{client}}
+...{{clientRole}}
+
+VERSUS
+
+{{opponent}}
+...{{opponentRole}}
+
+Valuation of immovable property for Purposes of Court fees.
+
+{{propTable}}
+
+Description of Immovable Property:
+{{propertySchedule}}
+
+Counsel for Plaintiff:
+{{advocate}}`
+  },
+  {
+    label: "Form No. 71 Memo of Appearance [Rule 30(4)]",
+    name: "Form No. 71 Memo of Appearance",
+    group: "Appearance & Vakalat",
+    sub: "Judicial Form No. 71 [See Rule 30(4)] — Criminal Rules of Practice",
+    text: `Judicial Form No.71
+[See Rule 30(4)]
+
+In the Court of {{court}}
+
+{{caseType}} {{caseNo}}
+
+{{complainant}}
+...Petitioner/Complainant/Appellant
+
+Vs
+
+{{accused}}
+...Respondent/Accused/Respondent
+
+Memo of Appearance
+
+I/We declare I/We have been duly instructed to appear on behalf of the above named {{partyRole}} in this case.
+
+Station: {{place}}
+Dated : {{date}}
+
+Address for service of the Advocate
+With Enrolment No. Mobile No.
+and email id.
+{{advocate}}
+Enrol No.: {{barNo}}
+Mobile: {{phone}}
+Email: {{email}}
+{{officeAddr}}
+
+Counsel for the {{partyRole}}
+
+Name and address of the party:
+{{partyDetails}}`
+  },
+  {
+    label: "Bill of Costs (கொடுத்த செலவு ஜாப்தா)",
+    name: "Bill of Costs",
+    group: "Petitions",
+    sub: "Form No. 187, Rule No. 190 — Civil Rules of Practice",
+    text: `Form No. 187, Rule No. 190
+Bill of Costs
+
+கனம் {{court}} சமூகத்திற்கு
+
+{{year}}-ம் ளு {{caseType}} நெ. {{caseNo}}
+
+{{client}}
+...{{clientRole}}
+
+எதிர்
+
+{{opponent}}
+...{{opponentRole}}
+
+{{filedBy}} வணக்கமாய் ஒப்புவித்த சிலவு ஜாப்தா
+
+1. பிராது ஸ்டாம்பு : ரூ. {{cost1_plaint}}
+2. வக்காலத்து நாமா ஸ்டாம்பு : ரூ. {{cost2_vakalat}}
+3. தஸ்தாவேஜுகளுக்கு ஸ்டாம்பு : ரூ. {{cost3_docs}}
+4. வக்கீல் பீஸ் (ரூபாயின் பேரில்) : ரூ. {{cost4_adv}}
+5. புரோசஸ் கட்டணம் : ரூ. {{cost5_process}}
+6. விண்ணப்பம் செலவு : ரூ. {{cost6_app}}
+7. ஸ்டாம்பு டூடி & பெனால்டி : ரூ. {{cost7_penalty}}
+8. தர்ஜமா செலவு : ரூ. {{cost8_trans}}
+9. சாக்ஷிகளுக்கு செலவிட்ட பத்தா : ரூ. {{cost9_witness}}
+10. கமிஷன் செலவு : ரூ. {{cost10_comm}}
+11. நகல் செலவு : ரூ. {{cost11_copy}}
+12. சர்க்கார் ரிக்கார்டு தருவித்த செலவு : ரூ. {{cost12_record}}
+13. கோர்ட்டாரால் உத்திரவான செலவு : ரூ. {{cost13_order}}
+14. நோட்டீஸ் செலவு : ரூ. {{cost14_notice}}
+15. புரோசஸ் : ரூ. {{cost15_process2}}
+16. எழுத்துக்கூலி : ரூ. {{cost16_typing}}
+
+Total Costs :- ரூ. {{totalCosts}}
+Credit Costs allowed to opponents: ரூ. {{creditCosts}}
+Balance Claimed: ரூ. {{balanceClaimed}}
+
+I hereby certify that I have received from the above named {{client}} in the above suit not less than the legal fee prescribed by law viz. Rupees {{advocateFeeWords}}.
+
+Date: {{date}}
+Advocate for {{filedBy}}
+
+Sum if any disallow: ____________
+Amount allowed: ____________
+
+Checked
+District Judge / Munsif.`
+  },
+  {
+    label: "Surety Memo of Petitioner",
+    name: "Surety Memo of Petitioner",
+    group: "Bail & Sureties",
+    sub: "Surety Memo Filed by the Petitioner(s) / Accused",
+    text: `IN THE COURT OF THE {{court}}
+
+C. M. P. No. {{cmpNo}} in Crime No. {{crimeNo}}
+
+{{client}}
+...{{clientRole}}
+
+-Vs-
+
+{{policeStation}}
+...{{opponentRole}}
+
+SURETY MEMO FILED BY THE PETITIONER(S) / ACCUSED
+
+The above named Petitioner (s) / Accused submits that the Petitioner (s) / Accused is / are herewith produced the sureties along with solvency certificate.
+
+Hence the above sureties and solvency may be accepted and release the Accused and thus render justice.
+
+Counsel for Petitioner (s) / Accused:
+{{advocate}}`
+  },
+  {
+    label: "Form No. 14 Rule 24-A Certified Copies (கொடுத்த நகல் மனு)",
+    name: "Form No. 14 Copy Application",
+    group: "Petitions",
+    sub: "Form No. 14, Rule No. 24-A — Application for Certified Copies",
+    text: `Form No. 14, Rule No. 24-A — Civil Rules of Practice
+Application for Certified Copies
+
+கனம் {{court}} சமூகத்திற்கு
+
+{{caseType}} நெ. {{caseNo}}
+
+{{client}}
+...{{clientRole}}
+
+எதிர்
+
+{{opponent}}
+...{{opponentRole}}
+
+{{clientRole}} வணக்கமாய் எழுதிக்கொண்ட நகல் மனு:
+அடியில்கண்ட ரிக்கார்டு அல்லது தஸ்தாவேசுகளுக்கு சர்டிபைட் காபி செய்து கொடுக்க கோருகிறேன்.
+
+தயார் வகை: {{copyType}}
+
+[தஸ்தாவேசுகள் அட்டவணை]
+லக்கம் | தஸ்தாவேசு தாக்கலான தேதி | தஸ்தாவேசு தேதி | தஸ்தாவேசு விபரம் | எந்த உத்திரவின் பேரில் மனு கொடுக்கப்படுகிறதோ அந்த உத்திரவின் விபரம்
+{{docsTable}}
+
+{{tamilDate}}
+தேதி: {{date}}
+
+Advocate for {{clientRole}}
+{{advocate}}`
+  },
+  {
+    label: "Application for Suretyship (Judicial Form No. 46)",
+    name: "Application for Suretyship",
+    group: "Bail & Sureties",
+    sub: "Judicial Form No. 46 (See Rule 14(4)) — Criminal Rules of Practice",
+    text: `Judicial Form No. 46
+(See Rule 14(4)) — Criminal Rules of Practice
+APPLICATION FOR SURETYSHIP
+
+IN THE COURT OF THE {{court}}
+
+Miscellaneous Petition No. {{mpNo}}/20 in {{caseType}} No. {{caseNo}}/20
+
+State rep. by Inspector of Police,
+{{policeStation}}
+...Complainant
+
+VS.
+
+{{accused}}
+...Accused
+
+I, {{suretyName}}, S/o, W/o, D/o {{suretyParent}}, do hereby solemnly affirm and state as follows :
+
+1) I beg to offer myself as a surety for Accused No. {{accusedNo}}, {{accused}}, who is charged under Section {{chargedSection}} and who has been ordered to be released on bail in the sum of Rs. {{bailAmount}}/- (Rupees {{bailAmountWords}}) with the {{numSureties}} Surety / Sureties in the like amount, by the Judge / Magistrate {{bailJudge}} on {{bailDate}}.
+
+2) I give below certain particulars concerning myself :
+- Full name of the Surety: {{suretyName}}
+- Qualification: {{suretyQual}}
+- Residential Address: {{suretyAddress}} (Residing: {{residencePeriod}})
+- Rent Paid / Property Tax: {{rentPaid}} / {{rentBillName}}
+- Occupation / Business: {{occupation}} ({{businessAddress}})
+- Employment: {{employerName}} (Pay: {{monthlyPay}})
+- House Property: {{houseProperty}}
+- Income Tax & Bank: {{incomeTaxPaid}} | Bank: {{bankAccounts}} (Balance: {{bankBalance}})
+- Length of time known accused: {{knownAccusedPeriod}} (Relation: {{relatedAccused}})
+- Stood surety before: {{stoodSuretyDetails}}
+
+3. I produce the following proof in support of my statements and give particulars of the same as below:
+Rent bills of place of residence, Ration Card, Rent bills of place of business.
+Deed of partnership or other documents relating to business, Certificate from the employer, Certificate of amount in the Provident fund, Title Deeds of properties, Municipality / Panchayat bills of the properties, Bank Pass Books, Income Tax payment receipts.
+Other Proof: {{otherProof}}
+
+3 A. As per sub-rule (4) of Rule 14, I produce Identity Document: {{idProofType}} (No. {{idProofNo}})
+
+3. B. As per sub-rule (6) of Rule 14, I produce two copies of my latest Passport size Photograph.
+
+4. I hereby declare that I have {{priorSuretyDecl}} person.
+
+5. I pray that I may be accepted as a Surety for the above mentioned accused in the sum of Rs. {{bailAmount}}/- (Rupees {{bailAmountWords}}).
+
+                                                   Signature of Surety
+
+Solemnly affirmed at {{place}} this {{date}}.
+
+Identified by : 
+
+Before me : 
+
+(Signature of Surety Advocate)
+{{advocate}}
+Enrolment No.: {{barNo}}
+Mobile: {{phone}}
+{{officeAddr}}`
+  },
+  {
+    label: "Xerox Memo",
+    name: "Xerox Memo",
+    group: "Petitions",
+    sub: "Xerox Memo Filed by Petitioner / Respondent",
+    text: `{{court}} {{courtNo}} {{place}}
+
+C. A. No. {{caNo}}
+----------------------------------------
+{{caseType}} No. {{caseNo}}
+
+{{client}}
+...{{clientRole}}
+
+Versus
+
+{{opponent}}
+...{{opponentRole}}
+
+XEROX MEMO FILED BY {{filedBy}}
+
+The {{filedBy}} is herewith affixing a Court fee for sum of Rs. {{courtFeeAmount}} ({{courtFeeWords}}) towards the Xerox charges.
+
+{{place}}
+{{date}}
+
+COUNSEL FOR {{filedBy}}
+{{advocate}}`
+  },
+  {
+    label: "Notice Given to Other Side",
+    name: "Notice Given to Other Side",
+    group: "Petitions",
+    sub: "Notice to Opposite Counsel in I.A. for Filing Counter",
+    text: `In the Court of the {{court}}
+
+I. A. No. {{iaNo}} of {{iaYear}}
+in
+{{mainCaseType}} No. {{caseNo}} of {{caseYear}}
+
+{{client}}
+...{{clientRole}}
+
+-Vs-
+
+{{opponent}}
+...{{opponentRole}}
+
+NOTICE GIVEN TO OTHER SIDE
+
+To
+    Sri {{oppCounsel}},
+    Advocate for {{oppParty}}
+
+Sir,
+    Please take notice that the above I. a. is posted to {{hearingDate}} for filing your counter. A copy of the affidavit and petition were already given to you.
+
+Date : {{date}}
+Counsel for Petitioner
+{{advocate}}`
+  },
+  {
+    label: "Advance Petition 2 (முன்னேற்ற மனு)",
+    name: "Advance Petition 2",
+    group: "Petitions",
+    sub: "Section 151 C.P.C. — சி. பு. கோ. பிரிவு 151 படி தாக்கல் செய்யும் முன்னேற்ற மனு",
+    text: `கனம் {{court}} கோர்ட்டார் அவர்கள் சமூகம்
+
+I. A. No. {{iaNo}} of {{iaYear}}
+in
+{{mainCaseType}} No. {{caseNo}} of {{caseYear}}
+
+{{client}}
+...மனுதாரர் / {{clientRole}}
+
+-இடையே-
+
+{{opponent}}
+...எதிர்மனுதாரர் / {{opponentRole}}
+
+மனுதாரர் {{sectionRule}} படி தாக்கல் செய்யும் மனு
+
+இத்துடன் சமர்ப்பிக்கப்பட்டுள்ள பிரமாண பத்திரிக்கையில் கண்டுள்ள காரணங்களுக்காக சமூகம் கோர்ட்டார் அவர்கள் தயவு செய்து {{prayer}}
+
+இடம் : {{place}}
+நாள் : {{date}}
+
+மனுதாரர் வழக்கறிஞர்
+{{advocate}}`
+  },
+  {
+    label: "Plea of Guilty Petition (Section 279 BNSS)",
+    name: "Plea of Guilty Petition",
+    group: "Petitions",
+    sub: "Petition Filed Under Section 279 BNSS — In the Court of Judicial Magistrate",
+    text: `{{court}} {{courtNo}} of {{place}}
+
+Crl. M. P. No. {{crlMpNo}}
+in
+C. C. No. {{caseNo}}
+
+{{client}}
+...{{clientRole}}
+
+Vs.
+
+{{opponent}}
+...{{opponentRole}}
+
+PETITION FILED UNDER {{section}}
+
+The {{clientRole}} most respectfully submits as follows :
+
+1. The above case is posted today for {{postedFor}}
+
+2. The {{clientRole}} is unable to attend the proceedings of this Honourable Court today because {{reason}}
+
+3. The absence of the {{clientRole}} is neither wilful nor wanton.
+
+Hence it is prayed that this Honourable Court may be pleased to dispense with the personal appearance of the {{clientRole}} and permit his pleader to appear on his behalf and thus render justice.
+
+{{place}}
+Date : {{date}}
+
+Counsel for {{clientRole}}
+{{advocate}}`
+  },
+  {
+    label: "Warrant Recall Petition (Section 70(2) Cr.P.C.)",
+    name: "Warrant Recall Petition",
+    group: "Petitions",
+    sub: "Warrant Recall Petition Filed U/s 70(2) Cr.P.C. — Judicial Magistrate Court",
+    text: `{{court}} {{courtNo}}  {{place}}
+
+C. M. P. No. {{cmpNo}}    in Cr. No. {{crimeNo}}
+
+{{client}}
+...{{clientRole}}
+
+Versus
+
+{{opponent}}
+...{{opponentRole}}
+
+{{statuteTitle}}
+
+Petitioner States that the Petitioner / Accused was implicated by this Honourable court U/s. {{section}}
+
+That the above case in posted to {{postedDate}} for further proceedings. Due to his absence of the petitioner this Honourable Court was issued N. B. W. against Petitioner.
+
+Petitioner States that the non appearance of the petitioner on that day is neither wilful nor wanton one.
+
+I am unable to appear before this Honourable Court and also not able to inform the advocate to file necessary petitioner before this Honourable Court because {{reason}}
+
+Therefore, the petitioner humbly prays that this Honourable Court may be pleased to recall the N. B. W. issued against Petitioner / Accused and thus render justice.
+
+PETITIONER.                                           COUNSEL FOR PETITIONER.
+                                                      {{advocate}}
+
+{{place}}
+Date : {{date}}`
+  },
+  {
+    label: "Surrender Petition (Judicial Magistrate Court)",
+    name: "Surrender Petition",
+    group: "Petitions",
+    sub: "Surrender Petition Filed on Behalf of Petitioner / Accused — Salem Format",
+    text: `{{court}} {{courtNo}}  {{place}}
+
+C. M. P. No. {{cmpNo}}    in Cr. No. {{crimeNo}}
+
+{{client}}
+...{{clientRole}}
+
+Versus
+
+{{opponent}}
+...{{opponentRole}}
+
+SURRENDER PETITION
+
+Petitioner States that the petitioner was charged for an alleged offence U/s. {{section}}
+
+That the above case is posted on {{postedDate}} for further proceedings. Due to the absence of the petitioner this Honourable Court was issued N. B. W. against the Petitioner / Accused since the Petitioner / Accused was {{reason}}
+
+Due to the above said circumstances the Petitioner / Accused is unable to attend before this Honourable Court. His / Her absence is neither wilful nor wanton one.
+
+Petitioner States that the petitioner is voluntarily surrendered before this Honourable Court. The Petitioner / Accused has filed recall petition before this Honourable Court.
+
+Therefore the petitioner humbly prays that this Honourable Court may be pleased to accept the surrender of the Petitioner / Accused and thus render justice.
+
+PETITIONER.                                           COUNSEL FOR PETITIONER.
+                                                      {{advocate}}
+
+{{place}}
+Date : {{date}}`
+  },
+  {
+    label: "Advance Hearing Petition (Judicial Magistrate Court)",
+    name: "Advance Hearing Petition",
+    group: "Petitions",
+    sub: "Advance Hearing Petition Filed by the Petitioner (Sec 70(ii) Cr.P.C.) — Salem Format",
+    text: `{{court}} {{courtNo}}  {{place}}
+
+C. M. P. No. {{cmpNo}}    in Cr. No. {{crimeNo}}
+
+{{client}}
+...{{clientRole}}
+
+Versus
+
+{{opponent}}
+...{{opponentRole}}
+
+ADVANCE HEARING PETITION FILED BY THE PETITIONER
+
+Petitioner States that the order of invoking {{section}} that this Honourable Court may be pleased to advance the hearing date from {{advanceFromDate}} To {{advanceToDate}} and thus render justice.
+
+PETITIONER.                                           COUNSEL FOR PETITIONER.
+                                                      {{advocate}}
+
+{{place}}
+Date : {{date}}`
+  },
+  {
+    label: "Bail Application under Cr.P.C. (Sec. 436 / 437)",
+    name: "Bail Application under Cr.P.C.",
+    group: "Bail & Sureties",
+    sub: "Bail Application under Sec. 436 / 437 of Cr. Procedure Code — Magistrate Court Format",
+    text: `{{court}} {{courtNo}} {{place}}
+
+Cr. M. P. {{crlMpNo}}
+in {{caseType}} / P.R. {{caseNo}}
+
+{{opponent}}
+...{{opponentRole}}
+
+Vs.
+
+{{client}}
+...{{clientRole}}
+
+Bail Application under {{sectionCrpc}}
+
+The above named accused humbly begs to state as follows :-
+
+1. That the accused has been remanded/charged for an offence under {{section}} by this Honourable Court
+
+2. That the accused is not guilty of any offence, and did not commit the said offence.
+
+3. That the above said offence is a {{offenceNature}} one, not punishable with death or imprisonment for life.
+
+4. That the accused is a respectable citizen of the place and will not abscond.
+
+5. That the accused is ready to furnish substantial sureties to the satisfaction of this Honourable Court, to enlarge the accused on bail.
+
+6. That the accused is willing to abide by any condition that may be imposed by this Honourable Court in Bail.
+
+Therefore the accused above named humbly prays that this Honourable Court may kindly be pleased to enlarge the accused on bail and thus render justice.
+
+Dated : {{date}}
+Counsel for the Accused.
+{{advocate}}`
+  },
+  {
+    label: "Affidavit by the Surety",
+    name: "Affidavit by the Surety",
+    group: "Bail & Sureties",
+    sub: "Affidavit Filed by the Surety — Judicial Magistrate Court Format",
+    text: `{{court}} {{courtNo}} {{place}}
+
+C. C. No. {{caseNo}}
+
+{{complainant}}
+...{{complainantRole}}
+
+Versus
+
+{{accused}}
+...{{accusedRole}}
+
+AFFIDAVIT FILED BY THE SURETY
+
+I, {{suretyName}} son of {{fatherName}} aged {{age}} years by caste {{caste}} calling {{occupation}} residing at {{address}} do hereby solemnly affirm and state as follows :
+
+1. I know the accused.
+
+2. I own and possess in my name property worth Rs. {{propertyVal}} in {{propertyPlace}}. I am paying tax in respect of this property, a sum of Rs. {{taxAmount}} half-yearly. There is no encumbrance over the property.
+
+3. I am willing to stand as surety to the above accused.
+
+4. It is therefore just and necessary that this Honourable Court may be pleased to accept this surety and release the accused on bail and thus render justice.
+
+                                                      Deponent / Surety
+
+Solemnly affirmed and signed before me at {{place}} on {{date}} after the above contents were read over to the deponent in {{language}} and admitted by him to be correct.
+
+                                                      Advocate.
+                                                      {{advocate}}`
+  },
+  {
+    label: "Non-Bailable Warrant Recall Petition (Salem Format)",
+    name: "Non-Bailable Warrant Recall Petition",
+    group: "Petitions",
+    sub: "Application for recalling non-bailable warrant filed by the Petitioner",
+    text: `{{court}} {{courtNo}}    {{place}}.
+
+C.M.P. No. {{cmpNo}}
+C.C.No. {{caseNo}}
+
+{{client}}
+...{{clientRole}}
+
+Versus
+
+{{opponent}}
+...{{opponentRole}}
+
+Application for recalling non-bailable warrant filed by the Petitioner.
+
+(1) The petitioner is / are charged for an offence under {{section}}.
+
+(2) The abovesaid case was posted on {{postedDate}} for the appearance of the accused.
+
+(3) Due to the absence of the petitioner on the said hearing date nonbailable warrant was issued.
+
+(4) {{reason}}
+
+(5) In the above stated circumstances, the Petitioner was/were unable to attend the court on the said hearing date.
+
+(6) The absence of the Petitioner is neither wilful nor wanton one.
+
+Therefore the Petitioner humbly prays that the Honourable Court may be pleased to excuse his absence on the said hearing date and may be pleased to recall the non-bailable warrant issued against him/her and thus render justice.
+
+{{place}}-7.
+{{date}}
+Counsel for the petitioner.
+{{advocate}}`
+  },
+  {
+    label: "Order 38 Rule 5 Notice (Attachment Before Judgment)",
+    name: "Order 38 Rule 5 Notice",
+    group: "Petitions",
+    sub: "Notice / Direction to Defendant to Furnish Security (Order 38 Rule 5 C.P.C.)",
+    text: `(Order 38 Rule 5)
+
+{{court}}
+
+I. A. No. {{iaNo}}
+in
+O. S. No. {{osNo}}
+
+{{client}}
+...{{clientRole}}
+
+Vs.
+
+{{opponent}}
+...{{opponentRole}}
+
+To
+(defendants name and address (es))
+{{defendantAddress}}
+
+Whereas the plaintiff (s) has/have made in the above application Praying for an attachment before judgement of the property mentioned in the schedule hereunder to answer any judgement that may be passed in his favour
+
+Taking notice that you the defendant(s) is/are hereby directed on or before {{directionDate}}
+
+1. To furnish security of a sum of Rs. {{securityAmount}} (Rupees {{securityAmountWords}} only)
+
+2. To produce and place at the disposal of the Court who require the entire property item(s) of the property the value of the entire property mentioned in the schedule hereunder sufficient to satisfy the decree that may be passed in favour of the plaintiff(s)
+
+3. In the default of furnishing security in the matter of the property mentioned belonging will be attached
+
+Given under my hand and the seal of the court this the {{date}}
+
+{{judge}}
+
+Schedule
+{{schedule}}
+
+Advocate for Petitioner:
+{{advocate}}`
   }
 ];
 
@@ -1186,7 +1896,7 @@ function RenderBlock({ block, folded }) {
     return <div style={{ textAlign: "center", fontWeight: 700, fontSize: 17.5, textDecoration: "underline", margin: "16px 0 12px", textTransform: "uppercase", letterSpacing: 0.5, whiteSpace: "pre-line" }}>{block.v}</div>;
   }
   if (block.t === "versus" || block.t === "vs") {
-    return <div style={{ textAlign: "center", fontStyle: "italic", margin: "6px 0", color: "#666", fontSize: 15.5 }}>— Versus —</div>;
+    return <div style={{ textAlign: "center", fontStyle: "italic", margin: "6px 0", color: "#666", fontSize: 15.5 }}>{block.v ? `— ${block.v} —` : "— Versus —"}</div>;
   }
   if (block.t === "party") {
     return folded ? (
@@ -1252,11 +1962,277 @@ function RenderBlock({ block, folded }) {
       </table>
     );
   }
+  if (block.t === "caForm14Table") {
+    const rows = block.rows || [];
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #222", margin: "14px 0", fontSize: 14 }}>
+        <thead>
+          <tr style={{ background: "#f2f2f2", fontWeight: 700, textAlign: "center" }}>
+            <th style={{ border: "1px solid #222", padding: "6px 4px", width: "8%", verticalAlign: "middle" }}>
+              லக்கம்<br/><span style={{ fontSize: 11.5, fontWeight: "normal", color: "#555" }}>(S.No.)</span>
+            </th>
+            <th style={{ border: "1px solid #222", padding: "6px 6px", width: "18%", verticalAlign: "middle", textAlign: "center" }}>
+              தஸ்தாவேசு தாக்கலான தேதி<br/><span style={{ fontSize: 11.5, fontWeight: "normal", color: "#555" }}>(Date of Filing)</span>
+            </th>
+            <th style={{ border: "1px solid #222", padding: "6px 6px", width: "18%", verticalAlign: "middle", textAlign: "center" }}>
+              தஸ்தாவேசு தேதி<br/><span style={{ fontSize: 11.5, fontWeight: "normal", color: "#555" }}>(Date of Doc)</span>
+            </th>
+            <th style={{ border: "1px solid #222", padding: "6px 8px", width: "28%", verticalAlign: "middle", textAlign: "left" }}>
+              தஸ்தாவேசு விபரம்<br/><span style={{ fontSize: 11.5, fontWeight: "normal", color: "#555" }}>(Description)</span>
+            </th>
+            <th style={{ border: "1px solid #222", padding: "6px 8px", width: "28%", verticalAlign: "middle", textAlign: "left" }}>
+              எந்த உத்திரவின் பேரில் மனு கொடுக்கப்படுகிறதோ அந்த உத்திரவின் விபரம்<br/><span style={{ fontSize: 11.5, fontWeight: "normal", color: "#555" }}>(Order / Purpose)</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "center", verticalAlign: "top" }}>{r.sno}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "center", verticalAlign: "top" }}>{r.filedDate}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "center", verticalAlign: "top" }}>{r.docDate}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 8px", verticalAlign: "top", lineHeight: 1.5 }}>{r.desc}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 8px", verticalAlign: "top", lineHeight: 1.5 }}>{r.purpose || r.remarks || ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  if (block.t === "form46ParticularsTable") {
+    const items = block.items || [];
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #333", margin: "14px 0", fontSize: 14 }}>
+        <tbody>
+          {items.map((it, i) => {
+            if (it.isHeader) {
+              return (
+                <tr key={i} style={{ background: "#ebebeb", fontWeight: 700 }}>
+                  <td colSpan={2} style={{ border: "1px solid #333", padding: "7px 10px", fontSize: 14.5, color: "#111" }}>
+                    {it.section}
+                  </td>
+                </tr>
+              );
+            }
+            return (
+              <tr key={i}>
+                <td style={{ border: "1px solid #ccc", width: "52%", padding: "6px 9px", lineHeight: 1.6, fontWeight: 600, color: "#222", verticalAlign: "top" }}>
+                  {it.q}
+                </td>
+                <td style={{ border: "1px solid #ccc", width: "48%", padding: "6px 9px", lineHeight: 1.6, color: "#111", verticalAlign: "top" }}>
+                  <b>:</b> {it.a}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
+  }
+  if (block.t === "lodgmentTable") {
+    const rows = block.rows || [];
+    const totals = block.totals || {};
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #222", margin: "14px 0", fontSize: 14.5 }}>
+        <thead>
+          <tr style={{ background: "#f2f2f2" }}>
+            <th rowSpan={3} style={{ border: "1px solid #222", padding: "6px 5px", textAlign: "left", verticalAlign: "middle", width: "34%" }}>
+              Particulars of funds to be lodged
+            </th>
+            <th rowSpan={3} style={{ border: "1px solid #222", padding: "6px 5px", textAlign: "left", verticalAlign: "middle", width: "26%" }}>
+              Person to make the lodgment
+            </th>
+            <th colSpan={4} style={{ border: "1px solid #222", padding: "5px 6px", textAlign: "center", width: "40%" }}>
+              Amount
+            </th>
+          </tr>
+          <tr style={{ background: "#f7f7f7" }}>
+            <th colSpan={2} style={{ border: "1px solid #222", padding: "4px 4px", textAlign: "center", width: "20%" }}>
+              Cash
+            </th>
+            <th colSpan={2} style={{ border: "1px solid #222", padding: "4px 4px", textAlign: "center", width: "20%" }}>
+              Securities
+            </th>
+          </tr>
+          <tr style={{ background: "#fafafa", fontSize: 13 }}>
+            <th style={{ border: "1px solid #222", padding: "3px 4px", textAlign: "center", width: "14%" }}>Rs.</th>
+            <th style={{ border: "1px solid #222", padding: "3px 4px", textAlign: "center", width: "6%" }}>P.</th>
+            <th style={{ border: "1px solid #222", padding: "3px 4px", textAlign: "center", width: "14%" }}>Rs.</th>
+            <th style={{ border: "1px solid #222", padding: "3px 4px", textAlign: "center", width: "6%" }}>P.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "left" }}>{r.particulars}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "left" }}>{r.lodger}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 5px", textAlign: "right" }}>{r.cashRs}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "center" }}>{r.cashP}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 5px", textAlign: "right" }}>{r.secRs}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "center" }}>{r.secP}</td>
+            </tr>
+          ))}
+          <tr style={{ fontWeight: 700, background: "#f7f7f7" }}>
+            <td colSpan={2} style={{ border: "1px solid #222", padding: "6px 8px", textAlign: "right" }}>
+              Total
+            </td>
+            <td style={{ border: "1px solid #222", padding: "6px 5px", textAlign: "right" }}>{totals.cashRs || "—"}</td>
+            <td style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "center" }}>{totals.cashP || "—"}</td>
+            <td style={{ border: "1px solid #222", padding: "6px 5px", textAlign: "right" }}>{totals.secRs || "—"}</td>
+            <td style={{ border: "1px solid #222", padding: "6px 4px", textAlign: "center" }}>{totals.secP || "—"}</td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+  if (block.t === "epTable") {
+    const rows = block.rows || [];
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #222", margin: "14px 0", fontSize: 14.5 }}>
+        <tbody>
+          {rows.map((r, i) => {
+            if (r.subTitle) {
+              return (
+                <tr key={i}>
+                  <td style={{ border: "1px solid #222", width: "45%", fontWeight: 700, padding: "7px 8px", verticalAlign: "top", lineHeight: 1.6 }}>
+                    <div>{r.no}. {r.title}</div>
+                    <div style={{ marginTop: 24 }}>{r.subTitle}</div>
+                  </td>
+                  <td style={{ border: "1px solid #222", width: "55%", padding: "7px 8px", verticalAlign: "top", lineHeight: 1.6, whiteSpace: "pre-line" }}>
+                    <div>{r.val}</div>
+                    <div style={{ marginTop: 16, paddingTop: 8, borderTop: "1px dashed #bbb" }}>{r.subVal}</div>
+                  </td>
+                </tr>
+              );
+            }
+            if (r.costs) {
+              const c = r.costs;
+              return (
+                <tr key={i}>
+                  <td style={{ border: "1px solid #222", width: "45%", fontWeight: 700, padding: "7px 8px", verticalAlign: "top", lineHeight: 1.6 }}>
+                    {r.no}. {r.title}
+                  </td>
+                  <td style={{ border: "1px solid #222", width: "55%", padding: "7px 8px", verticalAlign: "top", lineHeight: 1.6 }}>
+                    <div style={{ marginBottom: 8, fontWeight: 700 }}>{r.val}</div>
+                    <table style={{ width: "100%", fontSize: 13.5, borderCollapse: "collapse", marginTop: 6 }}>
+                      <tbody>
+                        <tr><td>இந்த மனுவுக்கான ஸ்டாம்ப்</td><td style={{ textAlign: "right" }}>ரூ. {c.stamp}</td></tr>
+                        <tr><td>இம்மனுவுக்கான வழக்கறிஞர் கட்டணம்</td><td style={{ textAlign: "right" }}>ரூ. {c.advocate}</td></tr>
+                        <tr><td>இம்மனு பிராசஸ் செலவு</td><td style={{ textAlign: "right" }}>ரூ. {c.process}</td></tr>
+                        <tr><td>தட்டச்சு கூலி</td><td style={{ textAlign: "right" }}>ரூ. {c.typing}</td></tr>
+                        <tr style={{ borderTop: "1.5px solid #333", fontWeight: 700 }}>
+                          <td>மொத்தம்</td><td style={{ textAlign: "right" }}>ரூ. {c.total}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              );
+            }
+            return (
+              <tr key={i}>
+                <td style={{ border: "1px solid #222", width: "45%", fontWeight: 700, padding: "7px 8px", verticalAlign: "top", lineHeight: 1.6 }}>
+                  {r.no}. {r.title}
+                </td>
+                <td style={{ border: "1px solid #222", width: "55%", padding: "7px 8px", verticalAlign: "top", lineHeight: 1.6, whiteSpace: "pre-line" }}>
+                  {r.val}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
+  }
+  if (block.t === "propValuationTable") {
+    const rows = block.rows || [];
+    return (
+      <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #222", margin: "14px 0", fontSize: 14 }}>
+        <thead>
+          <tr style={{ background: "#f2f2f2", fontWeight: 700 }}>
+            <th style={{ border: "1px solid #222", padding: "7px 6px", textAlign: "left", width: "20%" }}>Section and sub section of the Act.</th>
+            <th style={{ border: "1px solid #222", padding: "7px 6px", textAlign: "left", width: "28%" }}>Nature of suit</th>
+            <th style={{ border: "1px solid #222", padding: "7px 6px", textAlign: "center", width: "17%" }}>Annual revenue or rent payable</th>
+            <th style={{ border: "1px solid #222", padding: "7px 6px", textAlign: "center", width: "17%" }}>Market Value</th>
+            <th style={{ border: "1px solid #222", padding: "7px 6px", textAlign: "center", width: "18%" }}>Value for Purposes of Court fees</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "left", verticalAlign: "top" }}>{r.section}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "left", verticalAlign: "top" }}>{r.nature}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "right", verticalAlign: "top" }}>{r.revenue}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "right", verticalAlign: "top" }}>{r.marketVal}</td>
+              <td style={{ border: "1px solid #222", padding: "6px 6px", textAlign: "right", verticalAlign: "top" }}>{r.courtFeeVal}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+  if (block.t === "billOfCostsTable") {
+    const items = block.items || [];
+    return (
+      <div>
+        <table style={{ width: "100%", borderCollapse: "collapse", border: "1.5px solid #222", margin: "14px 0", fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: "#f2f2f2", fontWeight: 700 }}>
+              <th style={{ border: "1px solid #222", padding: "6px", textAlign: "center", width: "8%" }}>நெ.</th>
+              <th style={{ border: "1px solid #222", padding: "6px 8px", textAlign: "left", width: "68%" }}>விபரம்</th>
+              <th style={{ border: "1px solid #222", padding: "6px 8px", textAlign: "right", width: "24%" }}>தொகை (ரூ.)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it, i) => (
+              <tr key={i}>
+                <td style={{ border: "1px solid #222", padding: "5px 6px", textAlign: "center", verticalAlign: "top" }}>{it.no}</td>
+                <td style={{ border: "1px solid #222", padding: "5px 8px", verticalAlign: "top" }}>
+                  <div style={{ fontWeight: 600 }}>{it.title}</div>
+                  {it.sub && <div style={{ fontSize: 12.5, color: "#555", textAlign: "right", paddingRight: 16 }}>{it.sub}</div>}
+                </td>
+                <td style={{ border: "1px solid #222", padding: "5px 8px", textAlign: "right", verticalAlign: "top", fontFamily: "monospace", fontSize: 15 }}>
+                  {it.val === "0" || it.val === "—" ? "—" : it.val}
+                </td>
+              </tr>
+            ))}
+            <tr style={{ fontWeight: 700, background: "#fafafa", borderTop: "1.5px solid #222" }}>
+              <td colSpan={2} style={{ border: "1px solid #222", padding: "7px 10px", textAlign: "right" }}>Total Costs :-</td>
+              <td style={{ border: "1px solid #222", padding: "7px 8px", textAlign: "right", fontFamily: "monospace", fontSize: 15.5 }}>ரூ. {block.totalCosts || "0"}</td>
+            </tr>
+            <tr style={{ fontSize: 13.5 }}>
+              <td colSpan={2} style={{ border: "1px solid #222", padding: "6px 10px", textAlign: "right" }}>Credit the Costs allowed to the opponents:</td>
+              <td style={{ border: "1px solid #222", padding: "6px 8px", textAlign: "right", fontFamily: "monospace" }}>{block.creditCosts === "0" ? "—" : `ரூ. ${block.creditCosts || "0"}`}</td>
+            </tr>
+            <tr style={{ fontWeight: 700, background: "#f5f5f5" }}>
+              <td colSpan={2} style={{ border: "1px solid #222", padding: "7px 10px", textAlign: "right" }}>Balance Claimed:</td>
+              <td style={{ border: "1px solid #222", padding: "7px 8px", textAlign: "right", fontFamily: "monospace", fontSize: 15.5 }}>ரூ. {block.balanceClaimed || "0"}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style={{ marginTop: 14, border: "1px solid #bbb", padding: 12, background: "#fafafa", fontSize: 14, lineHeight: 1.6, borderRadius: 4 }}>
+          <div style={{ fontStyle: "italic", marginBottom: 8 }}>{block.advocateCert}</div>
+          <div style={{ marginTop: 12, display: "flex", justifyContent: "space-between" }}>
+            <div>Date :- {block.date}</div>
+            <div style={{ fontWeight: 700 }}>Advocate for {block.filedBy || "வாதி"}</div>
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 8, borderTop: "1px dashed #aaa", display: "flex", justifyContent: "space-between" }}>
+            <div>Sum if any disallow: ____________</div>
+            <div style={{ fontWeight: 700 }}>Amount allowed: ____________</div>
+          </div>
+        </div>
+        <div style={{ marginTop: 24, display: "flex", justifyContent: "space-between", fontWeight: 700, fontSize: 15 }}>
+          <div>Checked</div>
+          <div>District Judge / Munsif.</div>
+        </div>
+      </div>
+    );
+  }
   if (block.t === "signdual") {
     return (
-      <div style={{ marginTop: 36, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-end", fontWeight: 700, fontSize: 16 }}>
-        <div>{block.left || "Accused"}</div>
-        <div style={{ textAlign: "right" }}>{block.right || "Counsel for Accused"}</div>
+      <div style={{ marginTop: 32, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "flex-start", fontSize: 15.5, lineHeight: 1.65 }}>
+        <div style={{ whiteSpace: "pre-line", maxWidth: "58%" }}>{block.left || "Accused"}</div>
+        <div style={{ textAlign: "right", whiteSpace: "pre-line", maxWidth: "40%" }}>{block.right || "Counsel for Accused"}</div>
       </div>
     );
   }

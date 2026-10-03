@@ -35,7 +35,7 @@ export const ROTATING = ['a hearing', 'a deadline', 'a filing', 'a limitation', 
 
 /* Trust strip under the hero. All four are code-checkable. */
 export const HERO_PROOF = [
-  { k: '13', v: 'court-ready drafts' },     // TEMPLATES.length in templates.js
+  { k: '18', v: 'court-ready drafts' },     // TEMPLATES.length in templates.js
   { k: '8', v: 'workspace modules' },       // NAV_LINKS in Header.jsx
   { k: '3', v: 'reminder channels' },       // whatsapp | sms | email in Settings.jsx
   { k: '₹0', v: 'to start' },               // no billing gate anywhere in the API

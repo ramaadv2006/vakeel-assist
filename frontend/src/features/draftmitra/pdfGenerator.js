@@ -95,8 +95,34 @@ export function generateAndDownloadPdf(page1Blocks, page2Blocks, fileName = "Leg
         case "versus": {
           doc.setFont("times", "italic");
           doc.setFontSize(11);
-          doc.text("— Versus —", docketCenterX, docketY, { align: "center" });
+          const vText = b.v ? `— ${cleanText(b.v)} —` : "— Versus —";
+          doc.text(vText, docketCenterX, docketY, { align: "center" });
           docketY += 6;
+          break;
+        }
+        case "small": {
+          doc.setFont("times", "normal");
+          doc.setFontSize(9.5);
+          const rawLines = cleanText(b.v).split("\n");
+          for (const rLine of rawLines) {
+            const lines = doc.splitTextToSize(rLine, docketWidth);
+            for (const line of lines) {
+              doc.text(line, docketCenterX, docketY, { align: "center" });
+              docketY += 4.5;
+            }
+          }
+          docketY += 2;
+          break;
+        }
+        case "right": {
+          doc.setFont("times", "bold");
+          doc.setFontSize(10.5);
+          const rawLines = cleanText(b.v).split("\n");
+          for (const rLine of rawLines) {
+            doc.text(rLine, docketRight, docketY, { align: "right" });
+            docketY += 4.8;
+          }
+          docketY += 2;
           break;
         }
         case "title": {
@@ -274,7 +300,8 @@ export function generateAndDownloadPdf(page1Blocks, page2Blocks, fileName = "Leg
           doc.setFont("times", "italic");
           doc.setFontSize(12);
           checkPageBreak(8);
-          doc.text("— Versus —", pageWidth / 2, currentY, { align: "center" });
+          const vText = b.v ? `— ${cleanText(b.v)} —` : "— Versus —";
+          doc.text(vText, pageWidth / 2, currentY, { align: "center" });
           currentY += 7;
           break;
         }
@@ -458,14 +485,554 @@ export function generateAndDownloadPdf(page1Blocks, page2Blocks, fileName = "Leg
           currentY += 4;
           break;
         }
-        case "signdual": {
+        case "caForm14Table": {
+          const rows = b.rows || [];
+          if (rows.length === 0) break;
+
+          const colWidths = [12, 28, 28, 48, 46];
+          const colX = [
+            p1MarginLeft,
+            p1MarginLeft + colWidths[0],
+            p1MarginLeft + colWidths[0] + colWidths[1],
+            p1MarginLeft + colWidths[0] + colWidths[1] + colWidths[2],
+            p1MarginLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
+          ];
+          const headers = [
+            "S.No.",
+            "Date of Filing",
+            "Date of Doc",
+            "Description of Document",
+            "Order / Purpose Details",
+          ];
+
+          const headerHeight = 8;
+          checkPageBreak(headerHeight + 20);
+
+          doc.setLineWidth(0.3);
+          doc.rect(p1MarginLeft, currentY, p1ContentWidth, headerHeight);
+          for (let c = 1; c < colX.length; c++) {
+            doc.line(colX[c], currentY, colX[c], currentY + headerHeight);
+          }
+
           doc.setFont("times", "bold");
-          doc.setFontSize(12);
-          checkPageBreak(25);
+          doc.setFontSize(9);
+
+          for (let c = 0; c < headers.length; c++) {
+            const align = c === 0 ? "center" : "left";
+            const xPos = c === 0 ? colX[c] + colWidths[c] / 2 : colX[c] + 2;
+            doc.text(headers[c], xPos, currentY + 5.5, { align });
+          }
+          currentY += headerHeight;
+
+          doc.setFont("times", "normal");
+          doc.setFontSize(9);
+
+          for (const row of rows) {
+            const rowVals = [
+              row.sno || "",
+              row.filedDate || "",
+              row.docDate || "",
+              row.desc || "",
+              row.purpose || row.remarks || "",
+            ];
+            const cellLines = rowVals.map((v, i) => doc.splitTextToSize(cleanText(v), colWidths[i] - 4));
+            const maxLines = Math.max(...cellLines.map((l) => l.length), 1);
+            const rHeight = Math.max(maxLines * 4.8 + 3.5, 7.5);
+
+            checkPageBreak(rHeight + 2);
+
+            doc.rect(p1MarginLeft, currentY, p1ContentWidth, rHeight);
+            for (let c = 1; c < colX.length; c++) {
+              doc.line(colX[c], currentY, colX[c], currentY + rHeight);
+            }
+
+            for (let c = 0; c < rowVals.length; c++) {
+              const lines = cellLines[c];
+              let lineY = currentY + 5;
+              const align = c === 0 ? "center" : "left";
+              const xPos = c === 0 ? colX[c] + colWidths[c] / 2 : colX[c] + 2;
+              for (const l of lines) {
+                doc.text(l, xPos, lineY, { align });
+                lineY += 4.5;
+              }
+            }
+            currentY += rHeight;
+          }
+          currentY += 4;
+          break;
+        }
+        case "form46ParticularsTable": {
+          const items = b.items || [];
+          const wLeft = 86;
+          const wRight = p1ContentWidth - wLeft;
+          const x0 = p1MarginLeft;
+          const x1 = x0 + wLeft;
+
+          doc.setLineWidth(0.3);
+
+          for (const it of items) {
+            if (it.isHeader) {
+              const hHeight = 7.5;
+              checkPageBreak(hHeight + 16);
+              doc.setFont("times", "bold");
+              doc.setFontSize(9.5);
+              doc.rect(x0, currentY, p1ContentWidth, hHeight);
+              doc.text(cleanText(it.section || ""), x0 + 3, currentY + 5.2);
+              currentY += hHeight;
+              continue;
+            }
+
+            const qLines = doc.splitTextToSize(cleanText(it.q || ""), wLeft - 4);
+            const aLines = doc.splitTextToSize(`: ${cleanText(it.a || "")}`, wRight - 4);
+            const maxL = Math.max(qLines.length, aLines.length, 1);
+            const rHeight = Math.max(maxL * 4.4 + 3, 6.8);
+
+            checkPageBreak(rHeight + 2);
+
+            doc.rect(x0, currentY, p1ContentWidth, rHeight);
+            doc.line(x1, currentY, x1, currentY + rHeight);
+
+            doc.setFont("times", "bold");
+            doc.setFontSize(8.5);
+            let yQ = currentY + 4.5;
+            for (const l of qLines) {
+              doc.text(l, x0 + 2, yQ);
+              yQ += 4.2;
+            }
+
+            doc.setFont("times", "normal");
+            doc.setFontSize(8.5);
+            let yA = currentY + 4.5;
+            for (const l of aLines) {
+              doc.text(l, x1 + 2, yA);
+              yA += 4.2;
+            }
+
+            currentY += rHeight;
+          }
+          currentY += 4;
+          break;
+        }
+        case "lodgmentTable": {
+          const rows = b.rows || [];
+          const totals = b.totals || {};
+
+          const wPart = 54;
+          const wPerson = 44;
+          const wCashRs = 22;
+          const wCashP = 10;
+          const wSecRs = 22;
+          const wSecP = 10;
+
+          const x0 = p1MarginLeft;
+          const x1 = x0 + wPart;
+          const x2 = x1 + wPerson;
+          const x3 = x2 + wCashRs;
+          const x4 = x3 + wCashP;
+          const x5 = x4 + wSecRs;
+          const x6 = x5 + wSecP;
+
+          const headerHeight = 18;
+          checkPageBreak(headerHeight + 20);
+
+          doc.setLineWidth(0.3);
+          doc.rect(x0, currentY, p1ContentWidth, headerHeight);
+
+          doc.line(x1, currentY, x1, currentY + headerHeight);
+          doc.line(x2, currentY, x2, currentY + headerHeight);
+          doc.line(x2, currentY + 6, x6, currentY + 6);
+          doc.line(x4, currentY + 6, x4, currentY + headerHeight);
+          doc.line(x2, currentY + 12, x6, currentY + 12);
+          doc.line(x3, currentY + 12, x3, currentY + headerHeight);
+          doc.line(x5, currentY + 12, x5, currentY + headerHeight);
+
+          doc.setFont("times", "bold");
+          doc.setFontSize(9.5);
+
+          const p1Lines = ["Particulars of funds", "to be lodged"];
+          doc.text(p1Lines[0], x0 + wPart / 2, currentY + 7.5, { align: "center" });
+          doc.text(p1Lines[1], x0 + wPart / 2, currentY + 12.5, { align: "center" });
+
+          const p2Lines = ["Person to make", "the lodgment"];
+          doc.text(p2Lines[0], x1 + wPerson / 2, currentY + 7.5, { align: "center" });
+          doc.text(p2Lines[1], x1 + wPerson / 2, currentY + 12.5, { align: "center" });
+
+          doc.text("Amount", x2 + (x6 - x2) / 2, currentY + 4.5, { align: "center" });
+          doc.text("Cash", x2 + (x4 - x2) / 2, currentY + 10.2, { align: "center" });
+          doc.text("Securities", x4 + (x6 - x4) / 2, currentY + 10.2, { align: "center" });
+
+          doc.setFontSize(9);
+          doc.text("Rs.", x2 + wCashRs / 2, currentY + 16.2, { align: "center" });
+          doc.text("P.", x3 + wCashP / 2, currentY + 16.2, { align: "center" });
+          doc.text("Rs.", x4 + wSecRs / 2, currentY + 16.2, { align: "center" });
+          doc.text("P.", x5 + wSecP / 2, currentY + 16.2, { align: "center" });
+
+          currentY += headerHeight;
+
+          doc.setFont("times", "normal");
+          doc.setFontSize(9.5);
+
+          for (const row of rows) {
+            const partLines = doc.splitTextToSize(cleanText(row.particulars || ""), wPart - 4);
+            const lodgLines = doc.splitTextToSize(cleanText(row.lodger || ""), wPerson - 4);
+            const maxL = Math.max(partLines.length, lodgLines.length, 1);
+            const rHeight = Math.max(maxL * 5 + 4, 8.5);
+
+            checkPageBreak(rHeight + 2);
+
+            doc.rect(x0, currentY, p1ContentWidth, rHeight);
+            doc.line(x1, currentY, x1, currentY + rHeight);
+            doc.line(x2, currentY, x2, currentY + rHeight);
+            doc.line(x3, currentY, x3, currentY + rHeight);
+            doc.line(x4, currentY, x4, currentY + rHeight);
+            doc.line(x5, currentY, x5, currentY + rHeight);
+
+            let yCursor = currentY + 5;
+            for (const line of partLines) {
+              doc.text(line, x0 + 2, yCursor);
+              yCursor += 4.5;
+            }
+
+            yCursor = currentY + 5;
+            for (const line of lodgLines) {
+              doc.text(line, x1 + 2, yCursor);
+              yCursor += 4.5;
+            }
+
+            doc.text(cleanText(row.cashRs || "—"), x3 - 2, currentY + 5.5, { align: "right" });
+            doc.text(cleanText(row.cashP || "—"), x3 + wCashP / 2, currentY + 5.5, { align: "center" });
+            doc.text(cleanText(row.secRs || "—"), x5 - 2, currentY + 5.5, { align: "right" });
+            doc.text(cleanText(row.secP || "—"), x5 + wSecP / 2, currentY + 5.5, { align: "center" });
+
+            currentY += rHeight;
+          }
+
+          const totHeight = 8;
+          checkPageBreak(totHeight + 4);
+
+          doc.setFont("times", "bold");
+          doc.setFontSize(10);
+          doc.rect(x0, currentY, p1ContentWidth, totHeight);
+          doc.line(x2, currentY, x2, currentY + totHeight);
+          doc.line(x3, currentY, x3, currentY + totHeight);
+          doc.line(x4, currentY, x4, currentY + totHeight);
+          doc.line(x5, currentY, x5, currentY + totHeight);
+
+          doc.text("Total", x2 - 4, currentY + 5.5, { align: "right" });
+          doc.text(cleanText(totals.cashRs || "—"), x3 - 2, currentY + 5.5, { align: "right" });
+          doc.text(cleanText(totals.cashP || "—"), x3 + wCashP / 2, currentY + 5.5, { align: "center" });
+          doc.text(cleanText(totals.secRs || "—"), x5 - 2, currentY + 5.5, { align: "right" });
+          doc.text(cleanText(totals.secP || "—"), x5 + wSecP / 2, currentY + 5.5, { align: "center" });
+
+          currentY += totHeight + 4;
+          break;
+        }
+        case "epTable": {
+          const rows = b.rows || [];
+          const wLeft = 72;
+          const wRight = p1ContentWidth - wLeft;
+          const x0 = p1MarginLeft;
+          const x1 = x0 + wLeft;
+
+          doc.setLineWidth(0.3);
+
+          for (const row of rows) {
+            let leftLines = [];
+            let rightLines = [];
+
+            if (row.subTitle) {
+              const t1 = doc.splitTextToSize(cleanText(`${row.no}. ${row.title}`), wLeft - 4);
+              const t2 = doc.splitTextToSize(cleanText(row.subTitle), wLeft - 4);
+              leftLines = [...t1, "", ...t2];
+
+              const v1 = doc.splitTextToSize(cleanText(row.val || ""), wRight - 4);
+              const v2 = doc.splitTextToSize(cleanText(row.subVal || ""), wRight - 4);
+              rightLines = [...v1, "", ...v2];
+            } else if (row.costs) {
+              leftLines = doc.splitTextToSize(cleanText(`${row.no}. ${row.title}`), wLeft - 4);
+              const v1 = doc.splitTextToSize(cleanText(row.val || ""), wRight - 4);
+              const c = row.costs;
+              const costLines = [
+                `Stamp: Rs. ${cleanText(c.stamp)}`,
+                `Advocate Fee: Rs. ${cleanText(c.advocate)}`,
+                `Process: Rs. ${cleanText(c.process)}`,
+                `Typing: Rs. ${cleanText(c.typing)}`,
+                `Total: Rs. ${cleanText(c.total)}`,
+              ];
+              rightLines = [...v1, ...costLines];
+            } else {
+              leftLines = doc.splitTextToSize(cleanText(`${row.no}. ${row.title}`), wLeft - 4);
+              rightLines = doc.splitTextToSize(cleanText(row.val || ""), wRight - 4);
+            }
+
+            const maxL = Math.max(leftLines.length, rightLines.length, 1);
+            const rHeight = Math.max(maxL * 5 + 4, 8.5);
+
+            checkPageBreak(rHeight + 2);
+
+            doc.rect(x0, currentY, p1ContentWidth, rHeight);
+            doc.line(x1, currentY, x1, currentY + rHeight);
+
+            doc.setFont("times", "bold");
+            doc.setFontSize(9.5);
+            let yL = currentY + 5;
+            for (const l of leftLines) {
+              doc.text(l, x0 + 2, yL);
+              yL += 4.5;
+            }
+
+            doc.setFont("times", "normal");
+            doc.setFontSize(9.5);
+            let yR = currentY + 5;
+            for (const l of rightLines) {
+              doc.text(l, x1 + 2, yR);
+              yR += 4.5;
+            }
+
+            currentY += rHeight;
+          }
+          currentY += 4;
+          break;
+        }
+        case "propValuationTable": {
+          const rows = b.rows || [];
+          const wSec = 30;
+          const wNat = 42;
+          const wRev = 26;
+          const wMkt = 26;
+          const wFee = 26;
+          const x0 = p1MarginLeft;
+          const x1 = x0 + wSec;
+          const x2 = x1 + wNat;
+          const x3 = x2 + wRev;
+          const x4 = x3 + wMkt;
+          const x5 = x4 + wFee;
+
+          const headerHeight = 14;
+          checkPageBreak(headerHeight + 20);
+
+          doc.setLineWidth(0.3);
+          doc.rect(x0, currentY, p1ContentWidth, headerHeight);
+          doc.line(x1, currentY, x1, currentY + headerHeight);
+          doc.line(x2, currentY, x2, currentY + headerHeight);
+          doc.line(x3, currentY, x3, currentY + headerHeight);
+          doc.line(x4, currentY, x4, currentY + headerHeight);
+
+          doc.setFont("times", "bold");
+          doc.setFontSize(8.5);
+
+          doc.text("Section and sub", x0 + wSec / 2, currentY + 5.5, { align: "center" });
+          doc.text("section of Act", x0 + wSec / 2, currentY + 10, { align: "center" });
+
+          doc.text("Nature of suit", x1 + wNat / 2, currentY + 8, { align: "center" });
+
+          doc.text("Annual revenue", x2 + wRev / 2, currentY + 5.5, { align: "center" });
+          doc.text("or rent payable", x2 + wRev / 2, currentY + 10, { align: "center" });
+
+          doc.text("Market Value", x3 + wMkt / 2, currentY + 8, { align: "center" });
+
+          doc.text("Value for Purposes", x4 + wFee / 2, currentY + 5.5, { align: "center" });
+          doc.text("of Court fees", x4 + wFee / 2, currentY + 10, { align: "center" });
+
+          currentY += headerHeight;
+
+          doc.setFont("times", "normal");
+          doc.setFontSize(9);
+
+          for (const row of rows) {
+            const secLines = doc.splitTextToSize(cleanText(row.section || ""), wSec - 4);
+            const natLines = doc.splitTextToSize(cleanText(row.nature || ""), wNat - 4);
+            const revLines = doc.splitTextToSize(cleanText(row.revenue || ""), wRev - 4);
+            const mktLines = doc.splitTextToSize(cleanText(row.marketVal || ""), wMkt - 4);
+            const feeLines = doc.splitTextToSize(cleanText(row.courtFeeVal || ""), wFee - 4);
+
+            const maxL = Math.max(secLines.length, natLines.length, revLines.length, mktLines.length, feeLines.length, 1);
+            const rHeight = Math.max(maxL * 4.6 + 4, 8);
+
+            checkPageBreak(rHeight + 2);
+
+            doc.rect(x0, currentY, p1ContentWidth, rHeight);
+            doc.line(x1, currentY, x1, currentY + rHeight);
+            doc.line(x2, currentY, x2, currentY + rHeight);
+            doc.line(x3, currentY, x3, currentY + rHeight);
+            doc.line(x4, currentY, x4, currentY + rHeight);
+
+            let yCursor = currentY + 5;
+            for (const l of secLines) {
+              doc.text(l, x0 + 2, yCursor);
+              yCursor += 4.2;
+            }
+
+            yCursor = currentY + 5;
+            for (const l of natLines) {
+              doc.text(l, x1 + 2, yCursor);
+              yCursor += 4.2;
+            }
+
+            yCursor = currentY + 5;
+            for (const l of revLines) {
+              doc.text(l, x3 - 2, yCursor, { align: "right" });
+              yCursor += 4.2;
+            }
+
+            yCursor = currentY + 5;
+            for (const l of mktLines) {
+              doc.text(l, x4 - 2, yCursor, { align: "right" });
+              yCursor += 4.2;
+            }
+
+            yCursor = currentY + 5;
+            for (const l of feeLines) {
+              doc.text(l, x5 - 2, yCursor, { align: "right" });
+              yCursor += 4.2;
+            }
+
+            currentY += rHeight;
+          }
+          currentY += 4;
+          break;
+        }
+        case "billOfCostsTable": {
+          const items = b.items || [];
+          const wNo = 12;
+          const wAmt = 35;
+          const wDesc = p1ContentWidth - wNo - wAmt;
+          const x0 = p1MarginLeft;
+          const x1 = x0 + wNo;
+          const x2 = x1 + wDesc;
+          const x3 = x0 + p1ContentWidth;
+
+          const headerHeight = 8;
+          checkPageBreak(headerHeight + 20);
+
+          doc.setLineWidth(0.3);
+          doc.rect(x0, currentY, p1ContentWidth, headerHeight);
+          doc.line(x1, currentY, x1, currentY + headerHeight);
+          doc.line(x2, currentY, x2, currentY + headerHeight);
+
+          doc.setFont("times", "bold");
+          doc.setFontSize(9.5);
+          doc.text("S.No.", x0 + wNo / 2, currentY + 5.5, { align: "center" });
+          doc.text("Particulars / Description", x1 + 3, currentY + 5.5);
+          doc.text("Amount (Rs.)", x3 - 3, currentY + 5.5, { align: "right" });
+
+          currentY += headerHeight;
+
+          doc.setFont("times", "normal");
+          doc.setFontSize(9);
+
+          for (const it of items) {
+            const descLines = doc.splitTextToSize(cleanText(it.title || ""), wDesc - 4);
+            const rHeight = Math.max(descLines.length * 4.5 + 2.5, 6.5);
+
+            checkPageBreak(rHeight + 2);
+
+            doc.rect(x0, currentY, p1ContentWidth, rHeight);
+            doc.line(x1, currentY, x1, currentY + rHeight);
+            doc.line(x2, currentY, x2, currentY + rHeight);
+
+            doc.text(String(it.no), x0 + wNo / 2, currentY + 4.8, { align: "center" });
+
+            let yDesc = currentY + 4.8;
+            for (const l of descLines) {
+              doc.text(l, x1 + 2, yDesc);
+              yDesc += 4.2;
+            }
+
+            const amtVal = it.val === "0" || it.val === "—" ? "—" : cleanText(it.val);
+            doc.text(amtVal, x3 - 3, currentY + 4.8, { align: "right" });
+
+            currentY += rHeight;
+          }
+
+          const totH = 7.5;
+          checkPageBreak(totH * 3 + 35);
+
+          doc.setFont("times", "bold");
+          doc.setFontSize(9.5);
+
+          doc.rect(x0, currentY, p1ContentWidth, totH);
+          doc.line(x2, currentY, x2, currentY + totH);
+          doc.text("Total Costs :-", x2 - 4, currentY + 5.2, { align: "right" });
+          doc.text(`Rs. ${cleanText(b.totalCosts || "0")}`, x3 - 3, currentY + 5.2, { align: "right" });
+          currentY += totH;
+
+          doc.setFont("times", "normal");
+          doc.setFontSize(8.5);
+          doc.rect(x0, currentY, p1ContentWidth, totH);
+          doc.line(x2, currentY, x2, currentY + totH);
+          doc.text("Credit the Costs allowed to the opponents:", x2 - 4, currentY + 5.2, { align: "right" });
+          doc.text(b.creditCosts === "0" ? "—" : `Rs. ${cleanText(b.creditCosts || "0")}`, x3 - 3, currentY + 5.2, { align: "right" });
+          currentY += totH;
+
+          doc.setFont("times", "bold");
+          doc.setFontSize(9.5);
+          doc.rect(x0, currentY, p1ContentWidth, totH);
+          doc.line(x2, currentY, x2, currentY + totH);
+          doc.text("Balance Claimed:", x2 - 4, currentY + 5.2, { align: "right" });
+          doc.text(`Rs. ${cleanText(b.balanceClaimed || "0")}`, x3 - 3, currentY + 5.2, { align: "right" });
+          currentY += totH + 4;
+
+          const boxH = 34;
+          checkPageBreak(boxH + 18);
+
+          doc.setLineWidth(0.3);
+          doc.rect(x0, currentY, p1ContentWidth, boxH);
+
+          doc.setFont("times", "italic");
+          doc.setFontSize(8.5);
+          const certLines = doc.splitTextToSize(cleanText(b.advocateCert || ""), p1ContentWidth - 8);
+          let yCert = currentY + 5;
+          for (const l of certLines) {
+            doc.text(l, x0 + 4, yCert);
+            yCert += 4.2;
+          }
+
+          doc.setFont("times", "bold");
+          doc.setFontSize(9);
+          doc.text(`Date :- ${cleanText(b.date || "")}`, x0 + 4, currentY + 22);
+          doc.text(`Advocate for ${cleanText(b.filedBy || "Plaintiff")}`, x3 - 4, currentY + 22, { align: "right" });
+
+          doc.setFont("times", "normal");
+          doc.setFontSize(8.5);
+          doc.text("Sum if any disallow: ____________", x0 + 4, currentY + 30);
+          doc.text("Amount allowed: ____________", x3 - 4, currentY + 30, { align: "right" });
+
+          currentY += boxH + 8;
+
+          doc.setFont("times", "bold");
+          doc.setFontSize(10);
+          doc.text("Checked", x0, currentY);
+          doc.text("District Judge / Munsif.", x3, currentY, { align: "right" });
           currentY += 8;
-          doc.text(cleanText(b.left || "Accused"), p1MarginLeft, currentY);
-          doc.text(cleanText(b.right || "Counsel for Accused"), pageWidth - p1MarginRight, currentY, { align: "right" });
-          currentY += 10;
+          break;
+        }
+        case "signdual": {
+          doc.setFont("times", "normal");
+          doc.setFontSize(10.5);
+          const rawLeft = cleanText(b.left || "Accused");
+          const rawRight = cleanText(b.right || "Counsel for Accused");
+          const leftLines = rawLeft.split("\n").flatMap((l) => doc.splitTextToSize(l, 85));
+          const rightLines = rawRight.split("\n").flatMap((l) => doc.splitTextToSize(l, 60));
+          const maxLines = Math.max(leftLines.length, rightLines.length, 1);
+
+          checkPageBreak(maxLines * 5 + 12);
+          currentY += 6;
+
+          const startY = currentY;
+          let yL = startY;
+          for (const l of leftLines) {
+            doc.text(l, p1MarginLeft, yL);
+            yL += 4.8;
+          }
+
+          let yR = startY;
+          for (const l of rightLines) {
+            doc.text(l, pageWidth - p1MarginRight, yR, { align: "right" });
+            yR += 4.8;
+          }
+
+          currentY = Math.max(yL, yR) + 4;
           break;
         }
         case "sign": {
